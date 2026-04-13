@@ -69,16 +69,18 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
     setUploading(true); setFileError('');
     try {
       const fd = new FormData(); fd.append('file', file); fd.append('folder', 'equipment');
+      console.log('[upload:lifting] starting', file.name, file.size, file.type);
       const ur = await fetch('/api/upload', { method: 'POST', body: fd });
-      const ud = await ur.json();
-      if (!ur.ok) { setFileError(ud.error ?? 'שגיאה'); return; }
+      console.log('[upload:lifting] status:', ur.status, ur.ok);
+      const ud = await ur.json().catch(e => { console.error('[upload:lifting] json parse error:', e, 'content-type:', ur.headers.get('content-type')); return {}; });
+      if (!ur.ok) { console.error('[upload:lifting] server error:', ur.status, ud); setFileError(ud.error ?? 'שגיאה'); return; }
       const res = await fetch(`/api/lifting-equipment/${eq.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inspection_file_url: ud.path }),
       });
       const data = await res.json();
       if (res.ok) setEq(data);
-    } catch { setFileError('שגיאה'); } finally { setUploading(false); }
+    } catch (err) { console.error('[upload:lifting] fetch error:', err); setFileError('שגיאה'); } finally { setUploading(false); }
   }
 
   async function handleDeleteFile() {
