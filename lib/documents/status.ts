@@ -1,0 +1,219 @@
+import { differenceInDays, parseISO, startOfDay } from 'date-fns';
+import {
+  Document,
+  DocumentStatus,
+  DocumentType,
+  SafetyBriefing,
+  HeightRestriction,
+  HeavyEquipment,
+  LiftingEquipment,
+  WorkerWithDocuments,
+  REQUIRED_DOCUMENT_TYPES_FOR_FOREIGN,
+  REQUIRED_DOCUMENT_TYPES_FOR_ISRAELI,
+} from '@/types';
+
+/**
+ * חוקי סטטוס מסמך:
+ * - is_required=false + אין קובץ → 'not_required'
+ * - אין קובץ → 'missing'
+ * - יש קובץ + אין תאריך → 'valid'
+ * - יש קובץ + תוקף פג → 'expired'
+ * - יש קובץ + תוקף עד 14 יום → 'expiring_soon'
+ * - יש קובץ + תוקף תקין → 'valid'
+ */
+export function getDocumentStatus(
+  fileUrl: string | null,
+  expiryDate: string | null,
+  isRequired = true
+): DocumentStatus {
+  if (!fileUrl) return isRequired ? 'missing' : 'not_required';
+
+  if (!expiryDate) return 'valid';
+
+  const today = startOfDay(new Date());
+  const expiry = startOfDay(parseISO(expiryDate));
+  const daysLeft = differenceInDays(expiry, today);
+
+  if (daysLeft < 0) return 'expired';
+  if (daysLeft <= 14) return 'expiring_soon';
+  return 'valid';
+}
+
+/**
+ * סטטוס איסור עבודה בגובה (HeightRestriction):
+ */
+export function getHeightRestrictionStatus(restriction: HeightRestriction | null | undefined): DocumentStatus {
+  if (!restriction) return 'missing';
+
+  const today = startOfDay(new Date());
+  const expiry = startOfDay(parseISO(restriction.expires_at));
+  const daysLeft = differenceInDays(expiry, today);
+
+  if (daysLeft < 0) return 'expired';
+  if (daysLeft <= 14) return 'expiring_soon';
+  return 'valid';
+}
+
+/**
+ * סטטוס תדריך בטיחות:
+ */
+export function getBriefingStatus(briefing: SafetyBriefing | null | undefined): DocumentStatus {
+  if (!briefing) return 'missing';
+
+  const today = startOfDay(new Date());
+  const expiry = startOfDay(parseISO(briefing.expires_at));
+  const daysLeft = differenceInDays(expiry, today);
+
+  if (daysLeft < 0) return 'expired';
+  if (daysLeft <= 14) return 'expiring_soon';
+  return 'valid';
+}
+
+const STATUS_SEVERITY: Record<DocumentStatus, number> = {
+  expired: 3,
+  missing: 3,       // חסר = חמור כמו פג תוקף
+  expiring_soon: 1,
+  valid: 0,
+  not_required: 0,  // לא נדרש = לא פוגע בסטטוס
+};
+
+export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
+  const requiredTypes =
+    worker.worker_type === 'foreign'
+      ? REQUIRED_DOCUMENT_TYPES_FOR_FOREIGN
+      : REQUIRED_DOCUMENT_TYPES_FOR_ISRAELI;
+
+  const docMap = new Map<DocumentType, Document>(
+    worker.documents
+      .filter((d) => d.doc_type !== 'optional_license')
+      .map((d) => [d.doc_type as DocumentType, d])
+  );
+
+  let worstStatus: DocumentStatus = 'valid';
+
+  for (const docType of requiredTypes) {
+    if (docType === 'height_permit') continue; // מטופל בנפרד עם לוגיקת permit+ban
+
+    const doc = docMap.get(docType);
+    // תעודת זהות: תמיד חובה ואין תאריך תוקף — רק קיום קובץ
+    const isRequired = docType === 'id_document' ? true : (doc ? doc.is_required !== false : true);
+    const expiryDate = docType === 'id_document' ? null : (doc?.expiry_date ?? null);
+    const status = getDocumentStatus(doc?.file_url ?? null, expiryDate, isRequired);
+
+    if (STATUS_SEVERITY[status] > STATUS_SEVERITY[worstStatus]) {
+      worstStatus = status;
+    }
+  }
+
+  // עבודה בגובה: לוגיקה משולבת — permit OR ban (מספיק שאחד מהם תקף)
+  const heightPermitDoc = docMap.get('height_permit');
+  const heightPermitStatus = getDocumentStatus(
+    heightPermitDoc?.file_url ?? null,
+    heightPermitDoc?.expiry_date ?? null,
+    true // height_permit תמיד נדרש
+  );
+
+  const latestRestriction =
+    (worker.height_restrictions ?? []).slice().sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0] ?? null;
+  const heightBanStatus = getHeightRestrictionStatus(latestRestriction);
+
+  // לוקחים את הסטטוס הטוב יותר מבין השניים (הפחות חמור)
+  const heightCombinedStatus: DocumentStatus =
+    STATUS_SEVERITY[heightPermitStatus] <= STATUS_SEVERITY[heightBanStatus]
+      ? heightPermitStatus
+      : heightBanStatus;
+
+  if (STATUS_SEVERITY[heightCombinedStatus] > STATUS_SEVERITY[worstStatus]) {
+    worstStatus = heightCombinedStatus;
+  }
+
+  // תדריך בטיחות — הכי עדכני לפי created_at
+  const latestBriefing =
+    (worker.safety_briefings ?? []).slice().sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0] ?? null;
+
+  const briefingStatus = getBriefingStatus(latestBriefing);
+  if (STATUS_SEVERITY[briefingStatus] > STATUS_SEVERITY[worstStatus]) {
+    worstStatus = briefingStatus;
+  }
+
+  return worstStatus;
+}
+
+/**
+ * סטטוס מסמך לציוד (שונה מ-getDocumentStatus):
+ * - יש קובץ + אין תאריך תוקף => 'missing' (לא 'valid')
+ * - אין קובץ + לא נדרש => 'not_required'
+ * - אין קובץ + נדרש => 'missing'
+ */
+export function getEquipmentDocumentStatus(
+  fileUrl: string | null,
+  expiryDate: string | null,
+  isRequired = true
+): DocumentStatus {
+  if (!fileUrl) return isRequired ? 'missing' : 'not_required';
+  if (!expiryDate) return 'missing';
+
+  const today = startOfDay(new Date());
+  const expiry = startOfDay(parseISO(expiryDate));
+  const daysLeft = differenceInDays(expiry, today);
+
+  if (daysLeft < 0) return 'expired';
+  if (daysLeft <= 14) return 'expiring_soon';
+  return 'valid';
+}
+
+/** סטטוס כלי צמ"ה */
+export function getHeavyEquipmentStatus(eq: HeavyEquipment): DocumentStatus {
+  let worst: DocumentStatus = 'valid';
+
+  // רישיון וביטוח — נדרשים תמיד
+  const requiredFields: Array<{ file: string | null; expiry: string | null }> = [
+    { file: eq.license_file_url, expiry: eq.license_expiry },
+    { file: eq.insurance_file_url, expiry: eq.insurance_expiry },
+  ];
+  for (const { file, expiry } of requiredFields) {
+    const s = getEquipmentDocumentStatus(file, expiry, true);
+    if (STATUS_SEVERITY[s] > STATUS_SEVERITY[worst]) worst = s;
+  }
+
+  // תסקיר — אופציונלי: אם הועלה קובץ, חייב להיות עם תאריך תקין
+  if (eq.inspection_file_url || eq.inspection_expiry) {
+    const s = getEquipmentDocumentStatus(eq.inspection_file_url, eq.inspection_expiry, false);
+    if (STATUS_SEVERITY[s] > STATUS_SEVERITY[worst]) worst = s;
+  }
+
+  return worst;
+}
+
+/** סטטוס ציוד הרמה */
+export function getLiftingEquipmentStatus(eq: LiftingEquipment): DocumentStatus {
+  return getEquipmentDocumentStatus(eq.inspection_file_url, eq.inspection_expiry, true);
+}
+
+export const STATUS_COLORS: Record<DocumentStatus, string> = {
+  valid: 'bg-green-100 text-green-800 border-green-200',
+  expiring_soon: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  expired: 'bg-red-100 text-red-800 border-red-200',
+  missing: 'bg-red-100 text-red-800 border-red-200',
+  not_required: 'bg-gray-100 text-gray-500 border-gray-200',
+};
+
+export const STATUS_DOT_COLORS: Record<DocumentStatus, string> = {
+  valid: 'bg-green-500',
+  expiring_soon: 'bg-yellow-500',
+  expired: 'bg-red-500',
+  missing: 'bg-red-500',
+  not_required: 'bg-gray-400',
+};
+
+export const STATUS_LABELS: Record<DocumentStatus, string> = {
+  valid: 'תקין',
+  expiring_soon: 'עומד לפוג',
+  expired: 'לא תקין',
+  missing: 'לא תקין',
+  not_required: 'לא נדרש',
+};
