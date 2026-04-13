@@ -24,6 +24,11 @@ export async function POST(request: NextRequest) {
     const adminPhone = normalizePhone(process.env.ADMIN_PHONE ?? '');
     const viewerPhone = normalizePhone(process.env.VIEWER_PHONE ?? '');
 
+    console.log('[login] received phone:', normalized);
+    console.log('[login] ADMIN_PHONE env:', adminPhone || '(not set)');
+    console.log('[login] VIEWER_PHONE env:', viewerPhone || '(not set)');
+    console.log('[login] SESSION_SECRET set:', !!process.env.SESSION_SECRET);
+
     let role: 'admin' | 'viewer' | null = null;
 
     if (normalized === adminPhone && password === process.env.ADMIN_PASSWORD) {
@@ -33,10 +38,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (!role) {
+      console.log('[login] auth failed — no role match for phone:', normalized);
       // עיכוב קצר — מניעת timing attacks
       await new Promise(r => setTimeout(r, 500));
       return NextResponse.json({ error: 'מספר טלפון או סיסמה שגויים' }, { status: 401 });
     }
+
+    console.log('[login] auth success, role:', role);
 
     const token = await signSession({ role, phone: normalized, loginAt: Date.now() });
     const isProd = process.env.NODE_ENV === 'production';

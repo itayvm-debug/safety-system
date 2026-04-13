@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 export default function LoginPage() {
@@ -9,7 +8,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const router = useRouter();
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -29,8 +27,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push('/workers');
-      router.refresh();
+      window.location.href = '/workers';
     } catch {
       setError('שגיאת תקשורת — נסה שנית');
     } finally {
