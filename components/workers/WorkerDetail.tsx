@@ -364,16 +364,18 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', 'photos');
+      console.log('[upload:photo] starting', file.name, file.size, file.type);
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) { alert(uploadData.error); return; }
+      console.log('[upload:photo] status:', uploadRes.status, uploadRes.ok);
+      const uploadData = await uploadRes.json().catch(e => { console.error('[upload:photo] json parse error:', e, 'content-type:', uploadRes.headers.get('content-type')); return {}; });
+      if (!uploadRes.ok) { console.error('[upload:photo] server error:', uploadRes.status, uploadData); alert(uploadData.error ?? 'שגיאה בהעלאת תמונה'); return; }
       await fetch(`/api/workers/${worker.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photo_url: uploadData.path }),
       });
       router.refresh();
-    } catch { alert('שגיאה בהעלאת תמונה'); } finally { setUploading(false); }
+    } catch (err) { console.error('[upload:photo] fetch error:', err); alert('שגיאה בהעלאת תמונה'); } finally { setUploading(false); }
   }
 
   return (
@@ -445,9 +447,11 @@ function DocumentCard({
     try {
       const formData = new FormData();
       formData.append('file', file); formData.append('folder', 'documents');
+      console.log('[upload:doc] starting', file.name, file.size, file.type);
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) { setError(uploadData.error ?? 'שגיאה בהעלאה'); return; }
+      console.log('[upload:doc] status:', uploadRes.status, uploadRes.ok);
+      const uploadData = await uploadRes.json().catch(e => { console.error('[upload:doc] json parse error:', e, 'content-type:', uploadRes.headers.get('content-type')); return {}; });
+      if (!uploadRes.ok) { console.error('[upload:doc] server error:', uploadRes.status, uploadData); setError(uploadData.error ?? 'שגיאה בהעלאה'); return; }
 
       const docRes = await fetch('/api/documents', {
         method: 'POST',
@@ -465,7 +469,7 @@ function DocumentCard({
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000);
       onFileUploaded();
-    } catch { setError('שגיאה בהעלאה'); } finally { setUploading(false); }
+    } catch (err) { console.error('[upload:doc] fetch error:', err); setError('שגיאה בהעלאה'); } finally { setUploading(false); }
   }
 
   async function handleDeleteDocument() {

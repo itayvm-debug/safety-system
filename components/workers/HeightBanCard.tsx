@@ -145,11 +145,14 @@ function HeightBanForm({
       // שלב 2: העלאה
       setSaveStatus('מעלה PDF...');
       const formData = new FormData();
-      formData.append('file', new File([pdfBlob], `height-ban-${Date.now()}.pdf`, { type: 'application/pdf' }));
+      const pdfFile = new File([pdfBlob], `height-ban-${Date.now()}.pdf`, { type: 'application/pdf' });
+      formData.append('file', pdfFile);
       formData.append('folder', 'briefings');
+      console.log('[upload:heightban] starting', pdfFile.name, pdfFile.size, pdfFile.type);
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) { setError(uploadData.error ?? 'שגיאה בהעלאת PDF'); return; }
+      console.log('[upload:heightban] status:', uploadRes.status, uploadRes.ok);
+      const uploadData = await uploadRes.json().catch(e => { console.error('[upload:heightban] json parse error:', e, 'content-type:', uploadRes.headers.get('content-type')); return {}; });
+      if (!uploadRes.ok) { console.error('[upload:heightban] server error:', uploadRes.status, uploadData); setError(uploadData.error ?? 'שגיאה בהעלאת PDF'); return; }
 
       // שלב 3: שמירה ב-DB
       setSaveStatus('שומר...');

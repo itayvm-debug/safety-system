@@ -231,9 +231,11 @@ function EquipmentFileCard({
     try {
       const fd = new FormData();
       fd.append('file', file); fd.append('folder', 'equipment');
+      console.log('[upload:heavy] starting', file.name, file.size, file.type);
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
-      const ud = await uploadRes.json();
-      if (!uploadRes.ok) { setError(ud.error ?? 'שגיאה'); return; }
+      console.log('[upload:heavy] status:', uploadRes.status, uploadRes.ok);
+      const ud = await uploadRes.json().catch(e => { console.error('[upload:heavy] json parse error:', e, 'content-type:', uploadRes.headers.get('content-type')); return {}; });
+      if (!uploadRes.ok) { console.error('[upload:heavy] server error:', uploadRes.status, ud); setError(ud.error ?? 'שגיאה'); return; }
 
       const res = await fetch(`/api/heavy-equipment/${equipmentId}`, {
         method: 'PATCH',
@@ -241,7 +243,7 @@ function EquipmentFileCard({
         body: JSON.stringify({ [fileField]: ud.path }),
       });
       if (res.ok) onFileUploaded(ud.path);
-    } catch { setError('שגיאה'); } finally { setUploading(false); }
+    } catch (err) { console.error('[upload:heavy] fetch error:', err); setError('שגיאה'); } finally { setUploading(false); }
   }
 
   async function handleDelete() {

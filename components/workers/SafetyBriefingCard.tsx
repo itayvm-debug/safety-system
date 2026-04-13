@@ -167,9 +167,12 @@ function SystemBriefingFlow({
       const fd = new FormData();
       fd.append('file', pdfBlob, 'briefing.pdf');
       fd.append('folder', 'briefings');
+      console.log('[upload:briefing] starting, blob size:', pdfBlob.size, pdfBlob.type);
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
-      const uploadData = await uploadRes.json();
+      console.log('[upload:briefing] status:', uploadRes.status, uploadRes.ok);
+      const uploadData = await uploadRes.json().catch(e => { console.error('[upload:briefing] json parse error:', e, 'content-type:', uploadRes.headers.get('content-type')); return {}; });
       if (!uploadRes.ok) {
+        console.error('[upload:briefing] server error:', uploadRes.status, uploadData);
         setError(`שגיאה בהעלאה: ${uploadData.error ?? uploadRes.status}`);
         return;
       }
@@ -338,11 +341,13 @@ function ExternalModeForm({ workerId, onClose, onSaved }: { workerId: string; on
     setFileUploading(true);
     try {
       const fd = new FormData(); fd.append('file', file); fd.append('folder', 'documents');
+      console.log('[upload:briefing-ext] starting', file.name, file.size, file.type);
       const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      const d = await res.json();
-      if (!res.ok) { setError(d.error ?? 'שגיאה'); return; }
+      console.log('[upload:briefing-ext] status:', res.status, res.ok);
+      const d = await res.json().catch(e => { console.error('[upload:briefing-ext] json parse error:', e, 'content-type:', res.headers.get('content-type')); return {}; });
+      if (!res.ok) { console.error('[upload:briefing-ext] server error:', res.status, d); setError(d.error ?? 'שגיאה'); return; }
       setFileUrl(d.path);
-    } catch { setError('שגיאה בהעלאה'); } finally { setFileUploading(false); }
+    } catch (err) { console.error('[upload:briefing-ext] fetch error:', err); setError('שגיאה בהעלאה'); } finally { setFileUploading(false); }
   }
 
   async function handleSave() {
