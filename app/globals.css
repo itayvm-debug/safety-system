@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* תמיכה ב-RTL */
+* {
+  box-sizing: border-box;
+}
+
+input, textarea, select {
+  text-align: right;
+}
