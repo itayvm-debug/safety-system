@@ -34,7 +34,7 @@ export default function NavBar() {
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         {/* לוגו */}
-        <Link href="/workers" className="flex items-center gap-3 shrink-0">
+        <Link href="/dashboard" className="flex items-center gap-3 shrink-0">
           <Image src="/logo.png" alt="לוגו חברה" width={40} height={40} className="object-contain" priority />
           <div className="leading-tight hidden sm:block">
             <p className="font-bold text-gray-900 text-sm">נתן ולדמן ובניו בע"מ</p>

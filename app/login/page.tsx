@@ -27,7 +27,7 @@ export default function LoginPage() {
         return;
       }
 
-      window.location.href = '/workers';
+      window.location.href = '/dashboard';
     } catch {
       setError('שגיאת תקשורת — נסה שנית');
     } finally {
