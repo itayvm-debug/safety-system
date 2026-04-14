@@ -53,7 +53,11 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('[documents] upsert error:', error.message, error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  console.log('[documents] upsert ok, id:', data?.id, 'doc_type:', data?.doc_type, 'file_url:', data?.file_url);
   return NextResponse.json(data);
 }
 
