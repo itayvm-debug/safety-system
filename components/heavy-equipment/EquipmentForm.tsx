@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { HeavyEquipment, Subcontractor } from '@/types';
+import { HeavyEquipment, Subcontractor, POWER_TYPE_LABELS, PowerType } from '@/types';
 
 interface Props {
   equipment?: HeavyEquipment;
@@ -17,6 +17,10 @@ export default function EquipmentForm({ equipment }: Props) {
     license_number: equipment?.license_number ?? '',
     subcontractor_id: equipment?.subcontractor_id ?? '',
     project_name: equipment?.project_name ?? '',
+    manufacturer: equipment?.manufacturer ?? '',
+    machine_identifier: equipment?.machine_identifier ?? '',
+    safe_working_load: equipment?.safe_working_load ?? '',
+    power_type: equipment?.power_type ?? '',
   });
   const [subcontractors, setSubcontractors] = useState<Pick<Subcontractor, 'id' | 'name'>[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,6 +48,10 @@ export default function EquipmentForm({ equipment }: Props) {
           license_number: form.license_number.trim() || null,
           subcontractor_id: form.subcontractor_id || null,
           project_name: form.project_name.trim() || null,
+          manufacturer: form.manufacturer.trim() || null,
+          machine_identifier: form.machine_identifier.trim() || null,
+          safe_working_load: form.safe_working_load.trim() || null,
+          power_type: form.power_type || null,
         }),
       });
       const data = await res.json();
@@ -105,6 +113,45 @@ export default function EquipmentForm({ equipment }: Props) {
           placeholder="שם הפרויקט / האתר"
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
         />
+      </div>
+
+      {/* שדות למינוי מפעיל */}
+      <div className="pt-2 border-t border-gray-100">
+        <p className="text-xs text-gray-400 mb-3">פרטים למינוי מפעיל מכונת הרמה (אופציונלי)</p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">יצרן</label>
+            <input type="text" value={form.manufacturer}
+              onChange={(e) => setForm({ ...form, manufacturer: e.target.value })}
+              placeholder="שם היצרן"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">מספר מזהה</label>
+            <input type="text" value={form.machine_identifier} dir="ltr"
+              onChange={(e) => setForm({ ...form, machine_identifier: e.target.value })}
+              placeholder="מספר סידורי / מזהה"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">עומס עבודה בטוח</label>
+            <input type="text" value={form.safe_working_load}
+              onChange={(e) => setForm({ ...form, safe_working_load: e.target.value })}
+              placeholder="למשל: 5 טון"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">סוג הפעלה</label>
+            <select value={form.power_type}
+              onChange={(e) => setForm({ ...form, power_type: e.target.value })}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white">
+              <option value="">— בחר —</option>
+              {(Object.entries(POWER_TYPE_LABELS) as [PowerType, string][]).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</p>}

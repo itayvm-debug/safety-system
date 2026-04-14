@@ -29,9 +29,15 @@ export interface Worker {
   notes: string | null;
   photo_url: string | null;
   is_active: boolean;
+  is_crane_operator: boolean;
   project_name: string | null;
   subcontractor_id: string | null;
   subcontractor?: Pick<Subcontractor, 'id' | 'name'> | null;
+  // שדות נוספים למינוי מפעיל מכונת הרמה
+  father_name: string | null;
+  birth_year: number | null;
+  profession: string | null;
+  address: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -77,7 +83,17 @@ export interface WorkerWithDocuments extends Worker {
   documents: Document[];
   safety_briefings: SafetyBriefing[];
   height_restrictions: HeightRestriction[];
+  lifting_machine_appointments: LiftingMachineAppointment[];
 }
+
+export type PowerType = 'mechanical' | 'electric' | 'hydraulic' | 'pneumatic';
+
+export const POWER_TYPE_LABELS: Record<PowerType, string> = {
+  mechanical: 'כוח מכני',
+  electric: 'חשמלי',
+  hydraulic: 'הידראולי',
+  pneumatic: 'פנאומטי',
+};
 
 export interface HeavyEquipment {
   id: string;
@@ -94,6 +110,33 @@ export interface HeavyEquipment {
   subcontractor?: Pick<Subcontractor, 'id' | 'name'> | null;
   project_name: string | null;
   is_active: boolean;
+  // שדות לטופס מינוי מפעיל
+  manufacturer: string | null;
+  machine_identifier: string | null;
+  safe_working_load: string | null;
+  power_type: PowerType | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LiftingMachineAppointment {
+  id: string;
+  worker_id: string;
+  equipment_id: string | null;
+  machine_name: string;
+  manufacturer: string | null;
+  machine_identifier: string | null;
+  safe_working_load: string | null;
+  power_type: PowerType | null;
+  appointer_name: string;
+  appointer_role: string | null;
+  appointer_phone: string | null;
+  appointer_address: string | null;
+  appointer_zip: string | null;
+  appointment_date: string;
+  operator_signature_url: string | null;
+  appointer_signature_url: string | null;
+  pdf_url: string | null;
   created_at: string;
   updated_at: string;
 }

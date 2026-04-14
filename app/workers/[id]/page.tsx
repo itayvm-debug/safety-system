@@ -18,16 +18,24 @@ export default async function WorkerPage({ params }: { params: Promise<{ id: str
 
   if (error || !data) notFound();
 
-  // height_restrictions — בטבלה נפרדת, query נפרד כדי שלא יגרום ל-404 אם הטבלה עדיין לא קיימת
-  const { data: heightData } = await supabase
-    .from('height_restrictions')
-    .select('*')
-    .eq('worker_id', id)
-    .order('created_at', { ascending: false });
+  // height_restrictions + lifting_machine_appointments — queries נפרדים
+  const [{ data: heightData }, { data: appointmentsData }] = await Promise.all([
+    supabase
+      .from('height_restrictions')
+      .select('*')
+      .eq('worker_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('lifting_machine_appointments')
+      .select('*')
+      .eq('worker_id', id)
+      .order('appointment_date', { ascending: false }),
+  ]);
 
   const worker = {
     ...data,
     height_restrictions: heightData ?? [],
+    lifting_machine_appointments: appointmentsData ?? [],
   } as WorkerWithDocuments;
 
   return (
