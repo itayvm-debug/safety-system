@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import WorkerList from '@/components/workers/WorkerList';
 import { WorkerWithDocuments } from '@/types';
@@ -6,7 +5,7 @@ import { WorkerWithDocuments } from '@/types';
 export const dynamic = 'force-dynamic';
 
 export default async function WorkersPage() {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
 
   const { data, error } = await supabase
     .from('workers')
