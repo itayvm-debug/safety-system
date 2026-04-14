@@ -16,6 +16,7 @@ import { getDocumentStatus, getWorkerStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import SafetyBriefingCard from '@/components/workers/SafetyBriefingCard';
 import HeightBanCard from '@/components/workers/HeightBanCard';
+import LiftingMachineAppointmentCard from '@/components/workers/LiftingMachineAppointmentCard';
 import ToggleSwitch from '@/components/ToggleSwitch';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -30,6 +31,9 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   const [savingAll, setSavingAll] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [togglingActive, setTogglingActive] = useState(false);
+  const [togglingCraneOp, setTogglingCraneOp] = useState(false);
+  const [isCraneOperator, setIsCraneOperator] = useState(!!worker.is_crane_operator);
+  const [localAppointments, setLocalAppointments] = useState(worker.lifting_machine_appointments ?? []);
 
   const [pendingExpiry, setPendingExpiry] = useState<Map<string, string>>(new Map());
   // state מקומי של מסמכים — מתעדכן מיד אחרי upload/delete ללא תלות ב-router.refresh()
@@ -119,6 +123,20 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
       router.refresh();
     } finally {
       setTogglingActive(false);
+    }
+  }
+
+  async function handleToggleCraneOperator() {
+    setTogglingCraneOp(true);
+    try {
+      const res = await fetch(`/api/workers/${worker.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_crane_operator: !isCraneOperator }),
+      });
+      if (res.ok) setIsCraneOperator((prev) => !prev);
+    } finally {
+      setTogglingCraneOp(false);
     }
   }
 
@@ -238,6 +256,31 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
           worker={worker}
           restrictions={worker.height_restrictions ?? []}
         />
+      </div>
+
+      {/* מפעיל מכונת הרמה */}
+      <div>
+        <div className="flex items-center gap-3 mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">מפעיל מכונת הרמה</h2>
+          <div className="flex items-center gap-2">
+            <ToggleSwitch
+              checked={isCraneOperator}
+              onChange={handleToggleCraneOperator}
+              disabled={togglingCraneOp}
+            />
+            <span className="text-sm text-gray-600">
+              {togglingCraneOp ? '...' : isCraneOperator ? 'כן' : 'לא'}
+            </span>
+          </div>
+        </div>
+        {isCraneOperator && (
+          <LiftingMachineAppointmentCard
+            worker={worker}
+            appointments={localAppointments}
+            onAppointmentAdded={(appt) => setLocalAppointments((prev) => [appt, ...prev])}
+            onAppointmentDeleted={(id) => setLocalAppointments((prev) => prev.filter((a) => a.id !== id))}
+          />
+        )}
       </div>
 
       {/* כפתור שמירה גלובלי */}

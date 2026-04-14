@@ -30,6 +30,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     'insurance_file_url', 'insurance_expiry',
     'inspection_file_url', 'inspection_expiry',
     'subcontractor_id', 'project_name', 'is_active',
+    'manufacturer', 'machine_identifier', 'safe_working_load', 'power_type',
   ] as const;
 
   const updates: Record<string, unknown> = {};
