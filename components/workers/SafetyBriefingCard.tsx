@@ -21,13 +21,13 @@ interface Props {
 type Mode = null | 'system' | 'external';
 
 export default function SafetyBriefingCard({ worker, briefings }: Props) {
-  const router = useRouter();
+  const [localBriefings, setLocalBriefings] = useState<SafetyBriefing[]>(briefings);
   const [formOpen, setFormOpen] = useState(false);
   const [mode, setMode] = useState<Mode>(null);
 
   // מיון לפי created_at (timestamp מדויק) ולא briefed_at (רק תאריך)
   // מבטיח שתמיד יוצג התדריך שנוצר אחרון, גם אם שניים נוצרו באותו יום
-  const latestBriefing = [...briefings].sort(
+  const latestBriefing = [...localBriefings].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )[0] ?? null;
 
@@ -35,12 +35,12 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
 
   async function handleDelete(id: string) {
     if (!confirm('למחוק את רשומת התדריך?')) return;
-    await fetch('/api/safety-briefings', {
+    const res = await fetch('/api/safety-briefings', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ briefing_id: id }),
     });
-    router.refresh();
+    if (res.ok) setLocalBriefings((prev) => prev.filter((b) => b.id !== id));
   }
 
   function close() { setFormOpen(false); setMode(null); }
@@ -101,9 +101,9 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
           <button onClick={close} className="text-xs text-gray-400 hover:text-gray-600">ביטול</button>
         </div>
       ) : mode === 'system' ? (
-        <SystemBriefingFlow worker={worker} onClose={close} onSaved={() => { close(); router.refresh(); }} />
+        <SystemBriefingFlow worker={worker} onClose={close} onSaved={(b) => { setLocalBriefings((prev) => [b, ...prev]); close(); }} />
       ) : (
-        <ExternalModeForm workerId={worker.id} onClose={close} onSaved={() => { close(); router.refresh(); }} />
+        <ExternalModeForm workerId={worker.id} onClose={close} onSaved={(b) => { setLocalBriefings((prev) => [b, ...prev]); close(); }} />
       )}
     </div>
   );
@@ -119,7 +119,7 @@ function SystemBriefingFlow({
 }: {
   worker: WorkerWithDocuments;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (briefing: SafetyBriefing) => void;
 }) {
   const [step, setStep] = useState<FlowStep>('language');
   const [language, setLanguage] = useState<BriefingLanguage | ''>('');
@@ -191,8 +191,9 @@ function SystemBriefingFlow({
           briefed_at: briefedAt,
         }),
       });
-      if (!res.ok) { const d = await res.json(); setError(d.error ?? 'שגיאה בשמירה'); return; }
-      onSaved();
+      const savedBriefing = await res.json();
+      if (!res.ok) { setError(savedBriefing.error ?? 'שגיאה בשמירה'); return; }
+      onSaved(savedBriefing);
     } catch (err) {
       setError(`שגיאה: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -326,7 +327,7 @@ function PdfViewer({
 }
 
 // ─── מצב ב: תדריך קיים ─────────────────────────────────────────
-function ExternalModeForm({ workerId, onClose, onSaved }: { workerId: string; onClose: () => void; onSaved: () => void }) {
+function ExternalModeForm({ workerId, onClose, onSaved }: { workerId: string; onClose: () => void; onSaved: (briefing: SafetyBriefing) => void }) {
   const today = new Date().toISOString().split('T')[0];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [briefedAt, setBriefedAt] = useState(today);
@@ -359,8 +360,9 @@ function ExternalModeForm({ workerId, onClose, onSaved }: { workerId: string; on
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ worker_id: workerId, mode: 'external', conducted_by: conductedBy || null, file_url: fileUrl, briefed_at: briefedAt }),
       });
-      if (!res.ok) { const d = await res.json(); setError(d.error); return; }
-      onSaved();
+      const savedBriefing = await res.json();
+      if (!res.ok) { setError(savedBriefing.error); return; }
+      onSaved(savedBriefing);
     } catch { setError('שגיאת תקשורת'); } finally { setSaving(false); }
   }
 
