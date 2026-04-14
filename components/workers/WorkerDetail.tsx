@@ -446,7 +446,7 @@ function DocumentCard({
   const isRequired = document?.is_required !== false;
   const statusFileUrl = document?.file_url ?? null;
   const statusExpiry = docType === 'id_document' ? null : localExpiry || null;
-  const status = getDocumentStatus(statusFileUrl, statusExpiry, isRequired);
+  const status = getDocumentStatus(statusFileUrl, statusExpiry, isRequired, docType !== 'id_document');
 
   const hasFile = !!document?.file_url;
   const showExpiry = docType !== 'id_document';

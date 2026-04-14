@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HeavyEquipment } from '@/types';
-import { getEquipmentDocumentStatus, getHeavyEquipmentStatus } from '@/lib/documents/status';
+import { getDocumentStatus, getHeavyEquipmentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
 import { format, parseISO } from 'date-fns';
@@ -142,7 +142,7 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
             const fileUrl = eq[section.fileField];
             const expiry = pendingExpiry[section.expiryField] ?? eq[section.expiryField] ?? '';
             const isPending = section.expiryField in pendingExpiry;
-            const status = getEquipmentDocumentStatus(fileUrl, expiry || null, section.required);
+            const status = getDocumentStatus(fileUrl, expiry || null, section.required, true);
 
             return (
               <EquipmentFileCard
