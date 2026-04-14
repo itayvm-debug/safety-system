@@ -32,11 +32,13 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   const [togglingActive, setTogglingActive] = useState(false);
 
   const [pendingExpiry, setPendingExpiry] = useState<Map<string, string>>(new Map());
+  // state מקומי של מסמכים — מתעדכן מיד אחרי upload/delete ללא תלות ב-router.refresh()
+  const [localDocs, setLocalDocs] = useState<Document[]>(worker.documents);
 
   const overallStatus = getWorkerStatus(worker);
 
   const docMap = new Map<string, Document>(
-    worker.documents
+    localDocs
       .filter((d) => d.doc_type !== 'optional_license')
       .map((d) => [d.doc_type, d])
   );
@@ -204,8 +206,16 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
                 localExpiry={localExpiry}
                 isPending={isPending}
                 onExpiryChange={(val) => handleExpiryChange(docType, val)}
-                onFileUploaded={() => router.refresh()}
-                onDeleted={() => router.refresh()}
+                onFileUploaded={(newDoc: Document) => {
+                  setLocalDocs((prev) => {
+                    const idx = prev.findIndex((d) => d.doc_type === newDoc.doc_type && d.doc_type !== 'optional_license');
+                    if (idx >= 0) { const next = [...prev]; next[idx] = newDoc; return next; }
+                    return [...prev, newDoc];
+                  });
+                }}
+                onDeleted={(docType: string) => {
+                  setLocalDocs((prev) => prev.filter((d) => d.doc_type !== docType));
+                }}
               />
             );
           })}
@@ -422,8 +432,8 @@ function DocumentCard({
   localExpiry: string;
   isPending: boolean;
   onExpiryChange: (val: string) => void;
-  onFileUploaded: () => void;
-  onDeleted: () => void;
+  onFileUploaded: (doc: Document) => void;
+  onDeleted: (docType: string) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -464,11 +474,12 @@ function DocumentCard({
           is_required: isRequired,
         }),
       });
-      if (!docRes.ok) { const d = await docRes.json(); setError(d.error ?? 'שגיאה בשמירה'); return; }
+      const docData = await docRes.json();
+      if (!docRes.ok) { setError(docData.error ?? 'שגיאה בשמירה'); return; }
 
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000);
-      onFileUploaded();
+      onFileUploaded(docData);
     } catch (err) { console.error('[upload:doc] fetch error:', err); setError('שגיאה בהעלאה'); } finally { setUploading(false); }
   }
 
@@ -483,7 +494,7 @@ function DocumentCard({
         body: JSON.stringify({ doc_id: document.id }),
       });
       if (!res.ok) { setError('שגיאה במחיקה'); return; }
-      onDeleted();
+      onDeleted(docType);
     } catch { setError('שגיאה במחיקה'); } finally { setDeleting(false); }
   }
 
@@ -501,8 +512,9 @@ function DocumentCard({
           is_required: !isRequired,
         }),
       });
-      if (!res.ok) { const d = await res.json(); setError(d.error ?? 'שגיאה'); return; }
-      onFileUploaded();
+      const toggleData = await res.json();
+      if (!res.ok) { setError(toggleData.error ?? 'שגיאה'); return; }
+      onFileUploaded(toggleData);
     } catch { setError('שגיאה'); } finally { setTogglingRequired(false); }
   }
 

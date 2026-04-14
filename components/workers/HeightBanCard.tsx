@@ -27,21 +27,21 @@ function getRestrictionStatus(r: HeightRestriction) {
 }
 
 export default function HeightBanCard({ worker, restrictions }: Props) {
-  const router = useRouter();
+  const [localRestrictions, setLocalRestrictions] = useState<HeightRestriction[]>(restrictions);
   const [formOpen, setFormOpen] = useState(false);
 
-  const latest = [...restrictions].sort(
+  const latest = [...localRestrictions].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )[0] ?? null;
 
   async function handleDelete(id: string) {
     if (!confirm('למחוק את רשומת האיסור?')) return;
-    await fetch('/api/height-restrictions', {
+    const res = await fetch('/api/height-restrictions', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ restriction_id: id }),
     });
-    router.refresh();
+    if (res.ok) setLocalRestrictions((prev) => prev.filter((r) => r.id !== id));
   }
 
   function close() { setFormOpen(false); }
@@ -81,7 +81,7 @@ export default function HeightBanCard({ worker, restrictions }: Props) {
 
       {/* טופס הפקה */}
       {formOpen ? (
-        <HeightBanForm worker={worker} onDone={() => { close(); router.refresh(); }} onCancel={close} />
+        <HeightBanForm worker={worker} onDone={(r) => { setLocalRestrictions((prev) => [r, ...prev]); close(); }} onCancel={close} />
       ) : (
         <button
           onClick={() => setFormOpen(true)}
@@ -103,7 +103,7 @@ function HeightBanForm({
   onCancel,
 }: {
   worker: WorkerWithDocuments;
-  onDone: () => void;
+  onDone: (restriction: HeightRestriction) => void;
   onCancel: () => void;
 }) {
   const [step, setStep] = useState<BanStep>('language');
@@ -166,9 +166,10 @@ function HeightBanForm({
           file_url: uploadData.path,
         }),
       });
-      if (!saveRes.ok) { const d = await saveRes.json(); setError(d.error ?? 'שגיאה בשמירה'); return; }
+      const savedRestriction = await saveRes.json();
+      if (!saveRes.ok) { setError(savedRestriction.error ?? 'שגיאה בשמירה'); return; }
 
-      onDone();
+      onDone(savedRestriction);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'שגיאה לא ידועה');
     } finally {
