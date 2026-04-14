@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LiftingEquipment } from '@/types';
-import { getEquipmentDocumentStatus, getLiftingEquipmentStatus } from '@/lib/documents/status';
+import { getDocumentStatus, getLiftingEquipmentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
 import { format, parseISO } from 'date-fns';
@@ -24,7 +24,7 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
   const [fileError, setFileError] = useState('');
 
   const overallStatus = getLiftingEquipmentStatus(eq);
-  const inspectionStatus = getEquipmentDocumentStatus(eq.inspection_file_url, eq.inspection_expiry, true);
+  const inspectionStatus = getDocumentStatus(eq.inspection_file_url, eq.inspection_expiry, true, true);
 
   function handleExpiryChange(value: string) {
     setPendingExpiry(value);

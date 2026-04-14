@@ -13,10 +13,11 @@ import {
 } from '@/types';
 
 /**
- * חוקי סטטוס מסמך:
+ * חוקי סטטוס מסמך — לוגיקה אחידה לכל הטבלאות:
  * - is_required=false + אין קובץ → 'not_required'
  * - אין קובץ → 'missing'
- * - יש קובץ + אין תאריך → 'valid'
+ * - יש קובץ + אין תאריך תוקף + requiresExpiry=true → 'missing'
+ * - יש קובץ + אין תאריך תוקף + requiresExpiry=false → 'valid' (למשל: תעודת זהות)
  * - יש קובץ + תוקף פג → 'expired'
  * - יש קובץ + תוקף עד 14 יום → 'expiring_soon'
  * - יש קובץ + תוקף תקין → 'valid'
@@ -24,11 +25,11 @@ import {
 export function getDocumentStatus(
   fileUrl: string | null,
   expiryDate: string | null,
-  isRequired = true
+  isRequired = true,
+  requiresExpiry = true
 ): DocumentStatus {
   if (!fileUrl) return isRequired ? 'missing' : 'not_required';
-
-  if (!expiryDate) return 'valid';
+  if (!expiryDate) return requiresExpiry ? 'missing' : 'valid';
 
   const today = startOfDay(new Date());
   const expiry = startOfDay(parseISO(expiryDate));
@@ -98,7 +99,9 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
     // תעודת זהות: תמיד חובה ואין תאריך תוקף — רק קיום קובץ
     const isRequired = docType === 'id_document' ? true : (doc ? doc.is_required !== false : true);
     const expiryDate = docType === 'id_document' ? null : (doc?.expiry_date ?? null);
-    const status = getDocumentStatus(doc?.file_url ?? null, expiryDate, isRequired);
+    // id_document: קיום קובץ מספיק — אין תאריך תוקף
+    const requiresExpiry = docType !== 'id_document';
+    const status = getDocumentStatus(doc?.file_url ?? null, expiryDate, isRequired, requiresExpiry);
 
     if (STATUS_SEVERITY[status] > STATUS_SEVERITY[worstStatus]) {
       worstStatus = status;
@@ -143,46 +146,23 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
   return worstStatus;
 }
 
-/**
- * סטטוס מסמך לציוד (שונה מ-getDocumentStatus):
- * - יש קובץ + אין תאריך תוקף => 'missing' (לא 'valid')
- * - אין קובץ + לא נדרש => 'not_required'
- * - אין קובץ + נדרש => 'missing'
- */
-export function getEquipmentDocumentStatus(
-  fileUrl: string | null,
-  expiryDate: string | null,
-  isRequired = true
-): DocumentStatus {
-  if (!fileUrl) return isRequired ? 'missing' : 'not_required';
-  if (!expiryDate) return 'missing';
-
-  const today = startOfDay(new Date());
-  const expiry = startOfDay(parseISO(expiryDate));
-  const daysLeft = differenceInDays(expiry, today);
-
-  if (daysLeft < 0) return 'expired';
-  if (daysLeft <= 14) return 'expiring_soon';
-  return 'valid';
-}
-
 /** סטטוס כלי צמ"ה */
 export function getHeavyEquipmentStatus(eq: HeavyEquipment): DocumentStatus {
   let worst: DocumentStatus = 'valid';
 
-  // רישיון וביטוח — נדרשים תמיד
+  // רישיון וביטוח — נדרשים תמיד (קובץ + תאריך חובה)
   const requiredFields: Array<{ file: string | null; expiry: string | null }> = [
     { file: eq.license_file_url, expiry: eq.license_expiry },
     { file: eq.insurance_file_url, expiry: eq.insurance_expiry },
   ];
   for (const { file, expiry } of requiredFields) {
-    const s = getEquipmentDocumentStatus(file, expiry, true);
+    const s = getDocumentStatus(file, expiry, true, true);
     if (STATUS_SEVERITY[s] > STATUS_SEVERITY[worst]) worst = s;
   }
 
   // תסקיר — אופציונלי: אם הועלה קובץ, חייב להיות עם תאריך תקין
   if (eq.inspection_file_url || eq.inspection_expiry) {
-    const s = getEquipmentDocumentStatus(eq.inspection_file_url, eq.inspection_expiry, false);
+    const s = getDocumentStatus(eq.inspection_file_url, eq.inspection_expiry, false, true);
     if (STATUS_SEVERITY[s] > STATUS_SEVERITY[worst]) worst = s;
   }
 
@@ -191,7 +171,7 @@ export function getHeavyEquipmentStatus(eq: HeavyEquipment): DocumentStatus {
 
 /** סטטוס ציוד הרמה */
 export function getLiftingEquipmentStatus(eq: LiftingEquipment): DocumentStatus {
-  return getEquipmentDocumentStatus(eq.inspection_file_url, eq.inspection_expiry, true);
+  return getDocumentStatus(eq.inspection_file_url, eq.inspection_expiry, true, true);
 }
 
 export const STATUS_COLORS: Record<DocumentStatus, string> = {
