@@ -96,38 +96,6 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // 4. הפקת PDF (async — לא חוסמת)
-  if (data) {
-    generatePdfInBackground(data.id, body, operatorSigUrl, appointerSigUrl, supabase);
-  }
-
+  // PDF generation is handled client-side via html2canvas → /generate-pdf route
   return NextResponse.json(data, { status: 201 });
-}
-
-// הפקת PDF ברקע — מעדכן pdf_url כשמוכן
-async function generatePdfInBackground(
-  appointmentId: string,
-  body: Record<string, unknown>,
-  operatorSigPath: string | null,
-  appointerSigPath: string | null,
-  supabase: ReturnType<typeof createServiceClient>
-) {
-  try {
-    const { generateAppointmentPdf } = await import('@/lib/pdf/generate-appointment-pdf');
-    const pdfPath = await generateAppointmentPdf({
-      appointmentId,
-      ...body,
-      operatorSigPath,
-      appointerSigPath,
-    } as Parameters<typeof generateAppointmentPdf>[0], supabase);
-
-    if (pdfPath) {
-      await supabase
-        .from('lifting_machine_appointments')
-        .update({ pdf_url: pdfPath })
-        .eq('id', appointmentId);
-    }
-  } catch (err) {
-    console.error('[appointments] PDF generation failed:', err);
-  }
 }
