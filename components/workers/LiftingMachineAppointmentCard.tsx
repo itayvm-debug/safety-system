@@ -411,6 +411,12 @@ export default function LiftingMachineAppointmentCard({
           height: 842,
           x: 0,
           y: 0,
+          // Remove all external stylesheets from the cloned document before capture.
+          // html2canvas 1.4.x doesn't support modern CSS color functions (lab/oklch)
+          // used by Tailwind v3.3+. The overlay uses only inline styles so this is safe.
+          onclone: (_clonedDoc: Document) => {
+            _clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach((s) => s.remove());
+          },
         });
 
         console.log('[PDF] html2canvas done. canvas:', canvas.width, 'x', canvas.height);
