@@ -18,37 +18,60 @@
 
 export const FIELD_MAP = {
   // ── (א) ממנה ──────────────────────────────────────────────────────────────
-  appointerName:     { top: 176, right:  72 },
-  appointerAddress:  { top: 207, right: 105 },
-  appointerZip:      { top: 207, left:  310 },   // LTR — מיקוד
-  appointerPhone:    { top: 207, left:   46 },   // LTR — טלפון
-  appointerRole:     { top: 225, right:  72 },
+  // appointerName:    was right:72  top:176 → ימינה 55 (right−55=17), למעלה 4 (top−4=172)
+  appointerName:     { top: 172, right:  17 },
+  // appointerAddress: was right:105 top:207 → ימינה 45 (right−45=60)
+  appointerAddress:  { top: 207, right:  60 },
+  // appointerZip:     was left:310  top:207 → ימינה 35 (left+35=345), למטה 2 (top+2=209)
+  appointerZip:      { top: 209, left:  345 },   // LTR — מיקוד
+  // appointerPhone:   was left:46   top:207 → ימינה 115 (left+115=161), למטה 2 (top+2=209)
+  appointerPhone:    { top: 209, left:  161 },   // LTR — טלפון
+  // appointerRole:    was right:72  top:225 → ימינה 40 (right−40=32), למעלה 2 (top−2=223)
+  appointerRole:     { top: 223, right:  32 },
 
   // ── (ב) מכונה ─────────────────────────────────────────────────────────────
-  machineName:       { top: 268, right: 158 },
-  manufacturer:      { top: 268, right: 428 },
-  machineId:         { top: 288, left:  290 },   // LTR — מספר מזהה
-  safeLoad:          { top: 288, right: 430 },
-  powerType:         { top: 308, right: 290 },
+  // machineName:   was right:158 top:268 → ימינה 55 (right−55=103), למעלה 3 (top−3=265)
+  machineName:       { top: 265, right: 103 },
+  // manufacturer:  was right:428 top:268 → שמאלה 20 (right+20=448), למעלה 3 (top−3=265)
+  manufacturer:      { top: 265, right: 448 },
+  // machineId:     was left:290  top:288 → ימינה 25 (left+25=315)
+  machineId:         { top: 288, left:  315 },   // LTR — מספר מזהה
+  // safeLoad:      was right:430 top:288 → ימינה 35 (right−35=395)
+  safeLoad:          { top: 288, right: 395 },
+  // powerType:     was right:290 top:308 → ימינה 20 (right−20=270), למעלה 2 (top−2=306)
+  powerType:         { top: 306, right: 270 },
 
   // ── (ג) מפעיל ────────────────────────────────────────────────────────────
-  lastName:          { top: 368, right: 183 },
-  firstName:         { top: 368, right: 352 },
-  fatherName:        { top: 368, right: 468 },
-  opId:              { top: 388, left:  335 },   // LTR — ת"ז
-  birthYear:         { top: 388, left:  198 },   // LTR — שנת לידה
-  profession:        { top: 388, right: 468 },
-  opAddress:         { top: 408, right:  72 },
+  // lastName:   was right:183 top:368 → ימינה 10 (right−10=173)
+  lastName:          { top: 368, right: 173 },
+  // firstName:  was right:352 top:368 → ימינה 8  (right−8=344)
+  firstName:         { top: 368, right: 344 },
+  // fatherName: was right:468 top:368 → שמאלה 8  (right+8=476)
+  fatherName:        { top: 368, right: 476 },
+  // opId:       was left:335  top:388 → ימינה 18 (left+18=353)
+  opId:              { top: 388, left:  353 },   // LTR — ת"ז
+  // birthYear:  was left:198  top:388 → ימינה 12 (left+12=210)
+  birthYear:         { top: 388, left:  210 },   // LTR — שנת לידה
+  // profession: was right:468 top:388 → ימינה 15 (right−15=453)
+  profession:        { top: 388, right: 453 },
+  // opAddress:  was right:72  top:408 → ימינה 20 (right−20=52)
+  opAddress:         { top: 408, right:  52 },
 
   // ── (ד) הצהרת הממנה ────────────────────────────────────────────────────────
-  apDeclDate:        { top: 555, left:  402 },   // LTR — תאריך
-  apDeclName:        { top: 555, right: 198 },
-  apSig:             { top: 562, left:   42, w: 120, h: 38 },
+  // apDeclDate: was left:402 top:555 → שמאלה 20 (left−20=382), למעלה 4 (top−4=551)
+  apDeclDate:        { top: 551, left:  382 },   // LTR — תאריך
+  // apDeclName: was right:198 top:555 → ימינה 35 (right−35=163), למעלה 4 (top−4=551)
+  apDeclName:        { top: 551, right: 163 },
+  // apSig:      was top:562 left:42 w:120 h:38 → ימינה 95 (left+95=137), למעלה 10 (top−10=552), −10% גודל
+  apSig:             { top: 552, left:  137, w: 108, h: 34 },
 
   // ── (ה) הצהרת המפעיל ──────────────────────────────────────────────────────
-  opDeclDate:        { top: 692, left:  402 },   // LTR — תאריך
-  opDeclName:        { top: 692, right: 198 },
-  opSig:             { top: 699, left:   42, w: 120, h: 38 },
+  // opDeclDate: was left:402 top:692 → שמאלה 18 (left−18=384), למעלה 4 (top−4=688)
+  opDeclDate:        { top: 688, left:  384 },   // LTR — תאריך
+  // opDeclName: was right:198 top:692 → ימינה 30 (right−30=168), למעלה 4 (top−4=688)
+  opDeclName:        { top: 688, right: 168 },
+  // opSig:      was top:699 left:42 w:120 h:38 → ימינה 110 (left+110=152), למעלה 14 (top−14=685), −15% גודל
+  opSig:             { top: 685, left:  152, w: 102, h: 32 },
 } as const;
 
 export type FieldMapKey = keyof typeof FIELD_MAP;
