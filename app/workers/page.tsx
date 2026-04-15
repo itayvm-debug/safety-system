@@ -9,7 +9,7 @@ export default async function WorkersPage() {
 
   const { data, error } = await supabase
     .from('workers')
-    .select(`*, documents(*), safety_briefings(*), subcontractor:subcontractors(id, name)`)
+    .select(`*, documents(*), safety_briefings(*), subcontractor:subcontractors(id, name), lifting_machine_appointments(id)`)
     .order('full_name');
 
   if (error) {

@@ -143,6 +143,16 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
     worstStatus = briefingStatus;
   }
 
+  // מינוי מפעיל מכונת הרמה — נדרש כשהעובד מסומן כמפעיל ואין אף מינוי
+  if (
+    worker.is_crane_operator &&
+    (worker.lifting_machine_appointments ?? []).length === 0
+  ) {
+    if (STATUS_SEVERITY['missing'] > STATUS_SEVERITY[worstStatus]) {
+      worstStatus = 'missing';
+    }
+  }
+
   return worstStatus;
 }
 
