@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { WorkerWithDocuments, LiftingMachineAppointment, HeavyEquipment, POWER_TYPE_LABELS, PowerType } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
+import AppointmentPdfOverlay, { OverlayData } from './AppointmentPdfOverlay';
 
 interface Props {
   worker: WorkerWithDocuments;
@@ -218,6 +219,11 @@ export default function LiftingMachineAppointmentCard({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // html2canvas PDF generation
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [overlayData, setOverlayData] = useState<OverlayData | null>(null);
+  const [apptIdForPdf, setApptIdForPdf] = useState<string | null>(null);
+
   const fetchEquipment = useCallback(async () => {
     if (equipment.length > 0) return;
     setLoadingEq(true);
@@ -305,9 +311,34 @@ export default function LiftingMachineAppointmentCard({
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? 'שגיאה בשמירה'); return; }
 
+      // Close form and add to list immediately
       setLocalAppts((prev) => [data, ...prev]);
       onAppointmentAdded(data);
       closeForm();
+
+      // Trigger client-side PDF generation via html2canvas
+      setOverlayData({
+        appointer_name: form.appointer_name,
+        appointer_address: form.appointer_address,
+        appointer_zip: form.appointer_zip,
+        appointer_phone: form.appointer_phone,
+        appointer_role: form.appointer_role,
+        machine_name: form.machine_name,
+        manufacturer: form.manufacturer,
+        machine_identifier: form.machine_identifier,
+        safe_working_load: form.safe_working_load,
+        power_type: form.power_type,
+        worker_full_name: worker.full_name,
+        worker_id_number: worker.id_number,
+        worker_father_name: form.father_name,
+        worker_birth_year: form.birth_year,
+        worker_profession: form.profession,
+        worker_address: form.address,
+        appointment_date: form.appointment_date,
+        appointer_sig: appointerSig,
+        operator_sig: operatorSig,
+      });
+      setApptIdForPdf(data.id);
     } catch {
       setError('שגיאת תקשורת — נסה שנית');
     } finally {
@@ -331,27 +362,53 @@ export default function LiftingMachineAppointmentCard({
     if (data.url) window.open(data.url, '_blank');
   }
 
-  // ── פולינג — עדכון pdf_url לאחר הפקה ─────────────────────────
+  // ── html2canvas — הפקת PNG מה-overlay והעברה לשרת ─────────────
   useEffect(() => {
-    const pending = localAppts.filter((a) => !a.pdf_url);
-    if (!pending.length) return;
-    const timer = setTimeout(async () => {
-      const updated = await Promise.all(
-        pending.map(async (a) => {
-          const res = await fetch(`/api/lifting-machine-appointments/${a.id}`);
-          if (res.ok) return await res.json() as LiftingMachineAppointment;
-          return a;
-        })
-      );
-      setLocalAppts((prev) =>
-        prev.map((a) => {
-          const u = updated.find((x) => x.id === a.id);
-          return u ?? a;
-        })
-      );
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [localAppts]);
+    if (!overlayData || !apptIdForPdf) return;
+
+    let cancelled = false;
+
+    async function capture() {
+      // Wait 2 animation frames for the DOM to fully render the overlay
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+      if (cancelled || !overlayRef.current) return;
+
+      const { default: html2canvas } = await import('html2canvas');
+      const canvas = await html2canvas(overlayRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      if (cancelled) return;
+
+      const overlayImageB64 = canvas.toDataURL('image/png');
+
+      const res = await fetch('/api/lifting-machine-appointments/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appointment_id: apptIdForPdf,
+          overlay_image_b64: overlayImageB64,
+        }),
+      });
+
+      if (res.ok) {
+        const { pdf_url } = await res.json() as { pdf_url: string };
+        const id = apptIdForPdf;
+        setLocalAppts((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, pdf_url } : a))
+        );
+      }
+
+      setOverlayData(null);
+      setApptIdForPdf(null);
+    }
+
+    capture();
+    return () => { cancelled = true; };
+  }, [overlayData, apptIdForPdf]);
 
   // ── תצוגת רשימה ────────────────────────────────────────────────
   return (
@@ -379,6 +436,23 @@ export default function LiftingMachineAppointmentCard({
               onViewPdf={() => handleViewPdf(a)}
             />
           ))}
+        </div>
+      )}
+
+      {/* ── Overlay מחוץ למסך לצורך html2canvas ─────────────── */}
+      {overlayData && (
+        <div
+          style={{
+            position: 'fixed',
+            left: -9999,
+            top: -9999,
+            width: 595,
+            height: 842,
+            overflow: 'hidden',
+            pointerEvents: 'none',
+          }}
+        >
+          <AppointmentPdfOverlay ref={overlayRef} {...overlayData} />
         </div>
       )}
 
