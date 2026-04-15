@@ -73,6 +73,7 @@ function SignaturePad({ label, onSave, onClear, saved }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const lastPos = useRef<{ x: number; y: number } | null>(null);
+  const hasDrawn = useRef(false);
 
   function getPos(e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) {
     const rect = canvas.getBoundingClientRect();
@@ -88,6 +89,7 @@ function SignaturePad({ label, onSave, onClear, saved }: SignaturePadProps) {
   function startDraw(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
     e.preventDefault();
     drawing.current = true;
+    hasDrawn.current = false;
     const canvas = canvasRef.current!;
     lastPos.current = getPos(e, canvas);
   }
@@ -106,26 +108,33 @@ function SignaturePad({ label, onSave, onClear, saved }: SignaturePadProps) {
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
     lastPos.current = pos;
+    hasDrawn.current = true;
   }
 
-  function endDraw() { drawing.current = false; lastPos.current = null; }
+  function endDraw() {
+    drawing.current = false;
+    lastPos.current = null;
+    // Auto-save when the user lifts the pen/finger after drawing something
+    if (hasDrawn.current) {
+      onSave(canvasRef.current!.toDataURL('image/png'));
+      hasDrawn.current = false;
+    }
+  }
 
   function clearCanvas() {
     const canvas = canvasRef.current!;
-    const ctx = canvas.getContext('2d')!;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.getContext('2d')!.clearRect(0, 0, canvas.width, canvas.height);
+    hasDrawn.current = false;
     onClear();
-  }
-
-  function saveCanvas() {
-    const canvas = canvasRef.current!;
-    onSave(canvas.toDataURL('image/png'));
   }
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
-      <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+      <div className="flex items-center justify-between mb-1">
+        <label className="block text-sm font-medium text-gray-700">{label}</label>
+        {saved && <span className="text-xs text-green-600 font-medium">✓ נשמר</span>}
+      </div>
+      <div className={`border rounded-lg overflow-hidden bg-gray-50 transition-colors ${saved ? 'border-green-400' : 'border-gray-300'}`}>
         <canvas
           ref={canvasRef}
           width={500} height={150}
@@ -140,7 +149,7 @@ function SignaturePad({ label, onSave, onClear, saved }: SignaturePadProps) {
           onTouchEnd={endDraw}
         />
       </div>
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-2">
         <button
           type="button"
           onClick={clearCanvas}
@@ -148,14 +157,6 @@ function SignaturePad({ label, onSave, onClear, saved }: SignaturePadProps) {
         >
           נקה
         </button>
-        <button
-          type="button"
-          onClick={saveCanvas}
-          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          שמור חתימה
-        </button>
-        {saved && <span className="text-sm text-green-600">✓ חתימה נשמרה</span>}
       </div>
     </div>
   );
