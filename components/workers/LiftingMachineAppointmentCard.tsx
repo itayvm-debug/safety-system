@@ -223,6 +223,7 @@ export default function LiftingMachineAppointmentCard({
   const overlayRef = useRef<HTMLDivElement>(null);
   const [overlayData, setOverlayData] = useState<OverlayData | null>(null);
   const [apptIdForPdf, setApptIdForPdf] = useState<string | null>(null);
+  const [pdfGenError, setPdfGenError] = useState<string | null>(null);
 
   const fetchEquipment = useCallback(async () => {
     if (equipment.length > 0) return;
@@ -367,43 +368,96 @@ export default function LiftingMachineAppointmentCard({
     if (!overlayData || !apptIdForPdf) return;
 
     let cancelled = false;
+    const apptId = apptIdForPdf;
 
     async function capture() {
-      // Wait 2 animation frames for the DOM to fully render the overlay
-      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-      if (cancelled || !overlayRef.current) return;
+      console.log('[PDF] capture() started, apptId=', apptId);
+      try {
+        // Wait 2 animation frames for the DOM to fully render
+        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
-      const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(overlayRef.current, {
-        backgroundColor: null,
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
+        if (cancelled) { console.log('[PDF] cancelled before DOM check'); return; }
 
-      if (cancelled) return;
+        const el = overlayRef.current;
+        if (!el) {
+          console.error('[PDF] overlayRef.current is null — overlay not in DOM');
+          throw new Error('ה-overlay לא נמצא ב-DOM');
+        }
 
-      const overlayImageB64 = canvas.toDataURL('image/png');
+        const rect = el.getBoundingClientRect();
+        console.log('[PDF] overlay element found:', {
+          tagName: el.tagName,
+          offsetWidth: el.offsetWidth,
+          offsetHeight: el.offsetHeight,
+          boundingRect: { width: rect.width, height: rect.height, top: rect.top, left: rect.left },
+          display: getComputedStyle(el).display,
+          visibility: getComputedStyle(el).visibility,
+        });
 
-      const res = await fetch('/api/lifting-machine-appointments/generate-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          appointment_id: apptIdForPdf,
-          overlay_image_b64: overlayImageB64,
-        }),
-      });
+        if (el.offsetWidth === 0 || el.offsetHeight === 0) {
+          throw new Error(`overlay גודל אפס (${el.offsetWidth}x${el.offsetHeight}) — html2canvas לא יוכל לצלם`);
+        }
 
-      if (res.ok) {
-        const { pdf_url } = await res.json() as { pdf_url: string };
-        const id = apptIdForPdf;
-        setLocalAppts((prev) =>
-          prev.map((a) => (a.id === id ? { ...a, pdf_url } : a))
-        );
+        console.log('[PDF] importing html2canvas...');
+        const { default: html2canvas } = await import('html2canvas');
+
+        console.log('[PDF] calling html2canvas...');
+        const canvas = await html2canvas(el, {
+          backgroundColor: null,
+          scale: 2,
+          useCORS: true,
+          logging: true,
+          width: 595,
+          height: 842,
+          x: 0,
+          y: 0,
+        });
+
+        console.log('[PDF] html2canvas done. canvas:', canvas.width, 'x', canvas.height);
+        if (cancelled) return;
+
+        const overlayImageB64 = canvas.toDataURL('image/png');
+        console.log('[PDF] PNG encoded, length=', overlayImageB64.length);
+
+        console.log('[PDF] calling /generate-pdf...');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          console.error('[PDF] /generate-pdf timeout after 15s');
+          controller.abort();
+        }, 15_000);
+
+        let res: Response;
+        try {
+          res = await fetch('/api/lifting-machine-appointments/generate-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appointment_id: apptId, overlay_image_b64: overlayImageB64 }),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+
+        console.log('[PDF] /generate-pdf response status:', res.status);
+
+        if (res.ok) {
+          const { pdf_url } = await res.json() as { pdf_url: string };
+          console.log('[PDF] success, pdf_url=', pdf_url);
+          setLocalAppts((prev) =>
+            prev.map((a) => (a.id === apptId ? { ...a, pdf_url } : a))
+          );
+        } else {
+          const errBody = await res.json().catch(() => ({}));
+          console.error('[PDF] /generate-pdf server error:', res.status, errBody);
+          throw new Error(`שגיאת שרת (${res.status}): ${(errBody as { error?: string }).error ?? 'לא ידוע'}`);
+        }
+      } catch (err) {
+        console.error('[PDF] capture() failed:', err);
+        setPdfGenError(err instanceof Error ? err.message : 'שגיאה לא ידועה בהפקת PDF');
+      } finally {
+        setOverlayData(null);
+        setApptIdForPdf(null);
       }
-
-      setOverlayData(null);
-      setApptIdForPdf(null);
     }
 
     capture();
@@ -443,16 +497,25 @@ export default function LiftingMachineAppointmentCard({
       {overlayData && (
         <div
           style={{
-            position: 'fixed',
+            position: 'absolute',
+            top: 0,
             left: -9999,
-            top: -9999,
             width: 595,
             height: 842,
-            overflow: 'hidden',
+            overflow: 'visible',
             pointerEvents: 'none',
+            zIndex: -1,
           }}
         >
           <AppointmentPdfOverlay ref={overlayRef} {...overlayData} />
+        </div>
+      )}
+
+      {/* ── שגיאת הפקת PDF ────────────────────────────────────── */}
+      {pdfGenError && (
+        <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700 flex items-center justify-between">
+          <span>שגיאה בהפקת PDF: {pdfGenError}</span>
+          <button type="button" onClick={() => setPdfGenError(null)} className="text-red-400 hover:text-red-600 ml-2">×</button>
         </div>
       )}
 
