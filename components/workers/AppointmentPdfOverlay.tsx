@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { POWER_TYPE_LABELS, PowerType } from '@/types';
-import { FIELD_MAP, DBG_FIELDS } from '@/lib/pdf/field-map';
+import { FM, DBG_FIELDS, TextField } from '@/lib/pdf/appointment-field-map';
 
 export interface OverlayData {
   appointer_name: string;
@@ -28,7 +28,7 @@ export interface OverlayData {
 
 // ─── DEBUG CALIBRATION MODE ───────────────────────────────────────────────────
 // Set to true, generate a PDF, and compare the green field boxes with the
-// actual form blanks. Adjust values in lib/pdf/field-map.ts, then set back to false.
+// actual form blanks. Adjust values in lib/pdf/appointment-field-map.ts, then set back to false.
 const DEBUG_CALIBRATION = false;
 
 // ─── CALIBRATION LAYER ────────────────────────────────────────────────────────
@@ -69,30 +69,25 @@ function CalibrationLayer() {
       ))}
 
       {/* Field anchor boxes — green */}
-      {DBG_FIELDS.map(({ name, pos, w, h }) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const p = pos as any;
-        const anchor = p.right !== undefined ? { right: p.right } : { left: p.left };
-        return (
-          <div key={`f-${name}`} style={{
-            position: 'absolute',
-            top: pos.top,
-            ...anchor,
-            width: w,
-            height: h,
-            border: '1.5px solid rgba(0,140,0,0.85)',
-            background: 'rgba(0,220,0,0.15)',
-            boxSizing: 'border-box',
-          }}>
-            <span style={{
-              position: 'absolute', top: -9, right: 0,
-              fontSize: 6, lineHeight: 1, fontFamily: 'monospace',
-              color: '#004400', background: 'rgba(210,255,210,0.95)',
-              padding: '0 2px', whiteSpace: 'nowrap',
-            }}>{name}</span>
-          </div>
-        );
-      })}
+      {DBG_FIELDS.map(({ name, x, y, w, h }) => (
+        <div key={`f-${name}`} style={{
+          position: 'absolute',
+          top: y,
+          left: x,
+          width: w,
+          height: h,
+          border: '1.5px solid rgba(0,140,0,0.85)',
+          background: 'rgba(0,220,0,0.15)',
+          boxSizing: 'border-box',
+        }}>
+          <span style={{
+            position: 'absolute', top: -9, right: 0,
+            fontSize: 6, lineHeight: 1, fontFamily: 'monospace',
+            color: '#004400', background: 'rgba(210,255,210,0.95)',
+            padding: '0 2px', whiteSpace: 'nowrap',
+          }}>{name}</span>
+        </div>
+      ))}
     </>
   );
 }
@@ -112,30 +107,23 @@ function splitName(full: string): [string, string] {
 }
 
 // ─── TEXT FIELD ───────────────────────────────────────────────────────────────
-function T({
-  v,
-  pos,
-  ltr = false,
-}: {
-  v: string;
-  pos: { top: number; right?: number; left?: number };
-  ltr?: boolean;
-}) {
+function T({ v, f }: { v: string; f: TextField }) {
   if (!v) return null;
   return (
     <span
       style={{
         position: 'absolute',
-        top: pos.top,
-        ...(pos.right !== undefined ? { right: pos.right } : { left: pos.left }),
+        top: f.y,
+        left: f.x,
+        width: f.w,
         fontFamily: 'Arial, Helvetica, sans-serif',
         fontSize: 11,
         lineHeight: 1,
         color: '#000',
         whiteSpace: 'nowrap',
-        direction: ltr ? 'ltr' : 'rtl',
-        unicodeBidi: ltr ? 'isolate' : 'plaintext',
-        textAlign: ltr ? 'left' : 'right',
+        direction: f.dir,
+        unicodeBidi: f.dir === 'ltr' ? 'isolate' : 'plaintext',
+        textAlign: f.align,
       }}
     >
       {v}
@@ -165,59 +153,59 @@ const AppointmentPdfOverlay = React.forwardRef<HTMLDivElement, OverlayData>(
         {DEBUG_CALIBRATION && <CalibrationLayer />}
 
         {/* ── (א) ממנה ── */}
-        <T v={data.appointer_name}    pos={FIELD_MAP.appointerName} />
-        <T v={data.appointer_address} pos={FIELD_MAP.appointerAddress} />
-        <T v={data.appointer_zip}     pos={FIELD_MAP.appointerZip}  ltr />
-        <T v={data.appointer_phone}   pos={FIELD_MAP.appointerPhone} ltr />
-        <T v={data.appointer_role}    pos={FIELD_MAP.appointerRole} />
+        <T v={data.appointer_name}    f={FM.appointer_name} />
+        <T v={data.appointer_address} f={FM.appointer_address} />
+        <T v={data.appointer_zip}     f={FM.appointer_zip} />
+        <T v={data.appointer_phone}   f={FM.appointer_phone} />
+        <T v={data.appointer_role}    f={FM.appointer_role} />
 
         {/* ── (ב) מכונה ── */}
-        <T v={data.machine_name}       pos={FIELD_MAP.machineName} />
-        <T v={data.manufacturer}       pos={FIELD_MAP.manufacturer} />
-        <T v={data.machine_identifier} pos={FIELD_MAP.machineId} ltr />
-        <T v={data.safe_working_load}  pos={FIELD_MAP.safeLoad} />
-        <T v={powerLabel}              pos={FIELD_MAP.powerType} />
+        <T v={data.machine_name}       f={FM.machine_name} />
+        <T v={data.manufacturer}       f={FM.manufacturer} />
+        <T v={data.machine_identifier} f={FM.machine_identifier} />
+        <T v={data.safe_working_load}  f={FM.safe_working_load} />
+        <T v={powerLabel}              f={FM.power_type} />
 
         {/* ── (ג) מפעיל ── */}
-        <T v={lastName}                pos={FIELD_MAP.lastName} />
-        <T v={firstName}               pos={FIELD_MAP.firstName} />
-        <T v={data.worker_father_name} pos={FIELD_MAP.fatherName} />
-        <T v={data.worker_id_number}   pos={FIELD_MAP.opId}  ltr />
-        <T v={data.worker_birth_year}  pos={FIELD_MAP.birthYear} ltr />
-        <T v={data.worker_profession}  pos={FIELD_MAP.profession} />
-        <T v={data.worker_address}     pos={FIELD_MAP.opAddress} />
+        <T v={lastName}                f={FM.operator_last_name} />
+        <T v={firstName}               f={FM.operator_first_name} />
+        <T v={data.worker_father_name} f={FM.operator_father_name} />
+        <T v={data.worker_id_number}   f={FM.operator_id} />
+        <T v={data.worker_birth_year}  f={FM.operator_birth_year} />
+        <T v={data.worker_profession}  f={FM.operator_profession} />
+        <T v={data.worker_address}     f={FM.operator_address} />
 
         {/* ── (ד) הצהרת הממנה ── */}
-        <T v={fmtDate(data.appointment_date)} pos={FIELD_MAP.apDeclDate} ltr />
-        <T v={data.appointer_name}            pos={FIELD_MAP.apDeclName} />
+        <T v={fmtDate(data.appointment_date)} f={FM.appointer_date} />
+        <T v={data.appointer_name}            f={FM.appointer_name_line} />
         {data.appointer_sig && (
           <img
             src={data.appointer_sig}
             alt="חתימת ממנה"
             style={{
               position: 'absolute',
-              top:    FIELD_MAP.apSig.top,
-              left:   FIELD_MAP.apSig.left,
-              width:  FIELD_MAP.apSig.w,
-              height: FIELD_MAP.apSig.h,
+              top:    FM.appointer_signature.y,
+              left:   FM.appointer_signature.x,
+              width:  FM.appointer_signature.w,
+              height: FM.appointer_signature.h,
               objectFit: 'contain',
             }}
           />
         )}
 
         {/* ── (ה) הצהרת המפעיל ── */}
-        <T v={fmtDate(data.appointment_date)} pos={FIELD_MAP.opDeclDate} ltr />
-        <T v={data.worker_full_name}          pos={FIELD_MAP.opDeclName} />
+        <T v={fmtDate(data.appointment_date)} f={FM.operator_date} />
+        <T v={data.worker_full_name}          f={FM.operator_name_line} />
         {data.operator_sig && (
           <img
             src={data.operator_sig}
             alt="חתימת מפעיל"
             style={{
               position: 'absolute',
-              top:    FIELD_MAP.opSig.top,
-              left:   FIELD_MAP.opSig.left,
-              width:  FIELD_MAP.opSig.w,
-              height: FIELD_MAP.opSig.h,
+              top:    FM.operator_signature.y,
+              left:   FM.operator_signature.x,
+              width:  FM.operator_signature.w,
+              height: FM.operator_signature.h,
               objectFit: 'contain',
             }}
           />
