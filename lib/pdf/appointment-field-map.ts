@@ -65,11 +65,11 @@ export const FM = {
   appointer_role:    rtl(373, 223, 180),   // x-10 → right_edge=553
 
   // ── (ב) מכונה ─────────────────────────────────────────────────────────────
-  machine_name:       rtl(322, 267, 160),  // x-10 y+2 → right_edge=482
-  manufacturer:       rtl( 35, 267, 120),  // x+8  y+2 → right_edge=155
+  machine_name:       rtl(322, 270, 160),  // y+3 → right_edge=482
+  manufacturer:       rtl( 45, 267, 120),  // x+10 → right_edge=165
   machine_identifier: ltr(315, 288, 100),  // LTR — ללא שינוי
   safe_working_load:  rtl(120, 288,  80),  // ללא שינוי
-  power_type:         rtl(211, 306, 120),  // x+6  → right_edge=331
+  power_type:         rtl(219, 306, 120),  // x+8 → right_edge=339
 
   // ── (ג) מפעיל ────────────────────────────────────────────────────────────
   operator_last_name:   rtl(314, 368, 100),  // x-8 → right_edge=414
@@ -81,14 +81,14 @@ export const FM = {
   operator_address:     rtl(335, 408, 200),  // x-8 → right_edge=535
 
   // ── (ד) הצהרת הממנה ────────────────────────────────────────────────────────
-  appointer_date:       ltr(364, 551,  80),  // x-18
-  appointer_name_line:  rtl(290, 551, 150),  // x+8  → right_edge=440
-  appointer_signature:  sig(147, 574, 100, 30),  // x+10 y+6
+  appointer_date:       ltr(376, 547,  80),  // x+12 y-4
+  appointer_name_line:  rtl(290, 551, 150),  // ללא שינוי
+  appointer_signature:  sig(147, 578, 100, 30),  // y+4
 
   // ── (ה) הצהרת המפעיל ──────────────────────────────────────────────────────
-  operator_date:        ltr(366, 688,  80),  // x-18
-  operator_name_line:   rtl(285, 688, 150),  // x+8  → right_edge=435
-  operator_signature:   sig(164, 698, 100, 30),  // x+12 y-8
+  operator_date:        ltr(378, 684,  80),  // x+12 y-4
+  operator_name_line:   rtl(285, 688, 150),  // ללא שינוי
+  operator_signature:   sig(164, 692, 100, 30),  // y-6
 } as const;
 
 export type FMKey = keyof typeof FM;
