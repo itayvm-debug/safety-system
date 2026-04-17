@@ -658,7 +658,7 @@ export default function LiftingMachineAppointmentCard({
               {/* ── שלב 4: חתימות ── */}
               {step === 4 && (
                 <>
-                  <p className="text-sm text-gray-600 mb-2">יש לחתום בשטח הייעודי ולאחר מכן לשמור כל חתימה.</p>
+                  <p className="text-sm text-gray-600 mb-2">שתי החתימות חובה להפקת המינוי.</p>
                   <SignaturePad
                     label="חתימת הממנה"
                     onSave={(url) => setAppointerSig(url)}
@@ -673,7 +673,6 @@ export default function LiftingMachineAppointmentCard({
                       saved={!!operatorSig}
                     />
                   </div>
-                  <p className="text-xs text-gray-400">ניתן לדלג על החתימות ולהוסיפן מאוחר יותר</p>
                 </>
               )}
 
@@ -707,9 +706,16 @@ export default function LiftingMachineAppointmentCard({
               ) : (
                 <button
                   type="button"
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="px-6 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  onClick={() => {
+                    if (!appointerSig || !operatorSig) {
+                      setError('יש לחתום גם את חתימת הממנה וגם את חתימת המפעיל לפני הפקת PDF');
+                      return;
+                    }
+                    handleSubmit();
+                  }}
+                  disabled={submitting || !appointerSig || !operatorSig}
+                  title={!appointerSig || !operatorSig ? 'יש לחתום את שתי החתימות לפני הפקת PDF' : undefined}
+                  className="px-6 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
                 >
                   {submitting ? 'שומר...' : 'שמור והפק PDF'}
                 </button>

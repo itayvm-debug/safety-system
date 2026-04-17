@@ -58,20 +58,17 @@ export const FIELD_MAP = {
   opAddress:         { top: 408, right:  52 },
 
   // ── (ד) הצהרת הממנה ────────────────────────────────────────────────────────
-  // apDeclDate: was left:402 top:555 → שמאלה 20 (left−20=382), למעלה 4 (top−4=551)
+  // שורת טקסט (שם + תאריך) ב-top:551; חתימה 7px מתחת = top:558
   apDeclDate:        { top: 551, left:  382 },   // LTR — תאריך
-  // apDeclName: was right:198 top:555 → ימינה 35 (right−35=163), למעלה 4 (top−4=551)
   apDeclName:        { top: 551, right: 163 },
-  // apSig:      was top:562 left:42 w:120 h:38 → ימינה 95 (left+95=137), למעלה 10 (top−10=552), −10% גודל
-  apSig:             { top: 552, left:  137, w: 108, h: 34 },
+  apSig:             { top: 558, left:  137, w: 108, h: 34 },  // ~7px מתחת לשורת הטקסט
 
   // ── (ה) הצהרת המפעיל ──────────────────────────────────────────────────────
-  // opDeclDate: was left:402 top:692 → שמאלה 18 (left−18=384), למעלה 4 (top−4=688)
+  // שורת טקסט (שם + תאריך) ב-top:688; חתימה 7px מתחת = top:695
+  // (תיקון: opSig היה top:685 = 3px מעל הטקסט — גרם לחפיפה)
   opDeclDate:        { top: 688, left:  384 },   // LTR — תאריך
-  // opDeclName: was right:198 top:692 → ימינה 30 (right−30=168), למעלה 4 (top−4=688)
   opDeclName:        { top: 688, right: 168 },
-  // opSig:      was top:699 left:42 w:120 h:38 → ימינה 110 (left+110=152), למעלה 14 (top−14=685), −15% גודל
-  opSig:             { top: 685, left:  152, w: 102, h: 32 },
+  opSig:             { top: 695, left:  152, w: 102, h: 32 },  // ~7px מתחת לשורת הטקסט
 } as const;
 
 export type FieldMapKey = keyof typeof FIELD_MAP;
