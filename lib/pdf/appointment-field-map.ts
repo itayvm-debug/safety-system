@@ -57,37 +57,37 @@ function sig(x: number, y: number, w: number, h: number): SigField {
 
 export const FM = {
   // ── (א) ממנה ──────────────────────────────────────────────────────────────
-  appointer_name:    rtl(384, 167, 210),   // ←22, w:180→210
-  appointer_address: rtl(367, 207, 190),   // ←18, w:160→190
-  appointer_zip:     ltr(345, 209,  80),   // ←8
-  appointer_phone:   ltr(186, 209,  90),   // →10
-  appointer_role:    rtl(375, 223, 210),   // ←18, w:180→210
+  appointer_name:    rtl(404, 173, 210),   // x+20, y+6
+  appointer_address: rtl(385, 213, 190),   // x+18, y+6
+  appointer_zip:     ltr(350, 209,  80),   // x+5
+  appointer_phone:   ltr(196, 209,  90),   // x+10
+  appointer_role:    rtl(393, 229, 210),   // x+18, y+6
 
   // ── (ב) מכונה ─────────────────────────────────────────────────────────────
-  machine_name:       rtl(316, 260, 190),  // ←26, w:160→190
-  manufacturer:       rtl( 74, 265, 150),  // →55, w:120→150
-  machine_identifier: ltr(335, 288, 100),  // →12
-  safe_working_load:  rtl(118, 288,  80),  // ←12
-  power_type:         rtl(217, 301, 150),  // →4, w:120→150
+  machine_name:       rtl(336, 264, 190),  // x+20, y+4
+  manufacturer:       rtl( 94, 269, 150),  // x+20, y+4
+  machine_identifier: ltr(347, 288, 100),  // x+12
+  safe_working_load:  rtl(128, 288,  80),  // x+10
+  power_type:         rtl(227, 305, 150),  // x+10, y+4
 
   // ── (ג) מפעיל ────────────────────────────────────────────────────────────
-  operator_last_name:   rtl(314, 368, 100),  // ←16
-  operator_first_name:  rtl(147, 368, 100),  // ←12
-  operator_father_name: rtl( 25, 368, 100),  // →14
-  operator_id:          ltr(371, 388, 100),  // →10
-  operator_birth_year:  ltr(205, 388,  60),  // ←10
-  operator_profession:  rtl( 44, 388, 145),  // →12, w:120→145
-  operator_address:     rtl(335, 408, 230),  // ←16, w:200→230
+  operator_last_name:   rtl(329, 372, 100),  // x+15, y+4
+  operator_first_name:  rtl(162, 372, 100),  // x+15, y+4
+  operator_father_name: rtl( 35, 372, 100),  // x+10, y+4
+  operator_id:          ltr(383, 388, 100),  // x+12
+  operator_birth_year:  ltr(213, 388,  60),  // x+8
+  operator_profession:  rtl( 59, 388, 145),  // x+15
+  operator_address:     rtl(355, 408, 270),  // x+20, w+40
 
   // ── (ד) הצהרת הממנה ────────────────────────────────────────────────────────
-  appointer_date:       ltr(335, 548,  80),  // ←42, ↓2
-  appointer_name_line:  rtl(298, 551, 150),  // →8
-  appointer_signature:  sig(178, 538, 100, 24),  // →26, ↑10, h:30→24
+  appointer_date:       ltr(360, 554,  80),  // x+25, y+6
+  appointer_name_line:  rtl(313, 555, 150),  // x+15, y+4
+  appointer_signature:  sig(198, 532, 100, 28),  // x+20, y-6, h+4
 
   // ── (ה) הצהרת המפעיל ──────────────────────────────────────────────────────
-  operator_date:        ltr(335, 685,  80),  // ←44, ↓2
-  operator_name_line:   rtl(295, 688, 150),  // →10
-  operator_signature:   sig(201, 670, 100, 22),  // →34, ↑14, h:30→22
+  operator_date:        ltr(360, 691,  80),  // x+25, y+6
+  operator_name_line:   rtl(310, 692, 150),  // x+15, y+4
+  operator_signature:   sig(226, 664, 100, 26),  // x+25, y-6, h+4
 } as const;
 
 export type FMKey = keyof typeof FM;

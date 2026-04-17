@@ -29,7 +29,7 @@ export interface OverlayData {
 // ─── DEBUG CALIBRATION MODE ───────────────────────────────────────────────────
 // Set to true, generate a PDF, and compare the green field boxes with the
 // actual form blanks. Adjust values in lib/pdf/appointment-field-map.ts, then set back to false.
-const DEBUG_CALIBRATION = true;
+const DEBUG_CALIBRATION = false;
 
 // ─── CALIBRATION LAYER ────────────────────────────────────────────────────────
 function CalibrationLayer() {
