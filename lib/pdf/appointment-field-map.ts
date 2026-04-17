@@ -55,6 +55,18 @@ function sig(x: number, y: number, w: number, h: number): SigField {
   return { x, y, w, h };
 }
 
+// ── סעיף (ד) הצהרת הממנה — anchor lines ──────────────────────────────────────
+// תאריך ושם על אותה שורה; חתימה: 3px מתחת לתחתית הטקסט (551 + 14 + 3 = 568)
+const D_DATE_LINE_Y = 551;
+const D_NAME_LINE_Y = 551;
+const D_SIG_LINE_Y  = 568;
+
+// ── סעיף (ה) הצהרת המפעיל — anchor lines ─────────────────────────────────────
+// תאריך ושם על אותה שורה; חתימה: 4px מתחת לתחתית הטקסט (688 + 14 + 4 = 706)
+const E_DATE_LINE_Y = 688;
+const E_NAME_LINE_Y = 688;
+const E_SIG_LINE_Y  = 706;
+
 export const FM = {
   // ── (א) ממנה ──────────────────────────────────────────────────────────────
   // x = (595 − original_right) − w   |   מקור field-map.ts (כוייל ידנית)
@@ -81,14 +93,18 @@ export const FM = {
   operator_address:     rtl(335, 408, 200),  // x-8 → right_edge=535
 
   // ── (ד) הצהרת הממנה ────────────────────────────────────────────────────────
-  appointer_date:       ltr(386, 541,  80),  // x+10 y-6
-  appointer_name_line:  rtl(290, 551, 150),  // ללא שינוי
-  appointer_signature:  sig(147, 584, 100, 30),  // y+6
+  // תאריך + שם: שורה אחת (D_DATE_LINE_Y = D_NAME_LINE_Y = 551)
+  // חתימה: D_SIG_LINE_Y = 568 (3px מתחת לתחתית הטקסט)
+  appointer_date:       ltr(382, D_DATE_LINE_Y,  80),
+  appointer_name_line:  rtl(282, D_NAME_LINE_Y, 150),
+  appointer_signature:  sig(137, D_SIG_LINE_Y,  100, 30),
 
   // ── (ה) הצהרת המפעיל ──────────────────────────────────────────────────────
-  operator_date:        ltr(388, 676,  80),  // x+10 y-8
-  operator_name_line:   rtl(285, 688, 150),  // ללא שינוי
-  operator_signature:   sig(164, 684, 100, 30),  // y-8
+  // תאריך + שם: שורה אחת (E_DATE_LINE_Y = E_NAME_LINE_Y = 688)
+  // חתימה: E_SIG_LINE_Y = 706 (4px מתחת לתחתית הטקסט)
+  operator_date:        ltr(384, E_DATE_LINE_Y,  80),
+  operator_name_line:   rtl(277, E_NAME_LINE_Y, 150),
+  operator_signature:   sig(152, E_SIG_LINE_Y,  100, 30),
 } as const;
 
 export type FMKey = keyof typeof FM;
