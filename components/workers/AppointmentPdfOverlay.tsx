@@ -106,6 +106,12 @@ function splitName(full: string): [string, string] {
   return [parts.slice(0, -1).join(' '), parts[parts.length - 1]];
 }
 
+// ─── BASELINE OFFSET ─────────────────────────────────────────────────────────
+// html2canvas renders text from top; the field map Y values mark the baseline.
+// Shift text upward so the visual baseline aligns with the form line.
+// Signatures are positioned by their top edge and use no offset.
+const TEXT_BASELINE_OFFSET = 10;
+
 // ─── TEXT FIELD ───────────────────────────────────────────────────────────────
 function T({ v, f }: { v: string; f: TextField }) {
   if (!v) return null;
@@ -113,7 +119,7 @@ function T({ v, f }: { v: string; f: TextField }) {
     <span
       style={{
         position: 'absolute',
-        top: f.y,
+        top: f.y - TEXT_BASELINE_OFFSET,
         left: f.x,
         width: f.w,
         fontFamily: 'Arial, Helvetica, sans-serif',
