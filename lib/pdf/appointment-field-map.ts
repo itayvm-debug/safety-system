@@ -58,39 +58,37 @@ function sig(x: number, y: number, w: number, h: number): SigField {
 export const FM = {
   // ── (א) ממנה ──────────────────────────────────────────────────────────────
   // x = (595 − original_right) − w   |   מקור field-map.ts (כוייל ידנית)
-  appointer_name:    rtl(398, 172, 180),   // right_edge=578  (orig right:17)
-  appointer_address: rtl(375, 207, 160),   // right_edge=535  (orig right:60)
-  appointer_zip:     ltr(345, 209,  80),   // LTR  (orig left:345)
-  appointer_phone:   ltr(161, 209,  90),   // LTR  (orig left:161)
-  appointer_role:    rtl(383, 223, 180),   // right_edge=563  (orig right:32)
+  appointer_name:    rtl(386, 172, 180),   // x-12 → right_edge=566
+  appointer_address: rtl(365, 207, 160),   // x-10 → right_edge=525
+  appointer_zip:     ltr(345, 209,  80),   // LTR — ללא שינוי
+  appointer_phone:   ltr(161, 209,  90),   // LTR — ללא שינוי
+  appointer_role:    rtl(373, 223, 180),   // x-10 → right_edge=553
 
   // ── (ב) מכונה ─────────────────────────────────────────────────────────────
-  machine_name:       rtl(332, 265, 160),  // right_edge=492  (orig right:103)
-  manufacturer:       rtl( 27, 265, 120),  // right_edge=147  (orig right:448)
-  machine_identifier: ltr(315, 288, 100),  // LTR  (orig left:315)
-  safe_working_load:  rtl(120, 288,  80),  // right_edge=200  (orig right:395)
-  power_type:         rtl(205, 306, 120),  // right_edge=325  (orig right:270)
+  machine_name:       rtl(322, 267, 160),  // x-10 y+2 → right_edge=482
+  manufacturer:       rtl( 35, 267, 120),  // x+8  y+2 → right_edge=155
+  machine_identifier: ltr(315, 288, 100),  // LTR — ללא שינוי
+  safe_working_load:  rtl(120, 288,  80),  // ללא שינוי
+  power_type:         rtl(211, 306, 120),  // x+6  → right_edge=331
 
   // ── (ג) מפעיל ────────────────────────────────────────────────────────────
-  operator_last_name:   rtl(322, 368, 100),  // right_edge=422  (orig right:173)
-  operator_first_name:  rtl(151, 368, 100),  // right_edge=251  (orig right:344)
-  operator_father_name: rtl( 19, 368, 100),  // right_edge=119  (orig right:476)
-  operator_id:          ltr(353, 388, 100),  // LTR  (orig left:353)
-  operator_birth_year:  ltr(210, 388,  60),  // LTR  (orig left:210)
-  operator_profession:  rtl( 22, 388, 120),  // right_edge=142  (orig right:453)
-  operator_address:     rtl(343, 408, 200),  // right_edge=543  (orig right:52)
+  operator_last_name:   rtl(314, 368, 100),  // x-8 → right_edge=414
+  operator_first_name:  rtl(143, 368, 100),  // x-8 → right_edge=243
+  operator_father_name: rtl( 25, 368, 100),  // x+6 → right_edge=125
+  operator_id:          ltr(353, 388, 100),  // LTR — ללא שינוי
+  operator_birth_year:  ltr(210, 388,  60),  // LTR — ללא שינוי
+  operator_profession:  rtl( 22, 388, 120),  // ללא שינוי
+  operator_address:     rtl(335, 408, 200),  // x-8 → right_edge=535
 
   // ── (ד) הצהרת הממנה ────────────────────────────────────────────────────────
-  // טקסט y=551 (גובה ~14px → תחתית ~565) | חתימה y=568 (3px מרווח)
-  appointer_date:       ltr(382, 551,  80),  // LTR  (orig left:382)
-  appointer_name_line:  rtl(282, 551, 150),  // right_edge=432  (orig right:163)
-  appointer_signature:  sig(137, 568, 100, 30),  // מתחת לטקסט  (orig left:137)
+  appointer_date:       ltr(364, 551,  80),  // x-18
+  appointer_name_line:  rtl(290, 551, 150),  // x+8  → right_edge=440
+  appointer_signature:  sig(147, 574, 100, 30),  // x+10 y+6
 
   // ── (ה) הצהרת המפעיל ──────────────────────────────────────────────────────
-  // טקסט y=688 (גובה ~14px → תחתית ~702) | חתימה y=706 (4px מרווח)
-  operator_date:        ltr(384, 688,  80),  // LTR  (orig left:384)
-  operator_name_line:   rtl(277, 688, 150),  // right_edge=427  (orig right:168)
-  operator_signature:   sig(152, 706, 100, 30),  // מתחת לטקסט  (orig left:152)
+  operator_date:        ltr(366, 688,  80),  // x-18
+  operator_name_line:   rtl(285, 688, 150),  // x+8  → right_edge=435
+  operator_signature:   sig(164, 698, 100, 30),  // x+12 y-8
 } as const;
 
 export type FMKey = keyof typeof FM;
