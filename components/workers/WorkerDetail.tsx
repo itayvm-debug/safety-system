@@ -37,6 +37,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   const [togglingManager, setTogglingManager] = useState(false);
   const [isCraneOperator, setIsCraneOperator] = useState(!!worker.is_crane_operator);
   const [isResponsibleManager, setIsResponsibleManager] = useState(!!worker.is_responsible_site_manager);
+  const [localManagerId, setLocalManagerId] = useState<string | null>(worker.responsible_manager_id ?? null);
   const [localAppointments, setLocalAppointments] = useState(worker.lifting_machine_appointments ?? []);
 
   const [pendingExpiry, setPendingExpiry] = useState<Map<string, string>>(new Map());
@@ -191,12 +192,22 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
         )}
 
         <div className="mt-4">
-          <SubcontractorDisplay worker={worker} onChanged={() => router.refresh()} />
+          <SubcontractorDisplay
+            worker={worker}
+            managerWorkerId={localManagerId}
+            onChanged={() => router.refresh()}
+          />
         </div>
 
         {!isResponsibleManager && (
           <div className="mt-3">
-            <ManagerSelector worker={worker} onChanged={() => router.refresh()} />
+            <ManagerSelector
+              worker={worker}
+              onChanged={(newManagerId) => {
+                setLocalManagerId(newManagerId);
+                router.refresh();
+              }}
+            />
           </div>
         )}
 
@@ -380,30 +391,34 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
 // ─── תצוגת קבלן משנה (עם נעילה לפי מנהל עבודה) ──────────────
 function SubcontractorDisplay({
   worker,
+  managerWorkerId,
   onChanged,
 }: {
   worker: WorkerWithDocuments;
+  managerWorkerId: string | null;
   onChanged: () => void;
 }) {
   const [managerSub, setManagerSub] = useState<{ id: string; name: string } | null | undefined>(undefined);
   const [managerName, setManagerName] = useState('');
 
   useEffect(() => {
-    if (!worker.responsible_manager_id) {
+    if (!managerWorkerId) {
       setManagerSub(null);
+      setManagerName('');
       return;
     }
-    fetch(`/api/workers/${worker.responsible_manager_id}`)
+    setManagerSub(undefined); // reset למצב טעינה
+    fetch(`/api/workers/${managerWorkerId}`)
       .then((r) => r.json())
       .then((data) => {
         setManagerName(data.full_name ?? '');
         setManagerSub(data.subcontractor ?? null);
       })
       .catch(() => setManagerSub(null));
-  }, [worker.responsible_manager_id]);
+  }, [managerWorkerId]);
 
   // עדיין טוען — לא מציגים כלום
-  if (worker.responsible_manager_id && managerSub === undefined) {
+  if (managerWorkerId && managerSub === undefined) {
     return (
       <div className="flex items-center gap-2">
         <span className="text-sm text-gray-500 whitespace-nowrap">קבלן משנה:</span>
@@ -509,7 +524,7 @@ function ManagerSelector({
   onChanged,
 }: {
   worker: WorkerWithDocuments;
-  onChanged: () => void;
+  onChanged: (newManagerId: string | null) => void;
 }) {
   const [managers, setManagers] = useState<{ id: string; full_name: string; subcontractor_id: string | null }[]>([]);
   const [selectedId, setSelectedId] = useState<string>(worker.responsible_manager_id ?? '');
@@ -556,7 +571,7 @@ function ManagerSelector({
         }
       }
 
-      onChanged();
+      onChanged(newId || null);
     } finally {
       setSaving(false);
       setOpen(false);
