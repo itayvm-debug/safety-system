@@ -11,7 +11,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   const { data, error } = await supabase
     .from('workers')
-    .select(`*, documents(*), safety_briefings(*), height_restrictions(*), subcontractor:subcontractors(id, name)`)
+    .select(`*, documents(*), safety_briefings(*), height_restrictions(*), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
     .eq('id', id)
     .single();
 

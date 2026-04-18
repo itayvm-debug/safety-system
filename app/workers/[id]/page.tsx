@@ -12,7 +12,7 @@ export default async function WorkerPage({ params }: { params: Promise<{ id: str
 
   const { data, error } = await supabase
     .from('workers')
-    .select(`*, documents(*), safety_briefings(*), subcontractor:subcontractors(id, name)`)
+    .select(`*, documents(*), safety_briefings(*), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
     .eq('id', id)
     .single();
 

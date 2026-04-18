@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     .from('workers')
     .select(lightweight
       ? 'id, full_name'
-      : `*, documents(*), safety_briefings(*), height_restrictions(*), subcontractor:subcontractors(id, name)`)
+      : `*, documents(*), safety_briefings(*), height_restrictions(*), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
     .order('full_name');
 
   if (managersOnly) {
