@@ -9,7 +9,7 @@ export default async function SubcontractorsPage() {
 
   const { data } = await supabase
     .from('subcontractors')
-    .select('*, responsible_worker:workers!responsible_worker_id(id, full_name)')
+    .select('*, responsible_worker:workers!subcontractors_responsible_worker_id_fkey(id, full_name)')
     .order('name');
 
   const subcontractors = (data ?? []) as Subcontractor[];
