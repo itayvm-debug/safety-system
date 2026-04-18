@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySession, SESSION_COOKIE_NAME } from '@/lib/auth/session';
+import { verifySession, SESSION_COOKIE_NAME, ROLE_COOKIE_NAME } from '@/lib/auth/session';
 
 /** paths שלא דורשים authentication */
 const PUBLIC = ['/login', '/api/auth/login', '/api/auth/logout'];
@@ -21,9 +21,10 @@ export async function middleware(request: NextRequest) {
   const session = await verifySession(token);
 
   if (!session) {
-    // token פג תוקף / פסול — מחק cookie ושלח ל-login
+    // token פג תוקף / פסול — מחק cookies ושלח ל-login
     const response = NextResponse.redirect(new URL('/login', request.url));
-    response.cookies.delete(SESSION_COOKIE_NAME);
+    response.cookies.set({ name: SESSION_COOKIE_NAME, value: '', maxAge: 0, path: '/', httpOnly: true, sameSite: 'lax' });
+    response.cookies.set({ name: ROLE_COOKIE_NAME, value: '', maxAge: 0, path: '/', httpOnly: false, sameSite: 'lax' });
     return response;
   }
 
