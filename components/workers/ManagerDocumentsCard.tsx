@@ -4,8 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ManagerLicense, ManagerInsurance } from '@/types';
 import { getDocumentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
-import { format, parseISO } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { formatDateSafe } from '@/lib/utils/date';
 
 interface Props {
   workerId: string;
@@ -155,9 +154,9 @@ function ManagerFileRow({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="font-medium text-gray-900 text-sm">{label}</span>
-          {expiryDate && (
+          {expiryDate && formatDateSafe(expiryDate) && (
             <span className="text-xs text-gray-400">
-              תוקף: {format(parseISO(expiryDate), 'dd/MM/yyyy', { locale: he })}
+              תוקף: {formatDateSafe(expiryDate)}
             </span>
           )}
         </div>

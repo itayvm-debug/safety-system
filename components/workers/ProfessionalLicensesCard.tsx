@@ -4,8 +4,7 @@ import { useState, useRef } from 'react';
 import { ProfessionalLicense } from '@/types';
 import { getDocumentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
-import { format, parseISO } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { formatDateSafe } from '@/lib/utils/date';
 
 interface Props {
   workerId: string;
@@ -116,9 +115,9 @@ function LicenseRow({
           {license.license_number && (
             <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded" dir="ltr">{license.license_number}</span>
           )}
-          {license.expiry_date && (
+          {license.expiry_date && formatDateSafe(license.expiry_date) && (
             <span className="text-xs text-gray-400">
-              תוקף: {format(parseISO(license.expiry_date), 'dd/MM/yyyy', { locale: he })}
+              תוקף: {formatDateSafe(license.expiry_date)}
             </span>
           )}
         </div>

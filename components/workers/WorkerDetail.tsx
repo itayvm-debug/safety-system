@@ -301,10 +301,10 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
         )}
       </div>
 
-      {/* אחראי אתר */}
+      {/* מנהל עבודה */}
       <div>
         <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-lg font-semibold text-gray-900">אחראי אתר</h2>
+          <h2 className="text-lg font-semibold text-gray-900">מנהל עבודה</h2>
           <div className="flex items-center gap-2">
             <ToggleSwitch
               checked={isResponsibleManager}

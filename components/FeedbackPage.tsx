@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { SiteFeedback } from '@/types';
-import { format, parseISO } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { formatDateSafe } from '@/lib/utils/date';
 
 interface Props {
   feedbackList: SiteFeedback[];
@@ -47,7 +46,7 @@ function FeedbackCard({ feedback }: { feedback: SiteFeedback }) {
           <p className="text-sm text-gray-500">{feedback.full_name}</p>
         </div>
         <span className="text-xs text-gray-400 whitespace-nowrap">
-          {format(parseISO(feedback.created_at), 'dd/MM/yyyy HH:mm', { locale: he })}
+          {formatDateSafe(feedback.created_at, 'dd/MM/yyyy HH:mm')}
         </span>
       </div>
       <p className="text-sm text-gray-700 whitespace-pre-wrap">{feedback.content}</p>
