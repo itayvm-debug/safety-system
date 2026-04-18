@@ -101,7 +101,56 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const supabase = createServiceClient();
 
-  const { error } = await supabase.from('workers').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  console.log(`[DELETE worker] id=${id}`);
+
+  // 1. null out responsible_manager_id on workers managed by this worker
+  const { error: e1 } = await supabase
+    .from('workers')
+    .update({ responsible_manager_id: null })
+    .eq('responsible_manager_id', id);
+  if (e1) {
+    console.error('[DELETE worker] failed to clear responsible_manager_id:', e1);
+    return NextResponse.json({ error: `שגיאה בניקוי שיוך מנהל עבודה: ${e1.message}` }, { status: 500 });
+  }
+
+  // 2. null out responsible_worker_id on subcontractors where this worker is responsible
+  const { error: e2 } = await supabase
+    .from('subcontractors')
+    .update({ responsible_worker_id: null })
+    .eq('responsible_worker_id', id);
+  if (e2) {
+    console.error('[DELETE worker] failed to clear subcontractors.responsible_worker_id:', e2);
+    return NextResponse.json({ error: `שגיאה בניקוי שיוך קבלן משנה: ${e2.message}` }, { status: 500 });
+  }
+
+  // 3. delete manager_licenses
+  const { error: e3 } = await supabase.from('manager_licenses').delete().eq('worker_id', id);
+  if (e3) {
+    console.error('[DELETE worker] failed to delete manager_licenses:', e3);
+    return NextResponse.json({ error: `שגיאה במחיקת רישיונות מנהל: ${e3.message}` }, { status: 500 });
+  }
+
+  // 4. delete manager_insurances
+  const { error: e4 } = await supabase.from('manager_insurances').delete().eq('worker_id', id);
+  if (e4) {
+    console.error('[DELETE worker] failed to delete manager_insurances:', e4);
+    return NextResponse.json({ error: `שגיאה במחיקת ביטוחי מנהל: ${e4.message}` }, { status: 500 });
+  }
+
+  // 5. delete professional_licenses
+  const { error: e5 } = await supabase.from('professional_licenses').delete().eq('worker_id', id);
+  if (e5) {
+    console.error('[DELETE worker] failed to delete professional_licenses:', e5);
+    return NextResponse.json({ error: `שגיאה במחיקת רישיונות מקצועיים: ${e5.message}` }, { status: 500 });
+  }
+
+  // 6. delete worker (documents / height_restrictions / safety_briefings / lifting_machine_appointments cascade)
+  const { error: e6 } = await supabase.from('workers').delete().eq('id', id);
+  if (e6) {
+    console.error('[DELETE worker] failed to delete worker:', e6);
+    return NextResponse.json({ error: `שגיאה במחיקת העובד: ${e6.message}` }, { status: 500 });
+  }
+
+  console.log(`[DELETE worker] success id=${id}`);
   return NextResponse.json({ success: true });
 }
