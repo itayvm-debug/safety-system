@@ -22,8 +22,8 @@ export default function SiteManagerList({ managers, photoUrls }: Props) {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">אחראי אתר</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{managers.length} אחראי אתר פעילים</p>
+        <h1 className="text-2xl font-bold text-gray-900">מנהלי עבודה</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{managers.length} מנהלי עבודה פעילים</p>
       </div>
 
       <div className="relative">
@@ -45,11 +45,11 @@ export default function SiteManagerList({ managers, photoUrls }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
           <p className="text-base font-medium">
-            {search ? 'לא נמצאו אחראי אתר התואמים את החיפוש' : 'אין אחראי אתר מוגדרים עדיין'}
+            {search ? 'לא נמצאו מנהלי עבודה התואמים את החיפוש' : 'אין מנהלי עבודה מוגדרים עדיין'}
           </p>
           {!search && (
             <p className="text-sm mt-1">
-              ניתן לסמן עובד כאחראי אתר בעמוד פרטי העובד
+              ניתן לסמן עובד כמנהל עבודה בעמוד פרטי העובד
             </p>
           )}
         </div>
@@ -89,7 +89,7 @@ function ManagerCard({ manager, photoUrl }: { manager: Worker; photoUrl?: string
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0 mr-2">
-        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">אחראי אתר</span>
+        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">מנהל עבודה</span>
         <svg className="w-4 h-4 text-gray-300 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>

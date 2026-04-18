@@ -33,7 +33,7 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [workers]);
 
-  // רשימת אחראי אתר ייחודיים
+  // רשימת מנהל עבודה ייחודיים
   const siteManagers = useMemo(() => {
     return workers
       .filter((w) => w.is_responsible_site_manager)
@@ -138,7 +138,7 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
               onChange={(e) => setManagerFilter(e.target.value)}
               className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
             >
-              <option value="">כל האחראים</option>
+              <option value="">כל מנהלי העבודה</option>
               {siteManagers.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}

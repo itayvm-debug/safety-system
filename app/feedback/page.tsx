@@ -1,16 +1,14 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { getSession } from '@/lib/auth/session';
 import FeedbackPage from '@/components/FeedbackPage';
 import { SiteFeedback } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
 export default async function FeedbackAdminPage() {
-  // בדיקת הרשאת admin ב-server
-  const cookieStore = await cookies();
-  const role = cookieStore.get('user_role')?.value;
-  if (role !== 'admin') {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') {
     redirect('/dashboard');
   }
 
