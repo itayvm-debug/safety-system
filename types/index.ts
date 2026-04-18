@@ -118,6 +118,9 @@ export interface SiteFeedback {
   full_name: string;
   subject: string;
   content: string;
+  is_handled: boolean;
+  is_starred: boolean;
+  handled_at: string | null;
   created_at: string;
 }
 

@@ -15,13 +15,23 @@ function IconWorkers() {
   );
 }
 
+function IconSiteManager() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M12 14c-5 0-8 2-8 4v1h16v-1c0-2-3-4-8-4z"/>
+      <path d="M17 5.5 18.5 7l3-3"/>
+    </svg>
+  );
+}
+
 function IconTruck() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/>
-      <rect x="9" y="11" width="14" height="10" rx="2"/>
-      <circle cx="12" cy="21" r="1"/>
-      <circle cx="20" cy="21" r="1"/>
+      <rect x="1" y="3" width="15" height="13" rx="1"/>
+      <path d="M16 8h4l3 4v4h-7V8z"/>
+      <circle cx="5.5" cy="18.5" r="2.5"/>
+      <circle cx="18.5" cy="18.5" r="2.5"/>
     </svg>
   );
 }
@@ -29,20 +39,24 @@ function IconTruck() {
 function IconLift() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 19V5"/>
-      <path d="m5 12 7-7 7 7"/>
-      <path d="M5 19h14"/>
+      <path d="M17 11V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/>
+      <path d="M5 11h14"/>
+      <path d="M11 11v9"/>
+      <path d="M9 17h6"/>
+      <path d="M7 21h10"/>
+      <path d="M8 7h2"/>
+      <path d="M14 7h2"/>
     </svg>
   );
 }
 
-function IconBuilding() {
+function IconSubcontractors() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/>
-      <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
-      <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
-      <path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   );
 }
@@ -67,20 +81,30 @@ const CARDS = [
     hoverBorder: 'hover:border-orange-300',
   },
   {
-    href: '/heavy-equipment',
-    icon: IconTruck,
-    title: 'כלי צמ"ה',
-    description: 'ניהול רישיונות, ביטוחים ובדיקות תקופתיות לכלי צמ"ה',
-    color: 'text-blue-500',
+    href: '/site-managers',
+    icon: IconSiteManager,
+    title: 'מנהלי עבודה',
+    description: 'ניהול מנהלי עבודה, רישיונות רכב וביטוחים',
+    color: 'text-blue-600',
     bg: 'bg-blue-50',
     border: 'border-blue-100',
     hoverBorder: 'hover:border-blue-300',
   },
   {
+    href: '/heavy-equipment',
+    icon: IconTruck,
+    title: 'כלי צמ"ה',
+    description: 'ניהול רישיונות, ביטוחים ובדיקות תקופתיות לכלי צמ"ה',
+    color: 'text-yellow-600',
+    bg: 'bg-yellow-50',
+    border: 'border-yellow-100',
+    hoverBorder: 'hover:border-yellow-300',
+  },
+  {
     href: '/lifting-equipment',
     icon: IconLift,
     title: 'ציוד הרמה',
-    description: 'מעקב אחר ציוד הרמה ותוקף בדיקות תקופתיות',
+    description: 'מעקב אחר ציוד הרמה — חגורות, שאקלים, שרשראות ועוד',
     color: 'text-purple-500',
     bg: 'bg-purple-50',
     border: 'border-purple-100',
@@ -88,7 +112,7 @@ const CARDS = [
   },
   {
     href: '/subcontractors',
-    icon: IconBuilding,
+    icon: IconSubcontractors,
     title: 'קבלני משנה',
     description: 'ניהול קבלני משנה ואנשי קשר',
     color: 'text-green-500',
@@ -122,7 +146,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Cards grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {CARDS.map(({ href, icon: Icon, title, description, color, bg, border, hoverBorder }) => (
           <Link
             key={href}

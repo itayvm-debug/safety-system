@@ -194,6 +194,12 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
           <SubcontractorSelector worker={worker} onChanged={() => router.refresh()} />
         </div>
 
+        {!isResponsibleManager && (
+          <div className="mt-3">
+            <ManagerSelector worker={worker} onChanged={() => router.refresh()} />
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
           <Link
             href={`/workers/${worker.id}/edit`}
@@ -439,6 +445,83 @@ function SubcontractorSelector({
           className="text-sm text-gray-700 hover:text-orange-600 hover:underline"
         >
           {saving ? 'שומר...' : currentName ?? 'לחץ לשיוך'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── שיוך מנהל עבודה ──────────────────────────────────────────
+function ManagerSelector({
+  worker,
+  onChanged,
+}: {
+  worker: WorkerWithDocuments;
+  onChanged: () => void;
+}) {
+  const [managers, setManagers] = useState<{ id: string; full_name: string }[]>([]);
+  const [selectedId, setSelectedId] = useState<string>(worker.responsible_manager_id ?? '');
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (worker.responsible_manager_id) loadList();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadList() {
+    if (loaded) return;
+    try {
+      const res = await fetch('/api/workers?managers=true');
+      const data = await res.json();
+      if (res.ok) setManagers(data);
+    } finally {
+      setLoaded(true);
+    }
+  }
+
+  async function handleChange(newId: string) {
+    setSelectedId(newId);
+    setSaving(true);
+    try {
+      await fetch(`/api/workers/${worker.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ responsible_manager_id: newId || null }),
+      });
+      onChanged();
+    } finally {
+      setSaving(false);
+      setOpen(false);
+    }
+  }
+
+  const currentName =
+    managers.find((m) => m.id === selectedId)?.full_name ?? null;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-gray-500 whitespace-nowrap">מנהל עבודה:</span>
+      {open ? (
+        <select
+          autoFocus
+          value={selectedId}
+          onChange={(e) => handleChange(e.target.value)}
+          onBlur={() => setOpen(false)}
+          className="flex-1 border border-blue-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <option value="">— ללא מנהל עבודה —</option>
+          {managers.map((m) => (
+            <option key={m.id} value={m.id}>{m.full_name}</option>
+          ))}
+        </select>
+      ) : (
+        <button
+          onClick={() => { setOpen(true); loadList(); }}
+          className="text-sm text-gray-700 hover:text-blue-600 hover:underline"
+        >
+          {saving ? 'שומר...' : currentName ?? (worker.responsible_manager_id && !loaded ? 'טוען...' : 'לחץ לשיוך')}
         </button>
       )}
     </div>
