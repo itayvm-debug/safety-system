@@ -112,7 +112,8 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
       router.push('/workers');
       router.refresh();
     } else {
-      alert('שגיאה במחיקה');
+      const body = await res.json().catch(() => ({}));
+      alert(body?.error || 'שגיאה במחיקה');
       setDeletingWorker(false);
     }
   }
