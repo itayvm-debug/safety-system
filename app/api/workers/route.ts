@@ -22,8 +22,7 @@ export async function GET(request: NextRequest) {
     .order('full_name');
 
   if (managersOnly) {
-    // מנהלים פנימיים בלבד — ללא שיוך לקבלן משנה
-    query = query.eq('is_responsible_site_manager', true).eq('is_active', true).is('subcontractor_id', null);
+    query = query.eq('is_responsible_site_manager', true).eq('is_active', true);
   }
   if (subcontractorId) {
     query = query.eq('subcontractor_id', subcontractorId).eq('is_active', true);
