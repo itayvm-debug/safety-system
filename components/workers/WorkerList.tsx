@@ -19,6 +19,26 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [showInactive, setShowInactive] = useState(false);
+  const [subcontractorFilter, setSubcontractorFilter] = useState('');
+  const [managerFilter, setManagerFilter] = useState('');
+
+  // רשימת קבלני משנה ייחודיים
+  const subcontractors = useMemo(() => {
+    const map = new Map<string, string>();
+    workers.forEach((w) => {
+      if (w.subcontractor?.id && w.subcontractor?.name) {
+        map.set(w.subcontractor.id, w.subcontractor.name);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [workers]);
+
+  // רשימת אחראי אתר ייחודיים
+  const siteManagers = useMemo(() => {
+    return workers
+      .filter((w) => w.is_responsible_site_manager)
+      .map((w) => ({ id: w.id, name: w.full_name }));
+  }, [workers]);
 
   const filtered = useMemo(() => {
     return workers.filter((w) => {
@@ -30,9 +50,11 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
         w.id_number.includes(search);
       const status = getWorkerStatus(w);
       const matchesFilter = filter === 'all' || status === filter;
-      return matchesSearch && matchesFilter;
+      const matchesSub = !subcontractorFilter || w.subcontractor_id === subcontractorFilter;
+      const matchesManager = !managerFilter || w.responsible_manager_id === managerFilter;
+      return matchesSearch && matchesFilter && matchesSub && matchesManager;
     });
-  }, [workers, search, filter, showInactive]);
+  }, [workers, search, filter, showInactive, subcontractorFilter, managerFilter]);
 
   const activeWorkers = workers.filter((w) => w.is_active);
   const inactiveCount = workers.length - activeWorkers.length;
@@ -94,6 +116,36 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
           className="w-full pr-10 pl-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent shadow-sm"
         />
       </div>
+
+      {/* פילטרי קבלן + מנהל */}
+      {(subcontractors.length > 0 || siteManagers.length > 0) && (
+        <div className="flex flex-wrap gap-2">
+          {subcontractors.length > 0 && (
+            <select
+              value={subcontractorFilter}
+              onChange={(e) => setSubcontractorFilter(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+            >
+              <option value="">כל קבלני המשנה</option>
+              {subcontractors.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          )}
+          {siteManagers.length > 0 && (
+            <select
+              value={managerFilter}
+              onChange={(e) => setManagerFilter(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+            >
+              <option value="">כל האחראים</option>
+              {siteManagers.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
 
       {/* פילטרים */}
       <div className="flex flex-wrap gap-2">

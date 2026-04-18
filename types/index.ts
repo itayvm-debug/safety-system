@@ -30,6 +30,8 @@ export interface Worker {
   photo_url: string | null;
   is_active: boolean;
   is_crane_operator: boolean;
+  is_responsible_site_manager: boolean;
+  responsible_manager_id: string | null;
   project_name: string | null;
   subcontractor_id: string | null;
   subcontractor?: Pick<Subcontractor, 'id' | 'name'> | null;
@@ -79,11 +81,54 @@ export interface HeightRestriction {
   created_at: string;
 }
 
+export interface ProfessionalLicense {
+  id: string;
+  worker_id: string;
+  license_type: string;
+  license_number: string | null;
+  expiry_date: string | null;
+  file_url: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ManagerLicense {
+  id: string;
+  worker_id: string;
+  license_type: string;
+  file_url: string | null;
+  expiry_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ManagerInsurance {
+  id: string;
+  worker_id: string;
+  insurance_type: string;
+  file_url: string | null;
+  expiry_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SiteFeedback {
+  id: string;
+  full_name: string;
+  subject: string;
+  content: string;
+  created_at: string;
+}
+
 export interface WorkerWithDocuments extends Worker {
   documents: Document[];
   safety_briefings: SafetyBriefing[];
   height_restrictions: HeightRestriction[];
   lifting_machine_appointments: LiftingMachineAppointment[];
+  professional_licenses?: ProfessionalLicense[];
+  manager_licenses?: ManagerLicense[];
+  manager_insurances?: ManagerInsurance[];
 }
 
 export type PowerType = 'mechanical' | 'electric' | 'hydraulic' | 'pneumatic';

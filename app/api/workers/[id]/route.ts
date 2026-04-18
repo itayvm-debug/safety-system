@@ -26,7 +26,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   const body = await request.json();
   const { full_name, id_number, worker_type, phone, notes, photo_url, project_name, is_active,
-          father_name, birth_year, profession, address, is_crane_operator } = body;
+          father_name, birth_year, profession, address, is_crane_operator,
+          is_responsible_site_manager, responsible_manager_id } = body;
 
   if (!full_name?.trim()) return NextResponse.json({ error: 'שם מלא נדרש' }, { status: 400 });
   if (!id_number?.trim()) return NextResponse.json({ error: 'מספר תעודת זהות נדרש' }, { status: 400 });
@@ -48,6 +49,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       profession: profession?.trim() || null,
       address: address?.trim() || null,
       is_crane_operator: is_crane_operator !== undefined ? !!is_crane_operator : undefined,
+      is_responsible_site_manager: is_responsible_site_manager !== undefined ? !!is_responsible_site_manager : undefined,
+      responsible_manager_id: responsible_manager_id !== undefined ? (responsible_manager_id || null) : undefined,
     })
     .eq('id', id)
     .select()
@@ -68,7 +71,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const body = await request.json();
 
   const allowed = ['subcontractor_id', 'notes', 'phone', 'photo_url', 'is_active', 'project_name',
-    'father_name', 'birth_year', 'profession', 'address', 'is_crane_operator'] as const;
+    'father_name', 'birth_year', 'profession', 'address', 'is_crane_operator',
+    'is_responsible_site_manager', 'responsible_manager_id'] as const;
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (key in body) updates[key] = body[key] ?? null;
