@@ -2,16 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAuth, requireAdmin } from '@/lib/auth/api';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const { error: authError } = await requireAuth();
   if (authError) return authError;
 
+  const { searchParams } = new URL(request.url);
+  const managersOnly = searchParams.get('managers') === 'true';
+
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('workers')
-    .select(`*, documents(*), safety_briefings(*), height_restrictions(*), subcontractor:subcontractors(id, name)`)
+    .select(managersOnly
+      ? 'id, full_name'
+      : `*, documents(*), safety_briefings(*), height_restrictions(*), subcontractor:subcontractors(id, name)`)
     .order('full_name');
 
+  if (managersOnly) {
+    query = query.eq('is_responsible_site_manager', true).eq('is_active', true);
+  }
+
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
