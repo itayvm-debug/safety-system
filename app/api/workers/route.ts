@@ -8,17 +8,22 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const managersOnly = searchParams.get('managers') === 'true';
+  const subcontractorId = searchParams.get('subcontractor_id');
+  const lightweight = managersOnly || !!subcontractorId;
 
   const supabase = createServiceClient();
   let query = supabase
     .from('workers')
-    .select(managersOnly
+    .select(lightweight
       ? 'id, full_name'
       : `*, documents(*), safety_briefings(*), height_restrictions(*), subcontractor:subcontractors(id, name)`)
     .order('full_name');
 
   if (managersOnly) {
     query = query.eq('is_responsible_site_manager', true).eq('is_active', true);
+  }
+  if (subcontractorId) {
+    query = query.eq('subcontractor_id', subcontractorId).eq('is_active', true);
   }
 
   const { data, error } = await query;

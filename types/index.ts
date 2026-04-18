@@ -6,6 +6,8 @@ export interface Subcontractor {
   contact_name: string | null;
   phone: string | null;
   notes: string | null;
+  responsible_worker_id: string | null;
+  responsible_worker?: { id: string; full_name: string } | null;
   created_at: string;
   updated_at: string;
 }
