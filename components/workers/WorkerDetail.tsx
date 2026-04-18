@@ -191,8 +191,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
         )}
 
         <div className="mt-4">
-          <SubcontractorSelector worker={worker} onChanged={() => router.refresh()} />
-          <InheritedSubcontractorNote worker={worker} />
+          <SubcontractorDisplay worker={worker} onChanged={() => router.refresh()} />
         </div>
 
         {!isResponsibleManager && (
@@ -378,7 +377,59 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   );
 }
 
-// ─── בחירת קבלן משנה ──────────────────────────────────────────
+// ─── תצוגת קבלן משנה (עם נעילה לפי מנהל עבודה) ──────────────
+function SubcontractorDisplay({
+  worker,
+  onChanged,
+}: {
+  worker: WorkerWithDocuments;
+  onChanged: () => void;
+}) {
+  const [managerSub, setManagerSub] = useState<{ id: string; name: string } | null | undefined>(undefined);
+  const [managerName, setManagerName] = useState('');
+
+  useEffect(() => {
+    if (!worker.responsible_manager_id) {
+      setManagerSub(null);
+      return;
+    }
+    fetch(`/api/workers/${worker.responsible_manager_id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setManagerName(data.full_name ?? '');
+        setManagerSub(data.subcontractor ?? null);
+      })
+      .catch(() => setManagerSub(null));
+  }, [worker.responsible_manager_id]);
+
+  // עדיין טוען — לא מציגים כלום
+  if (worker.responsible_manager_id && managerSub === undefined) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-500 whitespace-nowrap">קבלן משנה:</span>
+        <span className="text-sm text-gray-400">טוען...</span>
+      </div>
+    );
+  }
+
+  // מנהל עם קבלן → שדה נעול
+  if (managerSub) {
+    return (
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-sm text-gray-500 whitespace-nowrap">קבלן משנה:</span>
+        <span className="text-sm font-medium text-blue-700">{managerSub.name}</span>
+        <span className="text-xs bg-blue-50 text-blue-500 border border-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap">
+          דרך מנהל העבודה {managerName}
+        </span>
+      </div>
+    );
+  }
+
+  // ללא נעילה → שדה עריכה רגיל
+  return <SubcontractorSelector worker={worker} onChanged={onChanged} />;
+}
+
+// ─── בחירת קבלן משנה (עריכה חופשית) ─────────────────────────
 function SubcontractorSelector({
   worker,
   onChanged,
@@ -452,37 +503,6 @@ function SubcontractorSelector({
   );
 }
 
-// ─── ירושת קבלן משנה ──────────────────────────────────────────
-function InheritedSubcontractorNote({ worker }: { worker: WorkerWithDocuments }) {
-  const [managerSub, setManagerSub] = useState<{ name: string } | null | undefined>(undefined);
-  const [managerName, setManagerName] = useState('');
-
-  useEffect(() => {
-    if (worker.subcontractor_id || !worker.responsible_manager_id) {
-      setManagerSub(null);
-      return;
-    }
-    fetch(`/api/workers/${worker.responsible_manager_id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setManagerName(data.full_name ?? '');
-        setManagerSub(data.subcontractor ?? null);
-      })
-      .catch(() => setManagerSub(null));
-  }, [worker.subcontractor_id, worker.responsible_manager_id]);
-
-  // לא מציגים אם: יש שיוך ישיר, אין מנהל, מנהל ללא קבלן, או טוען
-  if (worker.subcontractor_id || !worker.responsible_manager_id || !managerSub) return null;
-
-  return (
-    <div className="flex items-center gap-2 mt-1.5 pr-1">
-      <span className="text-xs text-gray-400 whitespace-nowrap">קבלן משנה (ירושה):</span>
-      <span className="text-xs font-medium text-blue-700">{managerSub.name}</span>
-      <span className="text-xs text-gray-400">דרך {managerName}</span>
-    </div>
-  );
-}
-
 // ─── שיוך מנהל עבודה ──────────────────────────────────────────
 function ManagerSelector({
   worker,
@@ -491,7 +511,7 @@ function ManagerSelector({
   worker: WorkerWithDocuments;
   onChanged: () => void;
 }) {
-  const [managers, setManagers] = useState<{ id: string; full_name: string }[]>([]);
+  const [managers, setManagers] = useState<{ id: string; full_name: string; subcontractor_id: string | null }[]>([]);
   const [selectedId, setSelectedId] = useState<string>(worker.responsible_manager_id ?? '');
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -517,11 +537,25 @@ function ManagerSelector({
     setSelectedId(newId);
     setSaving(true);
     try {
+      // שיוך מנהל עבודה
       await fetch(`/api/workers/${worker.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ responsible_manager_id: newId || null }),
       });
+
+      // אם למנהל החדש יש קבלן — מנקים שיוך ישיר של העובד למניעת סתירה
+      if (newId) {
+        const selectedManager = managers.find((m) => m.id === newId);
+        if (selectedManager?.subcontractor_id) {
+          await fetch(`/api/workers/${worker.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subcontractor_id: null }),
+          });
+        }
+      }
+
       onChanged();
     } finally {
       setSaving(false);

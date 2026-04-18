@@ -1,7 +1,7 @@
 export interface EffectiveSubcontractor {
   id: string;
   name: string;
-  source: 'direct' | 'inherited';
+  source: 'direct' | 'via-manager';
   managerName?: string;
 }
 
@@ -12,26 +12,32 @@ type WorkerRef = {
   full_name: string;
 };
 
+/**
+ * כלל עדיפות:
+ * 1. מנהל עבודה עם קבלן → הקבלן של המנהל גובר
+ * 2. שיוך ישיר לקבלן
+ * 3. null
+ */
 export function getEffectiveSubcontractor(
   worker: WorkerRef,
   workersById: Map<string, WorkerRef>,
 ): EffectiveSubcontractor | null {
-  // כלל 1: שיוך ישיר — גובר על הכל
-  if (worker.subcontractor_id && worker.subcontractor) {
-    return { id: worker.subcontractor_id, name: worker.subcontractor.name, source: 'direct' };
-  }
-
-  // כלל 2: ירושה ממנהל עבודה
+  // כלל 1: מנהל עם קבלן — גובר על שיוך ישיר
   if (worker.responsible_manager_id) {
     const manager = workersById.get(worker.responsible_manager_id);
     if (manager?.subcontractor_id && manager?.subcontractor) {
       return {
         id: manager.subcontractor_id,
         name: manager.subcontractor.name,
-        source: 'inherited',
+        source: 'via-manager',
         managerName: manager.full_name,
       };
     }
+  }
+
+  // כלל 2: שיוך ישיר
+  if (worker.subcontractor_id && worker.subcontractor) {
+    return { id: worker.subcontractor_id, name: worker.subcontractor.name, source: 'direct' };
   }
 
   return null;
