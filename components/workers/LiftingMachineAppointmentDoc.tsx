@@ -1,20 +1,16 @@
 'use client';
 
 import React from 'react';
-import { POWER_TYPE_LABELS, PowerType } from '@/types';
+import { POWER_TYPE_LABELS, PowerType, AppointmentMachine } from '@/types';
 
-// ─── טיפוס הנתונים ────────────────────────────────────────────────────────────
+// ─── טיפוס נתוני המסמך ────────────────────────────────────────────────────────
 export interface AppointmentDocData {
   appointer_name: string;
   appointer_address: string;
   appointer_zip: string;
   appointer_phone: string;
   appointer_role: string;
-  machine_name: string;
-  manufacturer: string;
-  machine_identifier: string;
-  safe_working_load: string;
-  power_type: PowerType | '';
+  machines: AppointmentMachine[];
   worker_full_name: string;
   worker_id_number: string;
   worker_father_name: string;
@@ -24,6 +20,7 @@ export interface AppointmentDocData {
   appointment_date: string; // YYYY-MM-DD
   appointer_sig?: string | null;
   operator_sig?: string | null;
+  logoSrc?: string;
 }
 
 // ─── עזרים ────────────────────────────────────────────────────────────────────
@@ -33,248 +30,245 @@ function fmtDate(iso: string): string {
   return d ? `${d}/${m}/${y}` : iso;
 }
 
+const S = {
+  page: {
+    width: 595,
+    backgroundColor: '#ffffff',
+    padding: '24px 32px',
+    fontFamily: 'Arial, Helvetica, sans-serif',
+    boxSizing: 'border-box' as const,
+    direction: 'rtl' as const,
+  },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ea580c',
+    borderRadius: 3,
+    padding: '4px 10px',
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  sectionLetter: { fontFamily: 'Arial', fontSize: 11, fontWeight: 'bold' as const, color: '#fff' },
+  sectionTitle: { fontFamily: 'Arial', fontSize: 11, color: '#fff' },
+  fieldRow: { display: 'flex', gap: 10, marginBottom: 6, direction: 'rtl' as const },
+  fieldWrap: { display: 'flex', alignItems: 'baseline', gap: 3, flex: 1 },
+  fieldLabel: { fontFamily: 'Arial', fontSize: 10, color: '#6b7280', whiteSpace: 'nowrap' as const },
+  fieldValue: (ltr = false): React.CSSProperties => ({
+    flex: 1,
+    borderBottom: '1px solid #9ca3af',
+    fontFamily: 'Arial',
+    fontSize: 11,
+    color: '#111',
+    paddingBottom: 1,
+    direction: ltr ? 'ltr' : 'rtl',
+    textAlign: ltr ? 'left' : 'right',
+    minWidth: 40,
+  }),
+  declarationBox: {
+    border: '1px solid #e5e7eb',
+    borderRadius: 4,
+    padding: '8px 10px',
+    backgroundColor: '#f9fafb',
+    marginBottom: 10,
+    fontFamily: 'Arial',
+    fontSize: 10.5,
+    color: '#374151',
+    lineHeight: 1.75,
+    direction: 'rtl' as const,
+    textAlign: 'right' as const,
+  },
+} as const;
+
 // ─── כותרת סעיף ───────────────────────────────────────────────────────────────
-function SectionHeader({ letter, title }: { letter: string; title: string }) {
+function SH({ l, t }: { l: string; t: string }) {
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      backgroundColor: '#ea580c',
-      borderRadius: 3,
-      padding: '4px 10px',
-      marginBottom: 8,
-      marginTop: 12,
-    }}>
-      <span style={{ fontFamily: 'Arial', fontSize: 11, fontWeight: 'bold', color: '#fff' }}>{letter}</span>
-      <span style={{ fontFamily: 'Arial', fontSize: 11, color: '#fff' }}>{title}</span>
+    <div style={S.sectionHeader}>
+      <span style={S.sectionLetter}>{l}</span>
+      <span style={S.sectionTitle}>{t}</span>
     </div>
   );
 }
 
-// ─── שדה עם קו תחתון ──────────────────────────────────────────────────────────
-function LabeledField({ label, value, ltr = false }: { label: string; value: string; ltr?: boolean }) {
+// ─── שדה ──────────────────────────────────────────────────────────────────────
+function F({ label, value, ltr = false }: { label: string; value: string; ltr?: boolean }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, flex: 1 }}>
-      <span style={{ fontFamily: 'Arial', fontSize: 10, color: '#6b7280', whiteSpace: 'nowrap' }}>{label}:</span>
-      <span style={{
-        flex: 1,
-        borderBottom: '1px solid #9ca3af',
-        fontFamily: 'Arial',
-        fontSize: 11,
-        color: '#111',
-        paddingBottom: 1,
-        direction: ltr ? 'ltr' : 'rtl',
-        textAlign: ltr ? 'left' : 'right',
-        minWidth: 40,
-      }}>
-        {value || '\u00a0'}
-      </span>
+    <div style={S.fieldWrap}>
+      <span style={S.fieldLabel}>{label}:</span>
+      <span style={S.fieldValue(ltr)}>{value || '\u00a0'}</span>
     </div>
   );
 }
 
 // ─── שורת שדות ────────────────────────────────────────────────────────────────
-function FieldRow({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', gap: 12, marginBottom: 6, direction: 'rtl' }}>
-      {children}
-    </div>
-  );
-}
-
-// ─── בלוק הצהרה ───────────────────────────────────────────────────────────────
-function DeclarationBox({ text }: { text: string }) {
-  return (
-    <div style={{
-      border: '1px solid #e5e7eb',
-      borderRadius: 4,
-      padding: '8px 10px',
-      backgroundColor: '#f9fafb',
-      marginBottom: 10,
-      fontFamily: 'Arial',
-      fontSize: 10.5,
-      color: '#374151',
-      lineHeight: 1.7,
-      direction: 'rtl',
-      textAlign: 'right',
-    }}>
-      {text}
-    </div>
-  );
+function Row({ children }: { children: React.ReactNode }) {
+  return <div style={S.fieldRow}>{children}</div>;
 }
 
 // ─── בלוק חתימה ───────────────────────────────────────────────────────────────
-function SignatureBlock({
-  label,
-  name,
-  date,
-  sigDataUrl,
-}: {
-  label: string;
-  name: string;
-  date: string;
-  sigDataUrl?: string | null;
-}) {
+function SigBlock({ label, name, date, sig }: { label: string; name: string; date: string; sig?: string | null }) {
+  const lineStyle: React.CSSProperties = {
+    height: 50,
+    borderBottom: '1px solid #374151',
+    fontFamily: 'Arial',
+    fontSize: 11,
+    color: '#111',
+    paddingTop: 4,
+  };
   return (
-    <div style={{ display: 'flex', gap: 12, direction: 'rtl', alignItems: 'flex-end' }}>
-      {/* חתימה */}
-      <div style={{ flex: 1.2 }}>
+    <div style={{ display: 'flex', gap: 12, direction: 'rtl', alignItems: 'flex-end', marginTop: 4 }}>
+      <div style={{ flex: 1.3 }}>
         <div style={{ fontFamily: 'Arial', fontSize: 10, color: '#6b7280', marginBottom: 3 }}>{label}:</div>
-        {sigDataUrl ? (
-          <img
-            src={sigDataUrl}
-            alt={label}
-            style={{ width: '100%', height: 48, objectFit: 'contain', display: 'block', borderBottom: '1px solid #374151' }}
-          />
+        {sig ? (
+          <img src={sig} alt={label} style={{ width: '100%', height: 50, objectFit: 'contain', display: 'block', borderBottom: '1px solid #374151' }} />
         ) : (
-          <div style={{ height: 48, borderBottom: '1px solid #374151' }} />
+          <div style={lineStyle} />
         )}
       </div>
-      {/* שם */}
       <div style={{ flex: 1.5 }}>
         <div style={{ fontFamily: 'Arial', fontSize: 10, color: '#6b7280', marginBottom: 3 }}>שם:</div>
-        <div style={{
-          height: 48,
-          borderBottom: '1px solid #374151',
-          fontFamily: 'Arial',
-          fontSize: 11,
-          color: '#111',
-          paddingTop: 4,
-          direction: 'rtl',
-        }}>
-          {name}
-        </div>
+        <div style={lineStyle}>{name}</div>
       </div>
-      {/* תאריך */}
       <div style={{ flex: 0.8 }}>
         <div style={{ fontFamily: 'Arial', fontSize: 10, color: '#6b7280', marginBottom: 3 }}>תאריך:</div>
-        <div style={{
-          height: 48,
-          borderBottom: '1px solid #374151',
-          fontFamily: 'Arial',
-          fontSize: 11,
-          color: '#111',
-          paddingTop: 4,
-          direction: 'ltr',
-          textAlign: 'left',
-        }}>
-          {date}
-        </div>
+        <div style={{ ...lineStyle, direction: 'ltr', textAlign: 'left' }}>{date}</div>
       </div>
     </div>
   );
 }
 
-// ─── מסמך מינוי מפעיל מכונת הרמה ─────────────────────────────────────────────
+// ─── טבלת מכונות ──────────────────────────────────────────────────────────────
+function MachinesTable({ machines }: { machines: AppointmentMachine[] }) {
+  if (machines.length === 1) {
+    const m = machines[0];
+    const powerLabel = m.power_type ? (POWER_TYPE_LABELS[m.power_type as PowerType] ?? m.power_type) : '';
+    return (
+      <div style={{ padding: '0 6px 2px' }}>
+        <Row>
+          <F label="שם המכונה" value={m.machine_name} />
+          <F label="יצרן" value={m.manufacturer ?? ''} />
+        </Row>
+        <Row>
+          <F label="מספר מזהה" value={m.machine_identifier ?? ''} ltr />
+          <F label="עומס עבודה בטוח" value={m.safe_working_load ?? ''} />
+          <F label="סוג הפעלה" value={powerLabel} />
+        </Row>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '0 6px 2px' }}>
+      {machines.map((m, i) => {
+        const powerLabel = m.power_type ? (POWER_TYPE_LABELS[m.power_type as PowerType] ?? m.power_type) : '';
+        return (
+          <div key={i} style={{ marginBottom: 10 }}>
+            <div style={{ fontFamily: 'Arial', fontSize: 10.5, fontWeight: 'bold', color: '#374151', marginBottom: 4 }}>
+              מכונה {i + 1}:
+            </div>
+            <Row>
+              <F label="שם המכונה" value={m.machine_name} />
+              <F label="יצרן" value={m.manufacturer ?? ''} />
+            </Row>
+            <Row>
+              <F label="מספר מזהה" value={m.machine_identifier ?? ''} ltr />
+              <F label="עומס עבודה בטוח" value={m.safe_working_load ?? ''} />
+              <F label="סוג הפעלה" value={powerLabel} />
+            </Row>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── רכיב ראשי ────────────────────────────────────────────────────────────────
 const LiftingMachineAppointmentDoc = React.forwardRef<HTMLDivElement, AppointmentDocData>(
   function LiftingMachineAppointmentDoc(data, ref) {
-    const powerLabel = data.power_type
-      ? (POWER_TYPE_LABELS[data.power_type as PowerType] ?? data.power_type)
-      : '';
+    const date = fmtDate(data.appointment_date);
 
     return (
-      <div
-        ref={ref}
-        dir="rtl"
-        style={{
-          width: 595,
-          backgroundColor: '#ffffff',
-          padding: '28px 32px',
-          fontFamily: 'Arial, Helvetica, sans-serif',
-          boxSizing: 'border-box',
-          direction: 'rtl',
-        }}
-      >
-        {/* ── כותרת ── */}
-        <div style={{ textAlign: 'center', borderBottom: '2.5px solid #ea580c', paddingBottom: 12, marginBottom: 4 }}>
-          <div style={{ fontFamily: 'Arial', fontSize: 19, fontWeight: 'bold', color: '#111', letterSpacing: 0.5 }}>
-            מינוי מפעיל מכונת הרמה
+      <div ref={ref} style={S.page}>
+
+        {/* ── כותרת + לוגו ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', borderBottom: '2.5px solid #ea580c', paddingBottom: 12, marginBottom: 4 }}>
+          {/* כותרת — צד ימין (RTL = start) */}
+          <div style={{ flex: 1, direction: 'rtl', textAlign: 'right' }}>
+            <div style={{ fontFamily: 'Arial', fontSize: 15, fontWeight: 'bold', color: '#111', lineHeight: 1.35 }}>
+              מינוי מפעיל מכונת הרמה
+            </div>
+            <div style={{ fontFamily: 'Arial', fontSize: 9, color: '#6b7280', marginTop: 3, lineHeight: 1.5 }}>
+              בהתאם לתקנות הבטיחות בעבודה (עגורנאים, מפעילי מכונות הרמה אחרות ואתתים), התשנ&quot;ג-1992
+            </div>
+            <div style={{ fontFamily: 'Arial', fontSize: 9, color: '#6b7280', lineHeight: 1.5 }}>
+              תוספת חמישית תקנה 18(ג)
+            </div>
           </div>
-          <div style={{ fontFamily: 'Arial', fontSize: 9.5, color: '#6b7280', marginTop: 4 }}>
-            בהתאם לתקנות הבטיחות בעבודה (עגורנאים, מפעילי מנופים וקרנות הרמה), התשכ&quot;ו-1966
+          {/* לוגו — צד שמאל */}
+          {data.logoSrc && (
+            <img
+              src={data.logoSrc}
+              alt="לוגו חברה"
+              style={{ height: 60, width: 'auto', objectFit: 'contain', marginRight: 'auto', marginLeft: 0, flexShrink: 0 }}
+            />
+          )}
+        </div>
+
+        {/* ── א': פרטי הממנה ── */}
+        <SH l="א'" t="פרטי הממנה" />
+        <div style={{ padding: '0 6px 2px' }}>
+          <Row>
+            <F label="שם הממנה" value={data.appointer_name} />
+            <F label="תפקיד" value={data.appointer_role} />
+          </Row>
+          <Row>
+            <F label="כתובת" value={data.appointer_address} />
+            <F label="מיקוד" value={data.appointer_zip} ltr />
+            <F label="טלפון" value={data.appointer_phone} ltr />
+          </Row>
+        </div>
+
+        {/* ── ב': פרטי מכונת ההרמה ── */}
+        <SH l="ב'" t="פרטי מכונת ההרמה" />
+        <MachinesTable machines={data.machines} />
+
+        {/* ── ג': פרטי המפעיל ── */}
+        <SH l="ג'" t="פרטי המפעיל" />
+        <div style={{ padding: '0 6px 2px' }}>
+          <Row>
+            <F label="שם מלא" value={data.worker_full_name} />
+            <F label="שם האב" value={data.worker_father_name} />
+          </Row>
+          <Row>
+            <F label="מספר ת.ז." value={data.worker_id_number} ltr />
+            <F label="שנת לידה" value={data.worker_birth_year} ltr />
+            <F label="מקצוע" value={data.worker_profession} />
+          </Row>
+          <Row>
+            <F label="כתובת" value={data.worker_address} />
+          </Row>
+        </div>
+
+        {/* ── ד': הצהרת הממנה ── */}
+        <SH l="ד'" t="הצהרת הממנה" />
+        <div style={{ padding: '0 6px 6px' }}>
+          <div style={S.declarationBox}>
+            אני החתום מטה מצהיר בזה כי מיניתי את האדם שפרטיו מפורטים בסעיף (ג) לעיל להפעיל את מכונת ההרמה המתוארת בסעיף ב&apos; לעיל, וכי הוא עומד בכל הדרישות המפורטות בתקנה 18 של תקנות הבטיחות בעבודה (עגורנאים, מפעילי מכונות הרמה אחרות ואתתים), התשנ&quot;ג-1992.
           </div>
+          <SigBlock label="חתימת הממנה" name={data.appointer_name} date={date} sig={data.appointer_sig} />
         </div>
 
-        {/* ── חלק א': פרטי הממנה ── */}
-        <SectionHeader letter="א'" title="פרטי הממנה" />
-        <div style={{ padding: '0 6px 2px' }}>
-          <FieldRow>
-            <LabeledField label="שם הממנה" value={data.appointer_name} />
-            <LabeledField label="תפקיד" value={data.appointer_role} />
-          </FieldRow>
-          <FieldRow>
-            <LabeledField label="כתובת" value={data.appointer_address} />
-            <LabeledField label="מיקוד" value={data.appointer_zip} ltr />
-            <LabeledField label="טלפון" value={data.appointer_phone} ltr />
-          </FieldRow>
-        </div>
-
-        {/* ── חלק ב': פרטי מכונת ההרמה ── */}
-        <SectionHeader letter="ב'" title="פרטי מכונת ההרמה" />
-        <div style={{ padding: '0 6px 2px' }}>
-          <FieldRow>
-            <LabeledField label="שם המכונה" value={data.machine_name} />
-            <LabeledField label="יצרן" value={data.manufacturer} />
-          </FieldRow>
-          <FieldRow>
-            <LabeledField label="מספר מזהה" value={data.machine_identifier} ltr />
-            <LabeledField label="עומס עבודה בטוח" value={data.safe_working_load} />
-            <LabeledField label="סוג הפעלה" value={powerLabel} />
-          </FieldRow>
-        </div>
-
-        {/* ── חלק ג': פרטי המפעיל ── */}
-        <SectionHeader letter="ג'" title="פרטי המפעיל" />
-        <div style={{ padding: '0 6px 2px' }}>
-          <FieldRow>
-            <LabeledField label="שם מלא" value={data.worker_full_name} />
-            <LabeledField label="שם האב" value={data.worker_father_name} />
-          </FieldRow>
-          <FieldRow>
-            <LabeledField label="מספר ת.ז." value={data.worker_id_number} ltr />
-            <LabeledField label="שנת לידה" value={data.worker_birth_year} ltr />
-            <LabeledField label="מקצוע" value={data.worker_profession} />
-          </FieldRow>
-          <FieldRow>
-            <LabeledField label="כתובת" value={data.worker_address} />
-          </FieldRow>
-        </div>
-
-        {/* ── חלק ד': הצהרת הממנה ── */}
-        <SectionHeader letter="ד'" title="הצהרת הממנה" />
-        <div style={{ padding: '0 6px 2px' }}>
-          <DeclarationBox text="אני החתום מטה מצהיר בזה כי מיניתי את האדם שפרטיו מפורטים לעיל להפעיל את מכונת ההרמה המתוארת לעיל, וכי למיטב ידיעתי הוא עומד בדרישות הנדרשות לצורך הפעלתה." />
-          <SignatureBlock
-            label="חתימת הממנה"
-            name={data.appointer_name}
-            date={fmtDate(data.appointment_date)}
-            sigDataUrl={data.appointer_sig}
-          />
-        </div>
-
-        {/* ── חלק ה': הצהרת המפעיל ── */}
-        <SectionHeader letter="ה'" title="הצהרת המפעיל" />
-        <div style={{ padding: '0 6px 2px' }}>
-          <DeclarationBox text="אני מצהיר בזה כי הפרטים האישיים המפורטים לעיל נכונים, וכי קיבלתי הדרכה מתאימה להפעלת מכונת ההרמה המתוארת במסמך זה." />
-          <SignatureBlock
-            label="חתימת המפעיל"
-            name={data.worker_full_name}
-            date={fmtDate(data.appointment_date)}
-            sigDataUrl={data.operator_sig}
-          />
+        {/* ── ה': הצהרת המפעיל ── */}
+        <SH l="ה'" t="הצהרת המפעיל" />
+        <div style={{ padding: '0 6px 6px' }}>
+          <div style={S.declarationBox}>
+            אני מצהיר בזה שכל הנתונים האישיים המפורטים בסעיף (ג) לעיל נכונים וכי קיבלתי הדרכה בהפעלת המכונה המפורטת בסעיף (ב) לעיל כנדרש בתקנה 18 של התקנות הנזכרות בסעיף (ד) לעיל.
+          </div>
+          <SigBlock label="חתימת המפעיל" name={data.worker_full_name} date={date} sig={data.operator_sig} />
         </div>
 
         {/* ── פוטר ── */}
-        <div style={{
-          marginTop: 20,
-          borderTop: '1px solid #e5e7eb',
-          paddingTop: 8,
-          textAlign: 'center',
-          fontFamily: 'Arial',
-          fontSize: 9,
-          color: '#9ca3af',
-        }}>
+        <div style={{ marginTop: 16, borderTop: '1px solid #e5e7eb', paddingTop: 8, textAlign: 'center', fontFamily: 'Arial', fontSize: 9, color: '#9ca3af' }}>
           מסמך זה הופק על ידי מערכת ניהול בטיחות
         </div>
       </div>

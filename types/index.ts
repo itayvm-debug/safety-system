@@ -119,6 +119,15 @@ export interface HeavyEquipment {
   updated_at: string;
 }
 
+export interface AppointmentMachine {
+  equipment_id?: string | null;
+  machine_name: string;
+  manufacturer?: string;
+  machine_identifier?: string;
+  safe_working_load?: string;
+  power_type?: PowerType | '';
+}
+
 export interface LiftingMachineAppointment {
   id: string;
   worker_id: string;
@@ -137,6 +146,7 @@ export interface LiftingMachineAppointment {
   operator_signature_url: string | null;
   appointer_signature_url: string | null;
   pdf_url: string | null;
+  machines?: AppointmentMachine[] | null;
   created_at: string;
   updated_at: string;
 }

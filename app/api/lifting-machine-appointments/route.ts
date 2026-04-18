@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
   const {
     worker_id, equipment_id,
     machine_name, manufacturer, machine_identifier, safe_working_load, power_type,
+    machines, // מערך מכונות (אופציונלי — אם קיים, מועדף על שדות בודדים)
     appointer_name, appointer_role, appointer_phone, appointer_address, appointer_zip,
     appointment_date,
     operator_signature_b64, appointer_signature_b64,
@@ -82,6 +83,7 @@ export async function POST(request: NextRequest) {
       machine_identifier: machine_identifier?.trim() || null,
       safe_working_load: safe_working_load?.trim() || null,
       power_type: power_type || null,
+      machines: Array.isArray(machines) && machines.length > 0 ? machines : null,
       appointer_name: appointer_name.trim(),
       appointer_role: appointer_role?.trim() || null,
       appointer_phone: appointer_phone?.trim() || null,
