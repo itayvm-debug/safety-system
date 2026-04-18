@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { WorkerWithDocuments, DocumentStatus, WORKER_TYPE_LABELS } from '@/types';
 import { getWorkerStatus } from '@/lib/documents/status';
+import { getEffectiveSubcontractor, EffectiveSubcontractor } from '@/lib/workers/subcontractor';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
 
@@ -22,16 +23,22 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
   const [subcontractorFilter, setSubcontractorFilter] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
 
-  // רשימת קבלני משנה ייחודיים
+  // מפה של כל העובדים לפי ID — לחישוב ירושת קבלן
+  const workersById = useMemo(() => {
+    const m = new Map<string, WorkerWithDocuments>();
+    workers.forEach((w) => m.set(w.id, w));
+    return m;
+  }, [workers]);
+
+  // רשימת קבלני משנה ייחודיים — כולל ירושה ממנהל עבודה
   const subcontractors = useMemo(() => {
     const map = new Map<string, string>();
     workers.forEach((w) => {
-      if (w.subcontractor?.id && w.subcontractor?.name) {
-        map.set(w.subcontractor.id, w.subcontractor.name);
-      }
+      const eff = getEffectiveSubcontractor(w, workersById);
+      if (eff) map.set(eff.id, eff.name);
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [workers]);
+  }, [workers, workersById]);
 
   // רשימת מנהל עבודה ייחודיים
   const siteManagers = useMemo(() => {
@@ -59,12 +66,16 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
         w.id_number.includes(search);
       const status = getWorkerStatus(w);
       const matchesFilter = filter === 'all' || status === filter;
-      const matchesSub = !subcontractorFilter || w.subcontractor_id === subcontractorFilter;
+      // סינון קבלן: על בסיס קבלן אפקטיבי (ישיר או בירושה)
+      const matchesSub = !subcontractorFilter || (() => {
+        const eff = getEffectiveSubcontractor(w, workersById);
+        return eff?.id === subcontractorFilter;
+      })();
       // מנהל עבודה: הצג עובדים משויכים, אך לא את המנהל עצמו (הוא מוצג כ-header)
       const matchesManager = !managerFilter || (w.responsible_manager_id === managerFilter && w.id !== managerFilter);
       return matchesSearch && matchesFilter && matchesSub && matchesManager;
     });
-  }, [workers, search, filter, showInactive, subcontractorFilter, managerFilter]);
+  }, [workers, workersById, search, filter, showInactive, subcontractorFilter, managerFilter]);
 
   const activeWorkers = workers.filter((w) => w.is_active);
   const inactiveCount = workers.length - activeWorkers.length;
@@ -88,12 +99,16 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
     { label: 'תקין', value: 'valid', count: counts.valid, activeClass: 'bg-green-600 text-white border-green-600' },
   ];
 
-  // כמה עובדים פעילים משויכים לכל גורם
+  // כמה עובדים פעילים משויכים לכל גורם (כולל ירושה בקבלן)
   const managerWorkerCount = managerFilter
     ? workers.filter((w) => w.responsible_manager_id === managerFilter && w.is_active !== false && w.id !== managerFilter).length
     : 0;
   const subWorkerCount = subcontractorFilter
-    ? workers.filter((w) => w.subcontractor_id === subcontractorFilter && w.is_active !== false).length
+    ? workers.filter((w) => {
+        if (w.is_active === false) return false;
+        const eff = getEffectiveSubcontractor(w, workersById);
+        return eff?.id === subcontractorFilter;
+      }).length
     : 0;
 
   return (
@@ -226,7 +241,12 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
       ) : (
         <div className="space-y-2">
           {filtered.map((worker) => (
-            <WorkerCard key={worker.id} worker={worker} photoUrl={photoUrls[worker.id]} />
+            <WorkerCard
+              key={worker.id}
+              worker={worker}
+              photoUrl={photoUrls[worker.id]}
+              effectiveSub={getEffectiveSubcontractor(worker, workersById)}
+            />
           ))}
         </div>
       )}
@@ -339,7 +359,15 @@ function SubcontractorFilterHeader({
   );
 }
 
-function WorkerCard({ worker, photoUrl }: { worker: WorkerWithDocuments; photoUrl?: string }) {
+function WorkerCard({
+  worker,
+  photoUrl,
+  effectiveSub,
+}: {
+  worker: WorkerWithDocuments;
+  photoUrl?: string;
+  effectiveSub?: EffectiveSubcontractor | null;
+}) {
   const router = useRouter();
   const [isActive, setIsActive] = useState(worker.is_active !== false);
   const [toggling, setToggling] = useState(false);
@@ -392,7 +420,17 @@ function WorkerCard({ worker, photoUrl }: { worker: WorkerWithDocuments; photoUr
           </div>
           <p className="text-sm text-gray-400">
             ת.ז. {worker.id_number} · {WORKER_TYPE_LABELS[worker.worker_type]}
-            {worker.subcontractor?.name && ` · ${worker.subcontractor.name}`}
+            {effectiveSub && (
+              <>
+                {' · '}
+                <span className={effectiveSub.source === 'inherited' ? 'text-blue-400' : ''}>
+                  {effectiveSub.name}
+                </span>
+                {effectiveSub.source === 'inherited' && (
+                  <span className="text-xs text-blue-300 mr-0.5"> (דרך {effectiveSub.managerName})</span>
+                )}
+              </>
+            )}
             {worker.project_name && ` · ${worker.project_name}`}
           </p>
         </div>
