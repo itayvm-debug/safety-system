@@ -24,7 +24,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (authError) return authError;
 
   const body = await request.json();
-  const { name, contact_name, phone, notes } = body;
+  const { name, contact_name, phone, notes, responsible_worker_id } = body;
 
   if (name !== undefined && !name?.trim()) {
     return NextResponse.json({ error: 'שם קבלן לא יכול להיות ריק' }, { status: 400 });
@@ -35,6 +35,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (contact_name !== undefined) updates.contact_name = contact_name?.trim() || null;
   if (phone !== undefined) updates.phone = phone?.trim() || null;
   if (notes !== undefined) updates.notes = notes?.trim() || null;
+  if ('responsible_worker_id' in body) updates.responsible_worker_id = responsible_worker_id ?? null;
 
   const supabase = createServiceClient();
   const { data, error } = await supabase

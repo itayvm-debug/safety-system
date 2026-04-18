@@ -80,7 +80,7 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
       if (!res.ok) { setEditError(json.error ?? 'שגיאה'); return; }
       setList((prev) =>
         prev
-          .map((s) => (s.id === editingId ? json : s))
+          .map((s) => (s.id === editingId ? { ...json, responsible_worker: s.responsible_worker } : s))
           .sort((a, b) => a.name.localeCompare(b.name, 'he'))
       );
       setEditingId(null);
@@ -103,6 +103,16 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
     } finally {
       setDeletingId(null);
     }
+  }
+
+  function handleResponsibleWorkerChanged(subId: string, worker: { id: string; full_name: string } | null) {
+    setList((prev) =>
+      prev.map((s) =>
+        s.id === subId
+          ? { ...s, responsible_worker_id: worker?.id ?? null, responsible_worker: worker }
+          : s
+      )
+    );
   }
 
   return (
@@ -153,7 +163,7 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
         ) : (
           <div key={sub.id} className="bg-white rounded-xl border border-gray-200 p-5">
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-gray-900 text-base">{sub.name}</h3>
                 {sub.contact_name && (
                   <p className="text-sm text-gray-600 mt-0.5">איש קשר: {sub.contact_name}</p>
@@ -164,6 +174,14 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
                 {sub.notes && (
                   <p className="text-sm text-gray-400 mt-1">{sub.notes}</p>
                 )}
+
+                {/* עובד אחראי */}
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <ResponsibleWorkerSelector
+                    sub={sub}
+                    onChanged={(worker) => handleResponsibleWorkerChanged(sub.id, worker)}
+                  />
+                </div>
               </div>
               <div className="flex gap-2 shrink-0 mr-3">
                 <button
@@ -183,6 +201,91 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
             </div>
           </div>
         )
+      )}
+    </div>
+  );
+}
+
+// ─── בחירת עובד אחראי ─────────────────────────────────────────
+function ResponsibleWorkerSelector({
+  sub,
+  onChanged,
+}: {
+  sub: Subcontractor;
+  onChanged: (worker: { id: string; full_name: string } | null) => void;
+}) {
+  const [workers, setWorkers] = useState<{ id: string; full_name: string }[]>([]);
+  const [selectedId, setSelectedId] = useState<string>(sub.responsible_worker_id ?? '');
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  async function loadWorkers() {
+    if (loaded) return;
+    try {
+      const res = await fetch(`/api/workers?subcontractor_id=${sub.id}`);
+      const data = await res.json();
+      if (res.ok) setWorkers(data);
+    } finally {
+      setLoaded(true);
+    }
+  }
+
+  async function handleChange(newId: string) {
+    setSelectedId(newId);
+    setSaving(true);
+    try {
+      await fetch(`/api/subcontractors/${sub.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ responsible_worker_id: newId || null }),
+      });
+      const chosen = workers.find((w) => w.id === newId) ?? null;
+      onChanged(chosen);
+    } finally {
+      setSaving(false);
+      setOpen(false);
+    }
+  }
+
+  const currentName =
+    sub.responsible_worker?.full_name ??
+    workers.find((w) => w.id === selectedId)?.full_name ??
+    null;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-500 whitespace-nowrap">עובד אחראי:</span>
+      {open ? (
+        <select
+          autoFocus
+          value={selectedId}
+          onChange={(e) => handleChange(e.target.value)}
+          onBlur={() => setOpen(false)}
+          className="flex-1 border border-green-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+        >
+          <option value="">— ללא עובד אחראי —</option>
+          {workers.map((w) => (
+            <option key={w.id} value={w.id}>{w.full_name}</option>
+          ))}
+          {loaded && workers.length === 0 && (
+            <option disabled value="">אין עובדים משויכים לקבלן זה</option>
+          )}
+        </select>
+      ) : (
+        <button
+          onClick={() => { setOpen(true); loadWorkers(); }}
+          className={`text-sm hover:underline transition-colors ${
+            currentName
+              ? 'text-green-700 font-medium hover:text-green-800'
+              : 'text-gray-400 hover:text-green-600'
+          }`}
+        >
+          {saving ? 'שומר...' : currentName ?? 'לחץ לשיוך'}
+        </button>
+      )}
+      {currentName && !open && (
+        <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">אחראי</span>
       )}
     </div>
   );

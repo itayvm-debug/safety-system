@@ -40,9 +40,18 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
       .map((w) => ({ id: w.id, name: w.full_name }));
   }, [workers]);
 
+  // נתוני מנהל/קבלן נבחר להצגת ה-header
+  const selectedManagerWorker = useMemo(
+    () => (managerFilter ? workers.find((w) => w.id === managerFilter) ?? null : null),
+    [workers, managerFilter]
+  );
+  const selectedSubcontractor = useMemo(
+    () => (subcontractorFilter ? subcontractors.find((s) => s.id === subcontractorFilter) ?? null : null),
+    [subcontractors, subcontractorFilter]
+  );
+
   const filtered = useMemo(() => {
     return workers.filter((w) => {
-      // is_active === false (ולא undefined) — כדי שעובדים ישנים ללא העמודה לא יוסתרו
       if (!showInactive && w.is_active === false) return false;
       const matchesSearch =
         !search ||
@@ -51,7 +60,8 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
       const status = getWorkerStatus(w);
       const matchesFilter = filter === 'all' || status === filter;
       const matchesSub = !subcontractorFilter || w.subcontractor_id === subcontractorFilter;
-      const matchesManager = !managerFilter || w.responsible_manager_id === managerFilter;
+      // מנהל עבודה: הצג עובדים משויכים, אך לא את המנהל עצמו (הוא מוצג כ-header)
+      const matchesManager = !managerFilter || (w.responsible_manager_id === managerFilter && w.id !== managerFilter);
       return matchesSearch && matchesFilter && matchesSub && matchesManager;
     });
   }, [workers, search, filter, showInactive, subcontractorFilter, managerFilter]);
@@ -77,6 +87,14 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
     { label: 'עומד לפוג', value: 'expiring_soon', count: counts.expiring_soon, activeClass: 'bg-yellow-500 text-white border-yellow-500' },
     { label: 'תקין', value: 'valid', count: counts.valid, activeClass: 'bg-green-600 text-white border-green-600' },
   ];
+
+  // כמה עובדים פעילים משויכים לכל גורם
+  const managerWorkerCount = managerFilter
+    ? workers.filter((w) => w.responsible_manager_id === managerFilter && w.is_active !== false && w.id !== managerFilter).length
+    : 0;
+  const subWorkerCount = subcontractorFilter
+    ? workers.filter((w) => w.subcontractor_id === subcontractorFilter && w.is_active !== false).length
+    : 0;
 
   return (
     <div className="space-y-5">
@@ -124,7 +142,9 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
             <select
               value={subcontractorFilter}
               onChange={(e) => setSubcontractorFilter(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+              className={`text-sm border rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors ${
+                subcontractorFilter ? 'border-green-400 text-green-800 font-medium' : 'border-gray-200'
+              }`}
             >
               <option value="">כל קבלני המשנה</option>
               {subcontractors.map((s) => (
@@ -136,7 +156,9 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
             <select
               value={managerFilter}
               onChange={(e) => setManagerFilter(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+              className={`text-sm border rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors ${
+                managerFilter ? 'border-blue-400 text-blue-800 font-medium' : 'border-gray-200'
+              }`}
             >
               <option value="">כל מנהלי העבודה</option>
               {siteManagers.map((m) => (
@@ -167,6 +189,25 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
         ))}
       </div>
 
+      {/* Header — מנהל עבודה נבחר */}
+      {selectedManagerWorker && (
+        <ManagerFilterHeader
+          manager={selectedManagerWorker}
+          workerCount={managerWorkerCount}
+          photoUrl={photoUrls[selectedManagerWorker.id]}
+          onClear={() => setManagerFilter('')}
+        />
+      )}
+
+      {/* Header — קבלן משנה נבחר */}
+      {selectedSubcontractor && !managerFilter && (
+        <SubcontractorFilterHeader
+          name={selectedSubcontractor.name}
+          workerCount={subWorkerCount}
+          onClear={() => setSubcontractorFilter('')}
+        />
+      )}
+
       {/* רשימה */}
       {filtered.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
@@ -174,14 +215,124 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           <p className="text-base font-medium">
-            {search || filter !== 'all' ? 'לא נמצאו עובדים התואמים את החיפוש' : 'אין עובדים במערכת עדיין'}
+            {search || filter !== 'all' || managerFilter || subcontractorFilter
+              ? 'לא נמצאו עובדים התואמים את החיפוש'
+              : 'אין עובדים במערכת עדיין'}
           </p>
+          {managerFilter && !selectedManagerWorker && (
+            <p className="text-sm mt-1">לא שויכו עובדים למנהל עבודה זה</p>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
           {filtered.map((worker) => (
             <WorkerCard key={worker.id} worker={worker} photoUrl={photoUrls[worker.id]} />
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Header: מנהל עבודה נבחר ──────────────────────────────────
+function ManagerFilterHeader({
+  manager,
+  workerCount,
+  photoUrl,
+  onClear,
+}: {
+  manager: WorkerWithDocuments;
+  workerCount: number;
+  photoUrl?: string;
+  onClear: () => void;
+}) {
+  const status = getWorkerStatus(manager);
+
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full border border-blue-200">
+            מנהל עבודה
+          </span>
+          <span className="text-xs text-blue-500">{workerCount} עובדים משויכים</span>
+        </div>
+        <button
+          onClick={onClear}
+          className="text-xs text-blue-400 hover:text-blue-600 border border-blue-200 rounded-lg px-2 py-1 hover:bg-blue-100 transition-colors"
+        >
+          נקה סינון ✕
+        </button>
+      </div>
+      <Link href={`/workers/${manager.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <div className="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center font-bold text-blue-800 text-lg overflow-hidden flex-shrink-0">
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoUrl} alt={manager.full_name} className="w-12 h-12 object-cover" />
+          ) : (
+            manager.full_name.charAt(0)
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-blue-900 text-base">{manager.full_name}</p>
+          <p className="text-sm text-blue-600">
+            ת.ז. {manager.id_number}
+            {manager.phone && <span dir="ltr"> · {manager.phone}</span>}
+          </p>
+        </div>
+        <StatusBadge status={status} size="sm" />
+      </Link>
+      {workerCount > 0 && (
+        <div className="mt-3 pt-3 border-t border-blue-200">
+          <p className="text-xs text-blue-500 font-medium">עובדים כפופים:</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Header: קבלן משנה נבחר ───────────────────────────────────
+function SubcontractorFilterHeader({
+  name,
+  workerCount,
+  onClear,
+}: {
+  name: string;
+  workerCount: number;
+  onClear: () => void;
+}) {
+  return (
+    <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-green-200 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-green-900 text-base">{name}</p>
+              <span className="text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">
+                קבלן משנה
+              </span>
+            </div>
+            <p className="text-sm text-green-600">{workerCount} עובדים משויכים</p>
+          </div>
+        </div>
+        <button
+          onClick={onClear}
+          className="text-xs text-green-400 hover:text-green-600 border border-green-200 rounded-lg px-2 py-1 hover:bg-green-100 transition-colors"
+        >
+          נקה סינון ✕
+        </button>
+      </div>
+      {workerCount > 0 && (
+        <div className="mt-3 pt-3 border-t border-green-200">
+          <p className="text-xs text-green-500 font-medium">עובדי הקבלן:</p>
         </div>
       )}
     </div>
@@ -214,7 +365,7 @@ function WorkerCard({ worker, photoUrl }: { worker: WorkerWithDocuments; photoUr
       });
       router.refresh();
     } catch {
-      setIsActive((v) => !v); // revert on error
+      setIsActive((v) => !v);
     } finally {
       setToggling(false);
     }
@@ -226,7 +377,6 @@ function WorkerCard({ worker, photoUrl }: { worker: WorkerWithDocuments; photoUr
       className={`flex items-center justify-between bg-white rounded-xl border border-gray-100 border-r-4 ${leftBorder[status]} px-4 py-3.5 hover:shadow-md transition-all ${isInactive ? 'opacity-50' : ''}`}
     >
       <div className="flex items-center gap-3 min-w-0">
-        {/* תמונה / אווטאר */}
         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0 overflow-hidden ${isInactive ? 'bg-gray-100 text-gray-400' : 'bg-orange-100 text-orange-700'}`}>
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
