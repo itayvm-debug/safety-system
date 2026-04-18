@@ -40,10 +40,10 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [workers, workersById]);
 
-  // רשימת מנהל עבודה — פנימיים בלבד (ללא שיוך לקבלן משנה)
+  // רשימת מנהלי עבודה — כל העובדים שמוגדרים כמנהל
   const siteManagers = useMemo(() => {
     return workers
-      .filter((w) => w.is_responsible_site_manager && !w.subcontractor_id)
+      .filter((w) => w.is_responsible_site_manager)
       .map((w) => ({ id: w.id, name: w.full_name }));
   }, [workers]);
 
@@ -215,7 +215,7 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
       )}
 
       {/* Header — קבלן משנה נבחר */}
-      {selectedSubcontractor && !managerFilter && (
+      {selectedSubcontractor && (
         <SubcontractorFilterHeader
           name={selectedSubcontractor.name}
           workerCount={subWorkerCount}
