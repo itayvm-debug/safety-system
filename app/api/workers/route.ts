@@ -14,13 +14,16 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceClient();
   let query = supabase
     .from('workers')
-    .select(lightweight
-      ? 'id, full_name'
-      : `*, documents(*), safety_briefings(*), height_restrictions(*), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
+    .select(managersOnly
+      ? 'id, full_name, subcontractor_id'
+      : subcontractorId
+        ? 'id, full_name'
+        : `*, documents(*), safety_briefings(*), height_restrictions(*), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
     .order('full_name');
 
   if (managersOnly) {
-    query = query.eq('is_responsible_site_manager', true).eq('is_active', true);
+    // מנהלים פנימיים בלבד — ללא שיוך לקבלן משנה
+    query = query.eq('is_responsible_site_manager', true).eq('is_active', true).is('subcontractor_id', null);
   }
   if (subcontractorId) {
     query = query.eq('subcontractor_id', subcontractorId).eq('is_active', true);

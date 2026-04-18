@@ -40,10 +40,10 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [workers, workersById]);
 
-  // רשימת מנהל עבודה ייחודיים
+  // רשימת מנהל עבודה — פנימיים בלבד (ללא שיוך לקבלן משנה)
   const siteManagers = useMemo(() => {
     return workers
-      .filter((w) => w.is_responsible_site_manager)
+      .filter((w) => w.is_responsible_site_manager && !w.subcontractor_id)
       .map((w) => ({ id: w.id, name: w.full_name }));
   }, [workers]);
 
@@ -423,10 +423,10 @@ function WorkerCard({
             {effectiveSub && (
               <>
                 {' · '}
-                <span className={effectiveSub.source === 'inherited' ? 'text-blue-400' : ''}>
+                <span className={effectiveSub.source === 'via-manager' ? 'text-blue-400' : ''}>
                   {effectiveSub.name}
                 </span>
-                {effectiveSub.source === 'inherited' && (
+                {effectiveSub.source === 'via-manager' && (
                   <span className="text-xs text-blue-300 mr-0.5"> (דרך {effectiveSub.managerName})</span>
                 )}
               </>

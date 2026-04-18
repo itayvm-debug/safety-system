@@ -12,6 +12,7 @@ export default async function SiteManagersPage() {
     .select('*')
     .eq('is_responsible_site_manager', true)
     .eq('is_active', true)
+    .is('subcontractor_id', null)
     .order('full_name');
 
   if (error) {
