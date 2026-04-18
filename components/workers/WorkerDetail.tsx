@@ -17,6 +17,8 @@ import StatusBadge from '@/components/StatusBadge';
 import SafetyBriefingCard from '@/components/workers/SafetyBriefingCard';
 import HeightBanCard from '@/components/workers/HeightBanCard';
 import LiftingMachineAppointmentCard from '@/components/workers/LiftingMachineAppointmentCard';
+import ProfessionalLicensesCard from '@/components/workers/ProfessionalLicensesCard';
+import ManagerDocumentsCard from '@/components/workers/ManagerDocumentsCard';
 import ToggleSwitch from '@/components/ToggleSwitch';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -32,7 +34,9 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   const [saveError, setSaveError] = useState('');
   const [togglingActive, setTogglingActive] = useState(false);
   const [togglingCraneOp, setTogglingCraneOp] = useState(false);
+  const [togglingManager, setTogglingManager] = useState(false);
   const [isCraneOperator, setIsCraneOperator] = useState(!!worker.is_crane_operator);
+  const [isResponsibleManager, setIsResponsibleManager] = useState(!!worker.is_responsible_site_manager);
   const [localAppointments, setLocalAppointments] = useState(worker.lifting_machine_appointments ?? []);
 
   const [pendingExpiry, setPendingExpiry] = useState<Map<string, string>>(new Map());
@@ -137,6 +141,20 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
       if (res.ok) setIsCraneOperator((prev) => !prev);
     } finally {
       setTogglingCraneOp(false);
+    }
+  }
+
+  async function handleToggleResponsibleManager() {
+    setTogglingManager(true);
+    try {
+      const res = await fetch(`/api/workers/${worker.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_responsible_site_manager: !isResponsibleManager }),
+      });
+      if (res.ok) setIsResponsibleManager((prev) => !prev);
+    } finally {
+      setTogglingManager(false);
     }
   }
 
@@ -283,6 +301,39 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
         )}
       </div>
 
+      {/* אחראי אתר */}
+      <div>
+        <div className="flex items-center gap-3 mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">אחראי אתר</h2>
+          <div className="flex items-center gap-2">
+            <ToggleSwitch
+              checked={isResponsibleManager}
+              onChange={handleToggleResponsibleManager}
+              disabled={togglingManager}
+            />
+            <span className="text-sm text-gray-600">
+              {togglingManager ? '...' : isResponsibleManager ? 'כן' : 'לא'}
+            </span>
+          </div>
+        </div>
+        {isResponsibleManager && (
+          <ManagerDocumentsCard
+            workerId={worker.id}
+            licenses={worker.manager_licenses ?? []}
+            insurances={worker.manager_insurances ?? []}
+          />
+        )}
+      </div>
+
+      {/* רישיונות מקצועיים */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">רישיונות מקצועיים</h2>
+        <ProfessionalLicensesCard
+          workerId={worker.id}
+          licenses={worker.professional_licenses ?? []}
+        />
+      </div>
+
       {/* כפתור שמירה גלובלי */}
       {(hasPending || saveError) && (
         <div className="fixed bottom-0 inset-x-0 z-20 bg-white border-t border-gray-200 shadow-lg px-4 py-3">
@@ -400,6 +451,7 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   useEffect(() => {
     if (!worker.photo_url) return;
@@ -432,29 +484,61 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
   }
 
   return (
-    <div
-      className="relative w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center cursor-pointer group flex-shrink-0"
-      onClick={() => fileInputRef.current?.click()}
-    >
-      {photoSrc ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={photoSrc} alt={worker.full_name} className="w-16 h-16 rounded-full object-cover" />
-      ) : (
-        <span className="text-2xl font-bold text-orange-700">{worker.full_name.charAt(0)}</span>
-      )}
-      <div className="absolute inset-0 bg-black bg-opacity-40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
+    <>
+      <div className="relative w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+        {photoSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photoSrc}
+            alt={worker.full_name}
+            className="w-16 h-16 rounded-full object-cover cursor-pointer"
+            onClick={() => setLightboxOpen(true)}
+          />
+        ) : (
+          <span className="text-2xl font-bold text-orange-700">{worker.full_name.charAt(0)}</span>
+        )}
+        {/* כפתור החלפת תמונה */}
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="absolute -bottom-1 -left-1 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 disabled:opacity-50"
+          title="החלף תמונה"
+        >
+          {uploading ? (
+            <span className="w-3 h-3 border border-orange-500 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          )}
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoChange} />
       </div>
-      {uploading && (
-        <div className="absolute inset-0 bg-white bg-opacity-75 rounded-full flex items-center justify-center">
-          <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+
+      {/* lightbox */}
+      {lightboxOpen && photoSrc && (
+        <div
+          className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4"
+          onClick={() => setLightboxOpen(false)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photoSrc}
+            alt={worker.full_name}
+            className="max-w-full max-h-full rounded-xl shadow-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            className="absolute top-4 left-4 text-white bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70"
+            onClick={() => setLightboxOpen(false)}
+          >
+            ✕
+          </button>
         </div>
       )}
-      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoChange} />
-    </div>
+    </>
   );
 }
 

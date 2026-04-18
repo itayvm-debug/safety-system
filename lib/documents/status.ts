@@ -7,6 +7,7 @@ import {
   HeightRestriction,
   HeavyEquipment,
   LiftingEquipment,
+  ProfessionalLicense,
   WorkerWithDocuments,
   REQUIRED_DOCUMENT_TYPES_FOR_FOREIGN,
   REQUIRED_DOCUMENT_TYPES_FOR_ISRAELI,
@@ -153,7 +154,20 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
     }
   }
 
+  // רישיונות מקצועיים — רישיון עם תאריך תוקף שעומד לפוג/פג משפיע על הסטטוס
+  for (const lic of (worker.professional_licenses ?? [])) {
+    if (!lic.expiry_date) continue;
+    const licStatus = getDocumentStatus(lic.file_url, lic.expiry_date, true, true);
+    if (STATUS_SEVERITY[licStatus] > STATUS_SEVERITY[worstStatus]) {
+      worstStatus = licStatus;
+    }
+  }
+
   return worstStatus;
+}
+
+export function getProfessionalLicenseStatus(license: ProfessionalLicense): DocumentStatus {
+  return getDocumentStatus(license.file_url, license.expiry_date, true, !!license.expiry_date);
 }
 
 /** סטטוס כלי צמ"ה */

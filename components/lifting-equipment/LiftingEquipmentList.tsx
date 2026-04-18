@@ -81,7 +81,7 @@ export default function LiftingEquipmentList({ equipment }: { equipment: Lifting
     return (
       <div className="text-center py-20 text-gray-400">
         <p className="text-base font-medium">אין ציוד הרמה רשום עדיין</p>
-        <p className="text-sm mt-1">לחץ על "+ ציוד" כדי להוסיף</p>
+        <p className="text-sm mt-1">ניהול ציוד הרמה כגון חגורות, שאקלים, שרשראות ועוד</p>
       </div>
     );
   }

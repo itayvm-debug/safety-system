@@ -8,6 +8,7 @@ import { getClientRole } from '@/lib/auth/client';
 
 const NAV_LINKS = [
   { href: '/workers', label: 'עובדים', prefix: '/workers' },
+  { href: '/site-managers', label: 'אחראי אתר', prefix: '/site-managers' },
   { href: '/heavy-equipment', label: 'כלי צמ"ה', prefix: '/heavy-equipment' },
   { href: '/lifting-equipment', label: 'ציוד הרמה', prefix: '/lifting-equipment' },
   { href: '/subcontractors', label: 'קבלני משנה', prefix: '/subcontractors' },
@@ -78,6 +79,24 @@ export default function NavBar() {
           {isAdmin && pathname === '/lifting-equipment' && (
             <Link href="/lifting-equipment/new" className="bg-orange-500 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors">
               + ציוד
+            </Link>
+          )}
+
+          {/* משוב */}
+          <Link
+            href="/submit-feedback"
+            className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            משוב
+          </Link>
+
+          {/* פניות — admin בלבד */}
+          {isAdmin && (
+            <Link
+              href="/feedback"
+              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors hidden sm:inline-block"
+            >
+              פניות
             </Link>
           )}
 

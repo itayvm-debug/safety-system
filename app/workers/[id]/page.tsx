@@ -18,24 +18,28 @@ export default async function WorkerPage({ params }: { params: Promise<{ id: str
 
   if (error || !data) notFound();
 
-  // height_restrictions + lifting_machine_appointments — queries נפרדים
-  const [{ data: heightData }, { data: appointmentsData }] = await Promise.all([
-    supabase
-      .from('height_restrictions')
-      .select('*')
-      .eq('worker_id', id)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('lifting_machine_appointments')
-      .select('*')
-      .eq('worker_id', id)
-      .order('appointment_date', { ascending: false }),
+  // queries נפרדים לטבלאות קשורות
+  const [
+    { data: heightData },
+    { data: appointmentsData },
+    { data: licensesData },
+    { data: managerLicensesData },
+    { data: managerInsurancesData },
+  ] = await Promise.all([
+    supabase.from('height_restrictions').select('*').eq('worker_id', id).order('created_at', { ascending: false }),
+    supabase.from('lifting_machine_appointments').select('*').eq('worker_id', id).order('appointment_date', { ascending: false }),
+    supabase.from('professional_licenses').select('*').eq('worker_id', id).order('created_at', { ascending: false }),
+    supabase.from('manager_licenses').select('*').eq('worker_id', id).order('created_at', { ascending: false }),
+    supabase.from('manager_insurances').select('*').eq('worker_id', id).order('created_at', { ascending: false }),
   ]);
 
   const worker = {
     ...data,
     height_restrictions: heightData ?? [],
     lifting_machine_appointments: appointmentsData ?? [],
+    professional_licenses: licensesData ?? [],
+    manager_licenses: managerLicensesData ?? [],
+    manager_insurances: managerInsurancesData ?? [],
   } as WorkerWithDocuments;
 
   return (

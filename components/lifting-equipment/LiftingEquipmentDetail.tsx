@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LiftingEquipment } from '@/types';
@@ -9,6 +9,73 @@ import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
+
+function LiftingImageUploader({ equipmentId, imageUrl, onUploaded }: { equipmentId: string; imageUrl: string | null; onUploaded: (url: string) => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  useEffect(() => {
+    if (!imageUrl) return;
+    fetch(`/api/signed-url?path=${encodeURIComponent(imageUrl)}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.url) setImgSrc(d.url); })
+      .catch(() => {});
+  }, [imageUrl]);
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData(); fd.append('file', file); fd.append('folder', 'equipment');
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
+      const ud = await uploadRes.json();
+      if (!uploadRes.ok) { alert(ud.error ?? 'שגיאה'); return; }
+      const res = await fetch(`/api/lifting-equipment/${equipmentId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url: ud.path }),
+      });
+      if (res.ok) {
+        onUploaded(ud.path);
+        setImgSrc(null);
+        fetch(`/api/signed-url?path=${encodeURIComponent(ud.path)}`).then((r) => r.json()).then((d) => { if (d.url) setImgSrc(d.url); });
+      }
+    } finally { setUploading(false); }
+  }
+
+  return (
+    <>
+      <div className="relative w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+        {imgSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imgSrc} alt="תמונת ציוד" className="w-14 h-14 rounded-xl object-cover cursor-pointer" onClick={() => setLightboxOpen(true)} />
+        ) : (
+          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        )}
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+          className="absolute -bottom-1 -left-1 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 disabled:opacity-50" title="החלף תמונה">
+          {uploading ? <span className="w-3 h-3 border border-orange-500 border-t-transparent rounded-full animate-spin" /> : (
+            <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          )}
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUpload} />
+      </div>
+      {lightboxOpen && imgSrc && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4" onClick={() => setLightboxOpen(false)}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imgSrc} alt="תמונת ציוד" className="max-w-full max-h-full rounded-xl shadow-2xl object-contain" onClick={(e) => e.stopPropagation()} />
+          <button className="absolute top-4 left-4 text-white bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70" onClick={() => setLightboxOpen(false)}>✕</button>
+        </div>
+      )}
+    </>
+  );
+}
 
 export default function LiftingEquipmentDetail({ equipment }: { equipment: LiftingEquipment }) {
   const router = useRouter();
@@ -106,14 +173,17 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
     <div className="space-y-6 pb-24">
       <div className={`bg-white rounded-xl border p-6 ${!eq.is_active ? 'border-gray-300 opacity-80' : 'border-gray-200'}`}>
         <div className="flex items-start justify-between mb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-gray-900">{eq.description}</h1>
-              {!eq.is_active && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">לא פעיל</span>}
+          <div className="flex items-start gap-4">
+            <LiftingImageUploader equipmentId={eq.id} imageUrl={eq.image_url} onUploaded={(url) => setEq((prev) => ({ ...prev, image_url: url }))} />
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-gray-900">{eq.description}</h1>
+                {!eq.is_active && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">לא פעיל</span>}
+              </div>
+              {eq.subcontractor?.name && <p className="text-sm text-gray-500 mt-1">קבלן: {eq.subcontractor.name}</p>}
+              {eq.project_name && <p className="text-sm text-gray-400">פרויקט: {eq.project_name}</p>}
+              <p className="text-xs text-gray-300 mt-1">עודכן: {format(parseISO(eq.updated_at), 'dd/MM/yyyy', { locale: he })}</p>
             </div>
-            {eq.subcontractor?.name && <p className="text-sm text-gray-500 mt-1">קבלן: {eq.subcontractor.name}</p>}
-            {eq.project_name && <p className="text-sm text-gray-400">פרויקט: {eq.project_name}</p>}
-            <p className="text-xs text-gray-300 mt-1">עודכן: {format(parseISO(eq.updated_at), 'dd/MM/yyyy', { locale: he })}</p>
           </div>
           <StatusBadge status={overallStatus} />
         </div>
