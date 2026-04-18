@@ -25,8 +25,7 @@ export default function NavBar() {
 
   async function handleSignOut() {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
-    router.refresh();
+    window.location.replace('/login');
   }
 
   const isWorkersSection = pathname.startsWith('/workers');
