@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { WorkerWithDocuments, LiftingMachineAppointment, HeavyEquipment, POWER_TYPE_LABELS, PowerType } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
-import AppointmentPdfOverlay, { OverlayData } from './AppointmentPdfOverlay';
+import LiftingMachineAppointmentDoc, { AppointmentDocData } from './LiftingMachineAppointmentDoc';
 
 interface Props {
   worker: WorkerWithDocuments;
@@ -222,7 +222,7 @@ export default function LiftingMachineAppointmentCard({
 
   // html2canvas PDF generation
   const overlayRef = useRef<HTMLDivElement>(null);
-  const [overlayData, setOverlayData] = useState<OverlayData | null>(null);
+  const [overlayData, setOverlayData] = useState<AppointmentDocData | null>(null);
   const [apptIdForPdf, setApptIdForPdf] = useState<string | null>(null);
   const [pdfGenError, setPdfGenError] = useState<string | null>(null);
 
@@ -404,17 +404,16 @@ export default function LiftingMachineAppointmentCard({
 
         console.log('[PDF] calling html2canvas...');
         const canvas = await html2canvas(el, {
-          backgroundColor: null,
+          backgroundColor: '#ffffff',
           scale: 2,
           useCORS: true,
           logging: true,
           width: 595,
-          height: 842,
           x: 0,
           y: 0,
           // Remove all external stylesheets from the cloned document before capture.
           // html2canvas 1.4.x doesn't support modern CSS color functions (lab/oklch)
-          // used by Tailwind v3.3+. The overlay uses only inline styles so this is safe.
+          // used by Tailwind v3.3+. The document uses only inline styles so this is safe.
           onclone: (_clonedDoc: Document) => {
             _clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach((s) => s.remove());
           },
@@ -508,13 +507,13 @@ export default function LiftingMachineAppointmentCard({
             top: 0,
             left: -9999,
             width: 595,
-            height: 842,
+            height: 'auto',
             overflow: 'visible',
             pointerEvents: 'none',
             zIndex: -1,
           }}
         >
-          <AppointmentPdfOverlay ref={overlayRef} {...overlayData} />
+          <LiftingMachineAppointmentDoc ref={overlayRef} {...overlayData} />
         </div>
       )}
 
@@ -533,7 +532,7 @@ export default function LiftingMachineAppointmentCard({
           <div className="relative bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
             {/* כותרת */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
-              <h2 className="text-lg font-bold text-gray-900">טופס 18ג — מינוי מפעיל</h2>
+              <h2 className="text-lg font-bold text-gray-900">מינוי מפעיל מכונת הרמה</h2>
               <button type="button" onClick={closeForm} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
             </div>
 

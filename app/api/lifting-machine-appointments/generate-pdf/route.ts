@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/api';
 import { PDFDocument } from 'pdf-lib';
-import path from 'path';
-import fs from 'fs';
 
 export async function POST(request: NextRequest) {
   const { error: authError } = await requireAdmin();
@@ -18,47 +16,38 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServiceClient();
-  console.log('[generate-pdf] start, appointment_id=', appointment_id, 'overlay length=', overlay_image_b64.length);
 
-  // 1. Load PDF template from public/forms/form-18g.pdf
-  const pdfPath = path.join(process.cwd(), 'public', 'forms', 'form-18g.pdf');
-  if (!fs.existsSync(pdfPath)) {
-    console.error('[generate-pdf] template not found at', pdfPath);
-    return NextResponse.json({ error: `template PDF לא נמצא: ${pdfPath}` }, { status: 500 });
-  }
-  console.log('[generate-pdf] loading template from', pdfPath);
-  const templateBytes = fs.readFileSync(pdfPath);
-  console.log('[generate-pdf] template loaded, bytes=', templateBytes.length);
-
-  const pdfDoc = await PDFDocument.load(templateBytes);
-  const page = pdfDoc.getPages()[0];
-  const { width, height } = page.getSize();
-  console.log('[generate-pdf] PDF page size:', width, 'x', height);
-
-  // 2. Decode overlay PNG (transparent) captured by html2canvas
+  // 1. Decode the PNG captured by html2canvas
   const base64Data = overlay_image_b64.replace(/^data:image\/png;base64,/, '');
   const pngBytes = Buffer.from(base64Data, 'base64');
-  console.log('[generate-pdf] PNG decoded, bytes=', pngBytes.length);
 
+  // 2. Create a new PDF document (A4: 595 × 842 pts)
+  const pdfDoc = await PDFDocument.create();
   const pngImage = await pdfDoc.embedPng(pngBytes);
-  console.log('[generate-pdf] PNG embedded, size=', pngImage.width, 'x', pngImage.height);
 
-  // 3. Draw overlay on top of the PDF background, covering the full page
+  // Scale PNG to fit A4 width (maintain aspect ratio, align to top)
+  const A4_W = 595, A4_H = 842;
+  const { width: imgW, height: imgH } = pngImage;
+  const scale = A4_W / imgW;
+  const drawW = A4_W;
+  const drawH = imgH * scale;
+
+  // If content is taller than A4, use a taller page; otherwise use A4
+  const pageH = Math.max(drawH, A4_H);
+  const page = pdfDoc.addPage([A4_W, pageH]);
+
+  // PDF coordinate system: y=0 at bottom, so draw from top
   page.drawImage(pngImage, {
     x: 0,
-    y: 0,
-    width,
-    height,
+    y: pageH - drawH,
+    width: drawW,
+    height: drawH,
   });
-  console.log('[generate-pdf] overlay drawn on page');
 
-  // 4. Serialize PDF
+  // 3. Serialize and upload to Supabase storage
   const pdfBytes = await pdfDoc.save();
-  console.log('[generate-pdf] PDF saved, bytes=', pdfBytes.length);
-
-  // 5. Upload to Supabase storage
   const storagePath = `appointment-pdfs/${appointment_id}.pdf`;
-  console.log('[generate-pdf] uploading to storage:', storagePath);
+
   const { error: uploadError } = await supabase.storage
     .from('worker-files')
     .upload(storagePath, Buffer.from(pdfBytes), {
@@ -67,22 +56,18 @@ export async function POST(request: NextRequest) {
     });
 
   if (uploadError) {
-    console.error('[generate-pdf] upload failed:', uploadError);
     return NextResponse.json({ error: uploadError.message }, { status: 500 });
   }
-  console.log('[generate-pdf] upload success');
 
-  // 6. Update appointment record with pdf_url
+  // 4. Update appointment record with pdf_url
   const { error: updateError } = await supabase
     .from('lifting_machine_appointments')
     .update({ pdf_url: storagePath })
     .eq('id', appointment_id);
 
   if (updateError) {
-    console.error('[generate-pdf] DB update failed:', updateError);
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
-  console.log('[generate-pdf] done, pdf_url=', storagePath);
   return NextResponse.json({ pdf_url: storagePath });
 }
