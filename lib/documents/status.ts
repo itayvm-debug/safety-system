@@ -155,16 +155,15 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
     }
   }
 
-  // רישיונות מקצועיים — רישיון עם תאריך תוקף שעומד לפוג/פג משפיע על הסטטוס
+  // רישיונות מקצועיים — קובץ חובה; תאריך תוקף חובה רק אם הוזן
   for (const lic of (worker.professional_licenses ?? [])) {
-    if (!lic.expiry_date) continue;
-    const licStatus = getDocumentStatus(lic.file_url, lic.expiry_date, true, true);
+    const licStatus = getDocumentStatus(lic.file_url, lic.expiry_date, true, !!lic.expiry_date);
     if (STATUS_SEVERITY[licStatus] > STATUS_SEVERITY[worstStatus]) {
       worstStatus = licStatus;
     }
   }
 
-  // ביטוח חובה — חובה אמיתית למנהלי עבודה
+  // מנהל עבודה: ביטוח חובה + רישיונות מנהל (נהיגה/מקצועיים) — קובץ חובה כשרשומה קיימת
   if (worker.is_responsible_site_manager) {
     const mandatoryIns = (worker.manager_insurances ?? []).find(
       (i) => i.insurance_type === 'ביטוח חובה'
@@ -177,6 +176,14 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
     );
     if (STATUS_SEVERITY[insStatus] > STATUS_SEVERITY[worstStatus]) {
       worstStatus = insStatus;
+    }
+
+    for (const lic of (worker.manager_licenses ?? [])) {
+      if (lic.license_type === 'רישיון רכב') continue; // מטופל דרך רישיון הרכב עצמו
+      const licStatus = getDocumentStatus(lic.file_url, lic.expiry_date, true, !!lic.expiry_date);
+      if (STATUS_SEVERITY[licStatus] > STATUS_SEVERITY[worstStatus]) {
+        worstStatus = licStatus;
+      }
     }
   }
 
