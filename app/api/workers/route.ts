@@ -38,19 +38,39 @@ export async function POST(request: NextRequest) {
   if (authError) return authError;
 
   const body = await request.json();
-  const { full_name, id_number, worker_type, phone, notes, project_name } = body;
+  const { full_name, is_foreign_worker, national_id, passport_number, phone, notes, project_name } = body;
 
   if (!full_name?.trim()) return NextResponse.json({ error: 'שם מלא נדרש' }, { status: 400 });
-  if (!id_number?.trim()) return NextResponse.json({ error: 'מספר תעודת זהות נדרש' }, { status: 400 });
-  if (!['israeli', 'foreign'].includes(worker_type)) return NextResponse.json({ error: 'סוג עובד לא תקין' }, { status: 400 });
+
+  const isForeign = !!is_foreign_worker;
+  const nationalIdTrimmed = national_id?.trim() || null;
+  const passportTrimmed = passport_number?.trim() || null;
+
+  if (!isForeign && !nationalIdTrimmed)
+    return NextResponse.json({ error: 'מספר תעודת זהות נדרש' }, { status: 400 });
+  if (isForeign && !passportTrimmed)
+    return NextResponse.json({ error: 'מספר דרכון נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
+
+  // בדיקת כפילויות
+  if (!isForeign && nationalIdTrimmed) {
+    const { data: existing } = await supabase.from('workers').select('id').eq('national_id', nationalIdTrimmed).maybeSingle();
+    if (existing) return NextResponse.json({ error: 'עובד עם תעודת זהות זו כבר קיים במערכת' }, { status: 409 });
+  }
+  if (isForeign && passportTrimmed) {
+    const { data: existing } = await supabase.from('workers').select('id').eq('passport_number', passportTrimmed).maybeSingle();
+    if (existing) return NextResponse.json({ error: 'עובד עם מספר דרכון זה כבר קיים במערכת' }, { status: 409 });
+  }
+
   const { data, error } = await supabase
     .from('workers')
     .insert({
       full_name: full_name.trim(),
-      id_number: id_number.trim(),
-      worker_type,
+      is_foreign_worker: isForeign,
+      national_id: nationalIdTrimmed,
+      passport_number: passportTrimmed,
+      id_number: nationalIdTrimmed ?? passportTrimmed,
       phone: phone?.trim() || null,
       notes: notes?.trim() || null,
       project_name: project_name?.trim() || null,
@@ -59,7 +79,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    if (error.code === '23505') return NextResponse.json({ error: 'מספר תעודת זהות כבר קיים במערכת' }, { status: 409 });
+    if (error.code === '23505') return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים במערכת' }, { status: 409 });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json(data, { status: 201 });

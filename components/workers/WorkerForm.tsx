@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Worker, WorkerType } from '@/types';
+import { Worker } from '@/types';
+import { getWorkerIdentifierLabel, getWorkerIdentifierValue } from '@/lib/workers/identifier';
 
 interface WorkerFormProps {
-  worker?: Worker; // אם קיים — מצב עריכה
+  worker?: Worker;
 }
 
 export default function WorkerForm({ worker }: WorkerFormProps) {
@@ -14,8 +15,9 @@ export default function WorkerForm({ worker }: WorkerFormProps) {
 
   const [formData, setFormData] = useState({
     full_name: worker?.full_name ?? '',
-    id_number: worker?.id_number ?? '',
-    worker_type: (worker?.worker_type ?? 'israeli') as WorkerType,
+    is_foreign_worker: worker?.is_foreign_worker ?? false,
+    national_id: worker?.national_id ?? '',
+    passport_number: worker?.passport_number ?? '',
     phone: worker?.phone ?? '',
     notes: worker?.notes ?? '',
     project_name: worker?.project_name ?? '',
@@ -23,15 +25,32 @@ export default function WorkerForm({ worker }: WorkerFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const isForeign = formData.is_foreign_worker;
+  const identifierLabel = isForeign ? 'מספר דרכון' : 'תעודת זהות';
+  const identifierValue = isForeign ? formData.passport_number : formData.national_id;
+
+  function handleIdentifierChange(value: string) {
+    if (isForeign) {
+      setFormData((prev) => ({ ...prev, passport_number: value }));
+    } else {
+      setFormData((prev) => ({ ...prev, national_id: value }));
+    }
+  }
+
+  function handleWorkerTypeChange(foreign: boolean) {
+    setFormData((prev) => ({ ...prev, is_foreign_worker: foreign }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+
+    const identifierVal = isForeign ? formData.passport_number.trim() : formData.national_id.trim();
+    if (!identifierVal) {
+      setError(isForeign ? 'מספר דרכון נדרש' : 'מספר תעודת זהות נדרש');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -41,7 +60,15 @@ export default function WorkerForm({ worker }: WorkerFormProps) {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          full_name: formData.full_name.trim(),
+          is_foreign_worker: isForeign,
+          national_id: isForeign ? null : formData.national_id.trim() || null,
+          passport_number: isForeign ? formData.passport_number.trim() || null : null,
+          phone: formData.phone.trim() || null,
+          notes: formData.notes.trim() || null,
+          project_name: formData.project_name.trim() || null,
+        }),
       });
 
       const data = await res.json();
@@ -69,51 +96,62 @@ export default function WorkerForm({ worker }: WorkerFormProps) {
         </label>
         <input
           type="text"
-          name="full_name"
           value={formData.full_name}
-          onChange={handleChange}
+          onChange={(e) => setFormData((p) => ({ ...p, full_name: e.target.value }))}
           required
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="ישראל ישראלי"
         />
       </div>
 
-      {/* מספר תעודת זהות */}
+      {/* סוג עובד */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          סוג עובד <span className="text-red-500">*</span>
+        </label>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => handleWorkerTypeChange(false)}
+            className={`flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+              !isForeign
+                ? 'bg-blue-50 border-blue-400 text-blue-700'
+                : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            ישראלי
+          </button>
+          <button
+            type="button"
+            onClick={() => handleWorkerTypeChange(true)}
+            className={`flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+              isForeign
+                ? 'bg-amber-50 border-amber-400 text-amber-700'
+                : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            עובד זר
+          </button>
+        </div>
+        {isForeign && (
+          <p className="text-xs text-amber-600 mt-1">עובד זר — נדרשת אשרת עבודה</p>
+        )}
+      </div>
+
+      {/* מספר מזהה */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          מספר תעודת זהות <span className="text-red-500">*</span>
+          {identifierLabel} <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
-          name="id_number"
-          value={formData.id_number}
-          onChange={handleChange}
+          value={identifierValue}
+          onChange={(e) => handleIdentifierChange(e.target.value)}
           required
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="123456789"
+          placeholder={isForeign ? 'מספר דרכון' : '123456789'}
           dir="ltr"
         />
-      </div>
-
-      {/* סוג עובד */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          סוג עובד <span className="text-red-500">*</span>
-        </label>
-        <select
-          name="worker_type"
-          value={formData.worker_type}
-          onChange={handleChange}
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        >
-          <option value="israeli">ישראלי</option>
-          <option value="foreign">עובד זר</option>
-        </select>
-        {formData.worker_type === 'foreign' && (
-          <p className="text-xs text-amber-600 mt-1">
-            עובד זר — נדרשת אשרת עבודה
-          </p>
-        )}
       </div>
 
       {/* טלפון */}
@@ -123,9 +161,8 @@ export default function WorkerForm({ worker }: WorkerFormProps) {
         </label>
         <input
           type="tel"
-          name="phone"
           value={formData.phone}
-          onChange={handleChange}
+          onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="050-0000000"
           dir="ltr"
@@ -139,9 +176,8 @@ export default function WorkerForm({ worker }: WorkerFormProps) {
         </label>
         <input
           type="text"
-          name="project_name"
           value={formData.project_name}
-          onChange={handleChange}
+          onChange={(e) => setFormData((p) => ({ ...p, project_name: e.target.value }))}
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
           placeholder="שם הפרויקט / האתר"
         />
@@ -153,9 +189,8 @@ export default function WorkerForm({ worker }: WorkerFormProps) {
           הערות <span className="text-gray-400 text-xs">(אופציונלי)</span>
         </label>
         <textarea
-          name="notes"
           value={formData.notes}
-          onChange={handleChange}
+          onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))}
           rows={3}
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
           placeholder="הערות חופשיות..."

@@ -10,8 +10,8 @@ import {
   Subcontractor,
   ALL_DOCUMENT_TYPES,
   DOCUMENT_TYPE_LABELS,
-  WORKER_TYPE_LABELS,
 } from '@/types';
+import { getWorkerIdentifierLabel, getWorkerIdentifierValue } from '@/lib/workers/identifier';
 import { getDocumentStatus, getWorkerStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import SafetyBriefingCard from '@/components/workers/SafetyBriefingCard';
@@ -174,8 +174,10 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
                   <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full border border-gray-200">לא פעיל</span>
                 )}
               </div>
-              <p className="text-sm text-gray-500">ת.ז. {worker.id_number}</p>
-              <p className="text-sm text-gray-500">{WORKER_TYPE_LABELS[worker.worker_type]}</p>
+              <p className="text-sm text-gray-500">
+                {getWorkerIdentifierLabel(worker)}: {getWorkerIdentifierValue(worker)}
+              </p>
+              <p className="text-sm text-gray-500">{worker.is_foreign_worker ? 'עובד זר' : 'ישראלי'}</p>
               {worker.phone && <p className="text-sm text-gray-500" dir="ltr">{worker.phone}</p>}
               {worker.project_name && <p className="text-sm text-gray-400">פרויקט: {worker.project_name}</p>}
               <p className="text-xs text-gray-300 mt-1">
@@ -244,7 +246,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
         <h2 className="text-lg font-semibold text-gray-900 mb-3">מסמכים</h2>
         <div className="space-y-3">
           {ALL_DOCUMENT_TYPES.map((docType) => {
-            if (docType === 'work_visa' && worker.worker_type !== 'foreign') return null;
+            if (docType === 'work_visa' && !worker.is_foreign_worker) return null;
             const doc = docMap.get(docType);
             const localExpiry = pendingExpiry.has(docType)
               ? pendingExpiry.get(docType)!

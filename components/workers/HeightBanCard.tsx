@@ -455,7 +455,7 @@ async function renderFooterCanvas({
   ctx.font = '13px Arial';
   ctx.fillStyle = '#1e293b';
   ctx.fillText(`שם: ${worker.full_name}`, AX, 50);
-  ctx.fillText(`ת.ז.: ${worker.id_number}`, AX, 68);
+  ctx.fillText(`${worker.is_foreign_worker ? 'דרכון' : 'ת.ז.'}: ${worker.national_id ?? worker.passport_number ?? ''}`, AX, 68);
   ctx.fillText(`תאריך הפקה: ${format(issuedAt, 'dd/MM/yyyy')}`, AX, 86);
   ctx.fillText(`תוקף עד: ${format(expiresAt, 'dd/MM/yyyy')}`, AX, 104);
   ctx.fillText(`מדריך: ${conductedBy}`, AX, 122);

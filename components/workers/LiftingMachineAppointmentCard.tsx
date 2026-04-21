@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { WorkerWithDocuments, LiftingMachineAppointment, HeavyEquipment, POWER_TYPE_LABELS, PowerType, AppointmentMachine } from '@/types';
+import { getWorkerIdentifierValue } from '@/lib/workers/identifier';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import LiftingMachineAppointmentDoc, { AppointmentDocData } from './LiftingMachineAppointmentDoc';
@@ -440,7 +441,7 @@ export default function LiftingMachineAppointmentCard({
           operator_signature_b64: operatorSig,
           appointer_signature_b64: appointerSig,
           worker_full_name: worker.full_name,
-          worker_id_number: worker.id_number,
+          worker_id_number: getWorkerIdentifierValue(worker),
         }),
       });
 
@@ -459,7 +460,7 @@ export default function LiftingMachineAppointmentCard({
         appointer_role: form.appointer_role,
         machines,
         worker_full_name: worker.full_name,
-        worker_id_number: worker.id_number,
+        worker_id_number: getWorkerIdentifierValue(worker),
         worker_father_name: form.father_name,
         worker_birth_year: form.birth_year,
         worker_profession: form.profession,
@@ -655,7 +656,7 @@ export default function LiftingMachineAppointmentCard({
                     הפרטים הבאים יופיעו במסמך המינוי. שינויים ישמרו בפרופיל העובד.
                   </div>
                   <p className="text-sm font-medium text-gray-500">שם מלא: <span className="text-gray-900">{worker.full_name}</span></p>
-                  <p className="text-sm font-medium text-gray-500">ת.ז.: <span className="text-gray-900">{worker.id_number}</span></p>
+                  <p className="text-sm font-medium text-gray-500">{worker.is_foreign_worker ? 'דרכון' : 'ת.ז.'}: <span className="text-gray-900">{getWorkerIdentifierValue(worker)}</span></p>
                   <Field label="שם האב" value={form.father_name} onChange={(v) => setField('father_name', v)} />
                   <Field label="שנת לידה" value={form.birth_year} onChange={(v) => setField('birth_year', v)} ltr placeholder="1985" />
                   <Field label="מקצוע" value={form.profession} onChange={(v) => setField('profession', v)} placeholder="מפעיל מנוף" />
