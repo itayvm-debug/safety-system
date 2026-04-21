@@ -106,16 +106,6 @@ export interface ManagerLicense {
   updated_at: string;
 }
 
-export interface ManagerInsurance {
-  id: string;
-  worker_id: string;
-  insurance_type: string;
-  file_url: string | null;
-  expiry_date: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Vehicle {
   id: string;
   vehicle_type: string;
@@ -171,7 +161,6 @@ export interface WorkerWithDocuments extends Worker {
   lifting_machine_appointments: LiftingMachineAppointment[];
   professional_licenses?: ProfessionalLicense[];
   manager_licenses?: ManagerLicense[];
-  manager_insurances?: ManagerInsurance[];
   vehicles?: Vehicle[];
 }
 

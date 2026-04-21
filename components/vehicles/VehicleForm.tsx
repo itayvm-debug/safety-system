@@ -8,11 +8,12 @@ interface Props {
   vehicle?: Vehicle;
   managers: { id: string; full_name: string }[];
   onSaved?: (vehicle: Vehicle) => void;
+  defaultManagerId?: string;
 }
 
 const VEHICLE_TYPE_PRESETS = ['טנדר', 'פרייבט', 'מסחרית', 'רכב שטח', 'ואן', 'משאית קלה'];
 
-export default function VehicleForm({ vehicle, managers, onSaved }: Props) {
+export default function VehicleForm({ vehicle, managers, onSaved, defaultManagerId }: Props) {
   const router = useRouter();
   const isEdit = !!vehicle;
 
@@ -21,7 +22,7 @@ export default function VehicleForm({ vehicle, managers, onSaved }: Props) {
     model: vehicle?.model ?? '',
     vehicle_number: vehicle?.vehicle_number ?? '',
     vehicle_color: vehicle?.vehicle_color ?? '',
-    assigned_manager_id: vehicle?.assigned_manager_id ?? '',
+    assigned_manager_id: vehicle?.assigned_manager_id ?? defaultManagerId ?? '',
     project_name: vehicle?.project_name ?? '',
     notes: vehicle?.notes ?? '',
   });

@@ -3,7 +3,8 @@ import VehicleForm from '@/components/vehicles/VehicleForm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewVehiclePage() {
+export default async function NewVehiclePage({ searchParams }: { searchParams: Promise<{ manager_id?: string }> }) {
+  const { manager_id } = await searchParams;
   const supabase = createServiceClient();
   const { data: managers } = await supabase
     .from('workers')
@@ -15,7 +16,7 @@ export default async function NewVehiclePage() {
   return (
     <div className="max-w-lg mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">רכב חדש</h1>
-      <VehicleForm managers={managers ?? []} />
+      <VehicleForm managers={managers ?? []} defaultManagerId={manager_id} />
     </div>
   );
 }

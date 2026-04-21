@@ -152,7 +152,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: `שגיאה במחיקת רישיונות מנהל: ${e3.message}` }, { status: 500 });
   }
 
-  // 4. delete manager_insurances
+  // 4. delete manager_insurances (historical data cleanup)
   const { error: e4 } = await supabase.from('manager_insurances').delete().eq('worker_id', id);
   if (e4) {
     console.error('[DELETE worker] failed to delete manager_insurances:', e4);
@@ -166,11 +166,21 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: `שגיאה במחיקת רישיונות מקצועיים: ${e5.message}` }, { status: 500 });
   }
 
-  // 6. delete worker (documents / height_restrictions / safety_briefings / lifting_machine_appointments cascade)
-  const { error: e6 } = await supabase.from('workers').delete().eq('id', id);
+  // 6. null out vehicles.assigned_manager_id (FK — must clear before deleting worker)
+  const { error: e6 } = await supabase
+    .from('vehicles')
+    .update({ assigned_manager_id: null })
+    .eq('assigned_manager_id', id);
   if (e6) {
-    console.error('[DELETE worker] failed to delete worker:', e6);
-    return NextResponse.json({ error: `שגיאה במחיקת העובד: ${e6.message}` }, { status: 500 });
+    console.error('[DELETE worker] failed to null vehicles.assigned_manager_id:', e6);
+    return NextResponse.json({ error: `שגיאה בניתוק רכבים מהעובד: ${e6.message}` }, { status: 500 });
+  }
+
+  // 7. delete worker (documents / height_restrictions / safety_briefings / lifting_machine_appointments cascade)
+  const { error: e7 } = await supabase.from('workers').delete().eq('id', id);
+  if (e7) {
+    console.error('[DELETE worker] failed to delete worker:', e7);
+    return NextResponse.json({ error: `שגיאה במחיקת העובד: ${e7.message}` }, { status: 500 });
   }
 
   console.log(`[DELETE worker] success id=${id}`);

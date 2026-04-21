@@ -24,14 +24,12 @@ export default async function WorkerPage({ params }: { params: Promise<{ id: str
     { data: appointmentsData },
     { data: licensesData },
     { data: managerLicensesData },
-    { data: managerInsurancesData },
     { data: vehiclesData },
   ] = await Promise.all([
     supabase.from('height_restrictions').select('*').eq('worker_id', id).order('created_at', { ascending: false }),
     supabase.from('lifting_machine_appointments').select('*').eq('worker_id', id).order('appointment_date', { ascending: false }),
     supabase.from('professional_licenses').select('*').eq('worker_id', id).order('created_at', { ascending: false }),
     supabase.from('manager_licenses').select('*').eq('worker_id', id).order('created_at', { ascending: false }),
-    supabase.from('manager_insurances').select('*').eq('worker_id', id).order('created_at', { ascending: false }),
     supabase.from('vehicles').select('*, vehicle_licenses(*), vehicle_insurances(*)').eq('assigned_manager_id', id).order('created_at', { ascending: false }),
   ]);
 
@@ -41,7 +39,6 @@ export default async function WorkerPage({ params }: { params: Promise<{ id: str
     lifting_machine_appointments: appointmentsData ?? [],
     professional_licenses: licensesData ?? [],
     manager_licenses: managerLicensesData ?? [],
-    manager_insurances: managerInsurancesData ?? [],
     vehicles: vehiclesData ?? [],
   } as WorkerWithDocuments;
 
