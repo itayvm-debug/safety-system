@@ -171,6 +171,7 @@ export interface WorkerWithDocuments extends Worker {
   professional_licenses?: ProfessionalLicense[];
   manager_licenses?: ManagerLicense[];
   manager_insurances?: ManagerInsurance[];
+  vehicles?: Vehicle[];
 }
 
 export type PowerType = 'mechanical' | 'electric' | 'hydraulic' | 'pneumatic';

@@ -163,18 +163,16 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
     }
   }
 
-  // מנהל עבודה: רכב + ביטוחים רק אם קיימת רשומת רישיון רכב; נהיגה/מקצועיים — תמיד
+  // מנהל עבודה: רכב מטבלת vehicles (אופציונלי); נהיגה/מקצועיים מ-manager_licenses — תמיד
   if (worker.is_responsible_site_manager) {
-    const vehicleLic = (worker.manager_licenses ?? []).find(
-      (l) => l.license_type === 'רישיון רכב'
-    );
-
-    if (vehicleLic) {
-      // יש רכב — רישיון הרכב וביטוח חובה נדרשים
-      const vLicStatus = getDocumentStatus(vehicleLic.file_url, vehicleLic.expiry_date, true, true);
+    // רכב — רק אם קיים רכב מקושר בטבלת vehicles
+    const linkedVehicle = (worker.vehicles ?? [])[0] ?? null;
+    if (linkedVehicle) {
+      const lic = (linkedVehicle.vehicle_licenses ?? [])[0] ?? null;
+      const vLicStatus = getDocumentStatus(lic?.file_url ?? null, lic?.expiry_date ?? null, true, true);
       if (STATUS_SEVERITY[vLicStatus] > STATUS_SEVERITY[worstStatus]) worstStatus = vLicStatus;
 
-      const mandatoryIns = (worker.manager_insurances ?? []).find(
+      const mandatoryIns = (linkedVehicle.vehicle_insurances ?? []).find(
         (i) => i.insurance_type === 'ביטוח חובה'
       );
       const insStatus = getDocumentStatus(
@@ -186,9 +184,8 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
       if (STATUS_SEVERITY[insStatus] > STATUS_SEVERITY[worstStatus]) worstStatus = insStatus;
     }
 
-    // רישיון נהיגה + רישיונות מקצועיים של מנהל — נדרשים אם קיימים, ללא קשר לרכב
+    // רישיון נהיגה + רישיונות מקצועיים של מנהל — נדרשים אם קיימים
     for (const lic of (worker.manager_licenses ?? [])) {
-      if (lic.license_type === 'רישיון רכב') continue;
       const licStatus = getDocumentStatus(lic.file_url, lic.expiry_date, true, !!lic.expiry_date);
       if (STATUS_SEVERITY[licStatus] > STATUS_SEVERITY[worstStatus]) worstStatus = licStatus;
     }

@@ -19,6 +19,7 @@ import HeightBanCard from '@/components/workers/HeightBanCard';
 import LiftingMachineAppointmentCard from '@/components/workers/LiftingMachineAppointmentCard';
 import ProfessionalLicensesCard from '@/components/workers/ProfessionalLicensesCard';
 import ManagerDocumentsCard from '@/components/workers/ManagerDocumentsCard';
+import WorkerVehicleCard from '@/components/workers/WorkerVehicleCard';
 import ToggleSwitch from '@/components/ToggleSwitch';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -337,11 +338,19 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
           </div>
         </div>
         {isResponsibleManager && (
-          <ManagerDocumentsCard
-            workerId={worker.id}
-            licenses={worker.manager_licenses ?? []}
-            insurances={worker.manager_insurances ?? []}
-          />
+          <div className="space-y-4">
+            <ManagerDocumentsCard
+              workerId={worker.id}
+              licenses={worker.manager_licenses ?? []}
+            />
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">רכב עבודה <span className="font-normal text-gray-400">(אופציונלי)</span></h3>
+              <WorkerVehicleCard
+                workerId={worker.id}
+                initialVehicles={worker.vehicles ?? []}
+              />
+            </div>
+          </div>
         )}
       </div>
 
