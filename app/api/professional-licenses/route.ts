@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
 
   if (!worker_id) return NextResponse.json({ error: 'worker_id נדרש' }, { status: 400 });
   if (!license_type?.trim()) return NextResponse.json({ error: 'סוג הרישיון נדרש' }, { status: 400 });
+  if (!expiry_date) return NextResponse.json({ error: 'תאריך תוקף נדרש לרישיון מקצועי' }, { status: 400 });
+  if (!file_url) return NextResponse.json({ error: 'חובה להעלות מסמך עבור הרישיון' }, { status: 400 });
 
   const supabase = createServiceClient();
   const { data, error } = await supabase

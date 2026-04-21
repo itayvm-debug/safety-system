@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -616,9 +616,17 @@ function ManagerSelector({
 function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const [uploading, setUploading] = useState(false);
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
+  const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!worker.photo_url) return;
@@ -628,7 +636,129 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
       .catch(() => {});
   }, [worker.photo_url]);
 
-  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // ציור overlay על canvas מעל הוידאו
+  const drawOverlay = useCallback(() => {
+    const canvas = overlayCanvasRef.current;
+    const video = videoRef.current;
+    if (!canvas || !video) return;
+
+    canvas.width = video.clientWidth;
+    canvas.height = video.clientHeight;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const rx = Math.min(canvas.width, canvas.height) * 0.34;
+    const ry = rx * 1.28;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // רקע כהה
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // חתוך את האליפסה מהרקע
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    // מסגרת לבנה
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // טקסט הדרכה
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('מקם את פניך במסגרת', cx, cy + ry + 28);
+  }, []);
+
+  async function openCamera() {
+    setCameraError('');
+    setCapturedBlob(null);
+    setCapturedPreview(null);
+    setCameraOpen(true);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play();
+          requestAnimationFrame(function loop() {
+            if (!streamRef.current) return;
+            drawOverlay();
+            requestAnimationFrame(loop);
+          });
+        };
+      }
+    } catch {
+      setCameraError('לא ניתן לגשת למצלמה. אנא בדוק הרשאות או השתמש בהעלאת קובץ.');
+    }
+  }
+
+  function closeCamera() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setCameraOpen(false);
+    setCapturedBlob(null);
+    setCapturedPreview(null);
+    setCameraError('');
+  }
+
+  function capturePhoto() {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // חיתוך ריבועי מרכזי (1:1)
+    const size = Math.min(video.videoWidth, video.videoHeight);
+    const sx = (video.videoWidth - size) / 2;
+    const sy = (video.videoHeight - size) / 2;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 640;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(video, sx, sy, size, size, 0, 0, 640, 640);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      setCapturedBlob(blob);
+      setCapturedPreview(canvas.toDataURL('image/jpeg', 0.92));
+    }, 'image/jpeg', 0.92);
+  }
+
+  async function uploadCapturedPhoto() {
+    if (!capturedBlob) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', capturedBlob, `selfie_${Date.now()}.jpg`);
+      formData.append('folder', 'photos');
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) { setCameraError(uploadData.error ?? 'שגיאה בהעלאת תמונה'); return; }
+      await fetch(`/api/workers/${worker.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo_url: uploadData.path }),
+      });
+      closeCamera();
+      router.refresh();
+    } catch { setCameraError('שגיאה בהעלאת תמונה'); } finally { setUploading(false); }
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
@@ -636,18 +766,16 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', 'photos');
-      console.log('[upload:photo] starting', file.name, file.size, file.type);
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-      console.log('[upload:photo] status:', uploadRes.status, uploadRes.ok);
-      const uploadData = await uploadRes.json().catch(e => { console.error('[upload:photo] json parse error:', e, 'content-type:', uploadRes.headers.get('content-type')); return {}; });
-      if (!uploadRes.ok) { console.error('[upload:photo] server error:', uploadRes.status, uploadData); alert(uploadData.error ?? 'שגיאה בהעלאת תמונה'); return; }
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) { alert(uploadData.error ?? 'שגיאה בהעלאת תמונה'); return; }
       await fetch(`/api/workers/${worker.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photo_url: uploadData.path }),
       });
       router.refresh();
-    } catch (err) { console.error('[upload:photo] fetch error:', err); alert('שגיאה בהעלאת תמונה'); } finally { setUploading(false); }
+    } catch { alert('שגיאה בהעלאת תמונה'); } finally { setUploading(false); }
   }
 
   return (
@@ -664,13 +792,14 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
         ) : (
           <span className="text-2xl font-bold text-orange-700">{worker.full_name.charAt(0)}</span>
         )}
-        {/* כפתור החלפת תמונה */}
+
+        {/* מצלמה */}
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={openCamera}
           disabled={uploading}
           className="absolute -bottom-1 -left-1 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 disabled:opacity-50"
-          title="החלף תמונה"
+          title="צלם תמונה"
         >
           {uploading ? (
             <span className="w-3 h-3 border border-orange-500 border-t-transparent rounded-full animate-spin" />
@@ -681,8 +810,86 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
             </svg>
           )}
         </button>
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoChange} />
+
+        {/* קובץ מגלריה */}
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="absolute -top-1 -left-1 w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 disabled:opacity-50"
+          title="העלה מהגלריה"
+        >
+          <svg className="w-2.5 h-2.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
       </div>
+
+      {/* מסך מצלמה */}
+      {cameraOpen && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 bg-black">
+            <button onClick={closeCamera} className="text-white text-sm px-3 py-1.5 rounded-lg border border-white/30 hover:bg-white/10">
+              ביטול
+            </button>
+            <span className="text-white font-medium text-sm">צילום עובד</span>
+            <div className="w-16" />
+          </div>
+
+          <div className="flex-1 relative overflow-hidden">
+            {capturedPreview ? (
+              // תצוגה מקדימה לאחר צילום
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={capturedPreview} alt="preview" className="absolute inset-0 w-full h-full object-contain" />
+            ) : (
+              <>
+                <video
+                  ref={videoRef}
+                  playsInline
+                  muted
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ transform: 'scaleX(-1)' }}
+                />
+                <canvas
+                  ref={overlayCanvasRef}
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                />
+              </>
+            )}
+          </div>
+
+          {cameraError && (
+            <div className="px-4 py-2 bg-red-900/80 text-red-200 text-sm text-center">{cameraError}</div>
+          )}
+
+          <div className="flex items-center justify-center gap-6 px-4 py-6 bg-black">
+            {capturedPreview ? (
+              <>
+                <button
+                  onClick={() => { setCapturedBlob(null); setCapturedPreview(null); }}
+                  className="px-5 py-2.5 rounded-full border border-white/40 text-white text-sm hover:bg-white/10"
+                >
+                  צלם מחדש
+                </button>
+                <button
+                  onClick={uploadCapturedPhoto}
+                  disabled={uploading}
+                  className="px-7 py-2.5 rounded-full bg-orange-500 text-white font-medium text-sm hover:bg-orange-600 disabled:opacity-50"
+                >
+                  {uploading ? 'שומר...' : 'שמור תמונה'}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={capturePhoto}
+                className="w-16 h-16 rounded-full bg-white border-4 border-orange-400 hover:bg-orange-50 transition-colors shadow-lg"
+                aria-label="צלם"
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* lightbox */}
       {lightboxOpen && photoSrc && (

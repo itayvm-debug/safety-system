@@ -45,9 +45,11 @@ export default function WorkerForm({ worker }: WorkerFormProps) {
     e.preventDefault();
     setError('');
 
+    if (!formData.full_name.trim()) { setError('יש להזין שם מלא'); return; }
+
     const identifierVal = isForeign ? formData.passport_number.trim() : formData.national_id.trim();
     if (!identifierVal) {
-      setError(isForeign ? 'מספר דרכון נדרש' : 'מספר תעודת זהות נדרש');
+      setError(isForeign ? 'יש להזין מספר דרכון לעובד זר' : 'יש להזין תעודת זהות לעובד ישראלי');
       return;
     }
 
