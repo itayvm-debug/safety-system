@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Worker } from '@/types';
+import { getWorkerIdentifierValue } from '@/lib/workers/identifier';
 
 interface Props {
   managers: Worker[];
@@ -15,7 +16,7 @@ export default function SiteManagerList({ managers, photoUrls }: Props) {
   const filtered = useMemo(() => {
     return managers.filter((m) => {
       if (!search) return true;
-      return m.full_name.includes(search) || m.id_number.includes(search);
+      return m.full_name.includes(search) || getWorkerIdentifierValue(m).includes(search);
     });
   }, [managers, search]);
 
@@ -82,7 +83,7 @@ function ManagerCard({ manager, photoUrl }: { manager: Worker; photoUrl?: string
         <div className="min-w-0">
           <p className="font-semibold text-gray-900 truncate">{manager.full_name}</p>
           <p className="text-sm text-gray-400">
-            ת.ז. {manager.id_number}
+            {manager.is_foreign_worker ? 'דרכון' : 'ת.ז.'} {getWorkerIdentifierValue(manager)}
             {manager.phone && ` · ${manager.phone}`}
             {manager.project_name && ` · ${manager.project_name}`}
           </p>

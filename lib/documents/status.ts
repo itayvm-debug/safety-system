@@ -81,7 +81,7 @@ const STATUS_SEVERITY: Record<DocumentStatus, number> = {
 
 export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
   const requiredTypes =
-    worker.worker_type === 'foreign'
+    worker.is_foreign_worker
       ? REQUIRED_DOCUMENT_TYPES_FOR_FOREIGN
       : REQUIRED_DOCUMENT_TYPES_FOR_ISRAELI;
 

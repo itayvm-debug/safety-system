@@ -26,6 +26,17 @@ export async function POST(request: NextRequest) {
   if (!description?.trim()) return NextResponse.json({ error: 'תיאור נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
+
+  // בדיקת כפילות על מספר רישוי
+  if (license_number?.trim()) {
+    const { data: existing } = await supabase
+      .from('heavy_equipment')
+      .select('id')
+      .eq('license_number', license_number.trim())
+      .maybeSingle();
+    if (existing) return NextResponse.json({ error: 'כלי צמ"ה עם מספר רישוי זה כבר קיים במערכת' }, { status: 409 });
+  }
+
   const { data, error } = await supabase
     .from('heavy_equipment')
     .insert({

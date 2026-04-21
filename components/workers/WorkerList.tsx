@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { WorkerWithDocuments, DocumentStatus, WORKER_TYPE_LABELS } from '@/types';
+import { WorkerWithDocuments, DocumentStatus } from '@/types';
+import { getWorkerIdentifierValue } from '@/lib/workers/identifier';
 import { getWorkerStatus } from '@/lib/documents/status';
 import { getEffectiveSubcontractor, EffectiveSubcontractor } from '@/lib/workers/subcontractor';
 import StatusBadge from '@/components/StatusBadge';
@@ -63,7 +64,8 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
       const matchesSearch =
         !search ||
         w.full_name.includes(search) ||
-        w.id_number.includes(search);
+        (w.national_id ?? '').includes(search) ||
+        (w.passport_number ?? '').includes(search);
       const status = getWorkerStatus(w);
       const matchesFilter = filter === 'all' || status === filter;
       // סינון קבלן: על בסיס קבלן אפקטיבי (ישיר או בירושה)
@@ -296,7 +298,7 @@ function ManagerFilterHeader({
         <div className="flex-1 min-w-0">
           <p className="font-bold text-blue-900 text-base">{manager.full_name}</p>
           <p className="text-sm text-blue-600">
-            ת.ז. {manager.id_number}
+            {manager.is_foreign_worker ? 'דרכון' : 'ת.ז.'} {getWorkerIdentifierValue(manager)}
             {manager.phone && <span dir="ltr"> · {manager.phone}</span>}
           </p>
         </div>
@@ -419,7 +421,7 @@ function WorkerCard({
             {isInactive && <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded shrink-0">לא פעיל</span>}
           </div>
           <p className="text-sm text-gray-400">
-            ת.ז. {worker.id_number} · {WORKER_TYPE_LABELS[worker.worker_type]}
+            {worker.is_foreign_worker ? 'דרכון' : 'ת.ז.'} {getWorkerIdentifierValue(worker)} · {worker.is_foreign_worker ? 'עובד זר' : 'ישראלי'}
             {effectiveSub && (
               <>
                 {' · '}

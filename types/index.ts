@@ -1,5 +1,3 @@
-export type WorkerType = 'israeli' | 'foreign';
-
 export interface Subcontractor {
   id: string;
   name: string;
@@ -25,8 +23,10 @@ export type BriefingLanguage = 'hebrew' | 'arabic' | 'english' | 'russian' | 'th
 export interface Worker {
   id: string;
   full_name: string;
-  id_number: string;
-  worker_type: WorkerType;
+  is_foreign_worker: boolean;
+  national_id: string | null;
+  passport_number: string | null;
+  id_number: string | null; // backward compat for PDF templates
   phone: string | null;
   notes: string | null;
   photo_url: string | null;
@@ -219,11 +219,6 @@ export const DOCUMENT_TYPE_LABELS: Record<Exclude<DocumentType, 'optional_licens
   id_document: 'תעודת זהות',
   height_permit: 'אישור עבודה בגובה',
   work_visa: 'אשרת עבודה',
-};
-
-export const WORKER_TYPE_LABELS: Record<WorkerType, string> = {
-  israeli: 'ישראלי',
-  foreign: 'עובד זר',
 };
 
 export const REQUIRED_DOCUMENT_TYPES: Exclude<DocumentType, 'optional_license'>[] = [

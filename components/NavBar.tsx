@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { getClientRole } from '@/lib/auth/client';
+import ExportWizard from '@/components/export/ExportWizard';
 
 const NAV_LINKS = [
   { href: '/workers', label: 'עובדים', prefix: '/workers' },
@@ -18,6 +19,7 @@ export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showExport, setShowExport] = useState(false);
 
   useEffect(() => {
     setIsAdmin(getClientRole() === 'admin');
@@ -31,6 +33,7 @@ export default function NavBar() {
   const isWorkersSection = pathname.startsWith('/workers');
 
   return (
+    <>
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         {/* לוגו */}
@@ -81,6 +84,16 @@ export default function NavBar() {
             </Link>
           )}
 
+          {/* יצוא נתונים — admin בלבד */}
+          {isAdmin && (
+            <button
+              onClick={() => setShowExport(true)}
+              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors hidden sm:inline-block"
+            >
+              יצוא
+            </button>
+          )}
+
           {/* משוב */}
           <Link
             href="/submit-feedback"
@@ -115,5 +128,8 @@ export default function NavBar() {
         </div>
       </div>
     </header>
+
+    {showExport && <ExportWizard onClose={() => setShowExport(false)} />}
+    </>
   );
 }
