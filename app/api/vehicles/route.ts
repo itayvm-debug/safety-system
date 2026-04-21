@@ -27,6 +27,14 @@ export async function POST(request: NextRequest) {
   if (!vehicle_number?.trim()) return NextResponse.json({ error: 'מספר רכב נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
+
+  const { data: existing } = await supabase
+    .from('vehicles')
+    .select('id')
+    .eq('vehicle_number', vehicle_number.trim())
+    .maybeSingle();
+  if (existing) return NextResponse.json({ error: 'רכב עם מספר רישוי זה כבר קיים במערכת' }, { status: 409 });
+
   const { data, error } = await supabase
     .from('vehicles')
     .insert({

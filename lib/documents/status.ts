@@ -245,8 +245,8 @@ export const STATUS_DOT_COLORS: Record<DocumentStatus, string> = {
 export const STATUS_LABELS: Record<DocumentStatus, string> = {
   valid: 'תקין',
   expiring_soon: 'עומד לפוג',
-  expired: 'לא תקין',
-  missing: 'לא תקין',
+  expired: 'פג תוקף',
+  missing: 'חסר',
   not_required: 'לא נדרש',
 };
 

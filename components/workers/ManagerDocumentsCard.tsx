@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { ManagerLicense, ManagerInsurance } from '@/types';
+import { ManagerLicense } from '@/types';
 import { getDocumentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import { formatDateSafe } from '@/lib/utils/date';
@@ -121,7 +121,7 @@ function ManagerFileRow({
   id: string; label: string; fileUrl: string | null; expiryDate: string | null;
   apiPath: string; required: boolean;
   onDeleted: (id: string) => void;
-  onUpdated: (item: ManagerLicense | ManagerInsurance) => void;
+  onUpdated: (item: ManagerLicense) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
