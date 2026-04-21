@@ -8,6 +8,7 @@ import { getClientRole } from '@/lib/auth/client';
 import ExportWizard from '@/components/export/ExportWizard';
 
 const NAV_LINKS = [
+  { href: '/issues', label: 'דורש טיפול', prefix: '/issues' },
   { href: '/workers', label: 'עובדים', prefix: '/workers' },
   { href: '/site-managers', label: 'מנהלי עבודה', prefix: '/site-managers' },
   { href: '/vehicles', label: 'רכבים', prefix: '/vehicles' },

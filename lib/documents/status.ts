@@ -72,13 +72,34 @@ export function getBriefingStatus(briefing: SafetyBriefing | null | undefined): 
   return 'valid';
 }
 
-const STATUS_SEVERITY: Record<DocumentStatus, number> = {
+export const STATUS_SEVERITY: Record<DocumentStatus, number> = {
   expired: 3,
   missing: 3,       // חסר = חמור כמו פג תוקף
   expiring_soon: 1,
   valid: 0,
   not_required: 0,  // לא נדרש = לא פוגע בסטטוס
 };
+
+/**
+ * לוגיקה משותפת: טוב יותר מבין אישור עבודה בגובה ואיסור עבודה בגובה.
+ * משמשת גם את getWorkerStatus וגם את issues engine — מקור יחיד לחוק זה.
+ */
+export function getHeightCombinedStatus(
+  heightPermitDoc: Document | undefined,
+  heightRestrictions: HeightRestriction[]
+): DocumentStatus {
+  const permitStatus = getDocumentStatus(
+    heightPermitDoc?.file_url ?? null,
+    heightPermitDoc?.expiry_date ?? null,
+    true,
+    true
+  );
+  const latest = heightRestrictions
+    .slice()
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] ?? null;
+  const banStatus = getHeightRestrictionStatus(latest);
+  return STATUS_SEVERITY[permitStatus] <= STATUS_SEVERITY[banStatus] ? permitStatus : banStatus;
+}
 
 export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
   const requiredTypes =
@@ -110,26 +131,9 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
     }
   }
 
-  // עבודה בגובה: לוגיקה משולבת — permit OR ban (מספיק שאחד מהם תקף)
+  // עבודה בגובה: permit OR ban — לוגיקה משותפת עם issues engine
   const heightPermitDoc = docMap.get('height_permit');
-  const heightPermitStatus = getDocumentStatus(
-    heightPermitDoc?.file_url ?? null,
-    heightPermitDoc?.expiry_date ?? null,
-    true // height_permit תמיד נדרש
-  );
-
-  const latestRestriction =
-    (worker.height_restrictions ?? []).slice().sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )[0] ?? null;
-  const heightBanStatus = getHeightRestrictionStatus(latestRestriction);
-
-  // לוקחים את הסטטוס הטוב יותר מבין השניים (הפחות חמור)
-  const heightCombinedStatus: DocumentStatus =
-    STATUS_SEVERITY[heightPermitStatus] <= STATUS_SEVERITY[heightBanStatus]
-      ? heightPermitStatus
-      : heightBanStatus;
-
+  const heightCombinedStatus = getHeightCombinedStatus(heightPermitDoc, worker.height_restrictions ?? []);
   if (STATUS_SEVERITY[heightCombinedStatus] > STATUS_SEVERITY[worstStatus]) {
     worstStatus = heightCombinedStatus;
   }
