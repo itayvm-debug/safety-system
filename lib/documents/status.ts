@@ -163,27 +163,34 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
     }
   }
 
-  // מנהל עבודה: ביטוח חובה + רישיונות מנהל (נהיגה/מקצועיים) — קובץ חובה כשרשומה קיימת
+  // מנהל עבודה: רכב + ביטוחים רק אם קיימת רשומת רישיון רכב; נהיגה/מקצועיים — תמיד
   if (worker.is_responsible_site_manager) {
-    const mandatoryIns = (worker.manager_insurances ?? []).find(
-      (i) => i.insurance_type === 'ביטוח חובה'
+    const vehicleLic = (worker.manager_licenses ?? []).find(
+      (l) => l.license_type === 'רישיון רכב'
     );
-    const insStatus = getDocumentStatus(
-      mandatoryIns?.file_url ?? null,
-      mandatoryIns?.expiry_date ?? null,
-      true,
-      true
-    );
-    if (STATUS_SEVERITY[insStatus] > STATUS_SEVERITY[worstStatus]) {
-      worstStatus = insStatus;
+
+    if (vehicleLic) {
+      // יש רכב — רישיון הרכב וביטוח חובה נדרשים
+      const vLicStatus = getDocumentStatus(vehicleLic.file_url, vehicleLic.expiry_date, true, true);
+      if (STATUS_SEVERITY[vLicStatus] > STATUS_SEVERITY[worstStatus]) worstStatus = vLicStatus;
+
+      const mandatoryIns = (worker.manager_insurances ?? []).find(
+        (i) => i.insurance_type === 'ביטוח חובה'
+      );
+      const insStatus = getDocumentStatus(
+        mandatoryIns?.file_url ?? null,
+        mandatoryIns?.expiry_date ?? null,
+        true,
+        true
+      );
+      if (STATUS_SEVERITY[insStatus] > STATUS_SEVERITY[worstStatus]) worstStatus = insStatus;
     }
 
+    // רישיון נהיגה + רישיונות מקצועיים של מנהל — נדרשים אם קיימים, ללא קשר לרכב
     for (const lic of (worker.manager_licenses ?? [])) {
-      if (lic.license_type === 'רישיון רכב') continue; // מטופל דרך רישיון הרכב עצמו
+      if (lic.license_type === 'רישיון רכב') continue;
       const licStatus = getDocumentStatus(lic.file_url, lic.expiry_date, true, !!lic.expiry_date);
-      if (STATUS_SEVERITY[licStatus] > STATUS_SEVERITY[worstStatus]) {
-        worstStatus = licStatus;
-      }
+      if (STATUS_SEVERITY[licStatus] > STATUS_SEVERITY[worstStatus]) worstStatus = licStatus;
     }
   }
 

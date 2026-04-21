@@ -48,9 +48,12 @@ export default function ManagerDocumentsCard({ workerId, licenses: initialLicens
   return (
     <div className="space-y-5">
 
-      {/* ── א: רכב עבודה ── */}
+      {/* ── א: רכב עבודה (אופציונלי) ── */}
       <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-700">רכב עבודה</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-700">רכב עבודה</h3>
+          <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">אופציונלי</span>
+        </div>
 
         <div>
           <p className="text-xs text-gray-500 mb-2">רישיון רכב</p>
@@ -74,7 +77,9 @@ export default function ManagerDocumentsCard({ workerId, licenses: initialLicens
           <div className="space-y-2">
             {INSURANCE_TYPES.map((type) => {
               const existing = insurances.find((i) => i.insurance_type === type);
-              const isRequired = type === REQUIRED_INSURANCE;
+              // ביטוח חובה נדרש רק אם יש רישיון רכב בפועל
+              const hasVehicle = vehicleLicenses.length > 0;
+              const isRequired = type === REQUIRED_INSURANCE && hasVehicle;
               return existing ? (
                 <ManagerFileRow
                   key={existing.id}
