@@ -25,13 +25,25 @@ function IconSiteManager() {
   );
 }
 
-function IconTruck() {
+function IconExcavator() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1" y="3" width="15" height="13" rx="1"/>
-      <path d="M16 8h4l3 4v4h-7V8z"/>
-      <circle cx="5.5" cy="18.5" r="2.5"/>
-      <circle cx="18.5" cy="18.5" r="2.5"/>
+      <path d="M4 17h12"/>
+      <path d="M4 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"/>
+      <path d="M14 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"/>
+      <path d="M4 17V9a1 1 0 0 1 1-1h4l2-4h4l1 4h2a1 1 0 0 1 1 1v4"/>
+      <path d="M8 8v4"/>
+    </svg>
+  );
+}
+
+function IconVehicle() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 17H3a1 1 0 0 1-1-1v-4l2-5h12l2 5v4a1 1 0 0 1-1 1h-2"/>
+      <circle cx="7" cy="17" r="2"/>
+      <circle cx="17" cy="17" r="2"/>
+      <path d="M9 17h6"/>
     </svg>
   );
 }
@@ -91,8 +103,18 @@ const CARDS = [
     hoverBorder: 'hover:border-blue-300',
   },
   {
+    href: '/vehicles',
+    icon: IconVehicle,
+    title: 'רכבים',
+    description: 'ניהול רכבי עבודה, רישיונות וביטוחים',
+    color: 'text-sky-600',
+    bg: 'bg-sky-50',
+    border: 'border-sky-100',
+    hoverBorder: 'hover:border-sky-300',
+  },
+  {
     href: '/heavy-equipment',
-    icon: IconTruck,
+    icon: IconExcavator,
     title: 'כלי צמ"ה',
     description: 'ניהול רישיונות, ביטוחים ובדיקות תקופתיות לכלי צמ"ה',
     color: 'text-yellow-600',
@@ -146,7 +168,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Cards grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {CARDS.map(({ href, icon: Icon, title, description, color, bg, border, hoverBorder }) => (
           <Link
             key={href}
