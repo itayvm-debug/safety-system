@@ -52,7 +52,9 @@ function LinkedVehicleRow({ vehicle }: { vehicle: Vehicle }) {
         <div>
           <p className="font-medium text-gray-900 text-sm" dir="ltr">{vehicle.vehicle_number}</p>
           <p className="text-xs text-gray-500">
-            {vehicle.vehicle_type}{vehicle.model ? ` · ${vehicle.model}` : ''}
+            {vehicle.vehicle_type}
+            {vehicle.model && ` · ${vehicle.model}`}
+            {vehicle.vehicle_color && ` · ${vehicle.vehicle_color}`}
           </p>
         </div>
         <StatusBadge status={status} size="sm" />

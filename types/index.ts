@@ -121,6 +121,7 @@ export interface Vehicle {
   vehicle_type: string;
   model: string | null;
   vehicle_number: string;
+  vehicle_color: string | null;
   image_url: string | null;
   assigned_manager_id: string | null;
   assigned_manager?: { id: string; full_name: string } | null;

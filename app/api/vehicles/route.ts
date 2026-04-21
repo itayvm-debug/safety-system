@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   if (authError) return authError;
 
   const body = await request.json();
-  const { vehicle_type, model, vehicle_number, image_url, assigned_manager_id, project_name, notes } = body;
+  const { vehicle_type, model, vehicle_number, vehicle_color, image_url, assigned_manager_id, project_name, notes } = body;
 
   if (!vehicle_type?.trim()) return NextResponse.json({ error: 'סוג רכב נדרש' }, { status: 400 });
   if (!vehicle_number?.trim()) return NextResponse.json({ error: 'מספר רכב נדרש' }, { status: 400 });
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       vehicle_type: vehicle_type.trim(),
       model: model?.trim() || null,
       vehicle_number: vehicle_number.trim(),
+      vehicle_color: vehicle_color?.trim() || null,
       image_url: image_url || null,
       assigned_manager_id: assigned_manager_id || null,
       project_name: project_name?.trim() || null,

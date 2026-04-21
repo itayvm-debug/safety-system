@@ -27,6 +27,7 @@ export default function VehicleList({ vehicles, imageUrls }: Props) {
         v.vehicle_number.toLowerCase().includes(q) ||
         v.vehicle_type.toLowerCase().includes(q) ||
         (v.model ?? '').toLowerCase().includes(q) ||
+        (v.vehicle_color ?? '').toLowerCase().includes(q) ||
         (v.assigned_manager?.full_name ?? '').includes(search)
       );
     });
@@ -138,6 +139,7 @@ function VehicleCard({ vehicle, imageUrl }: { vehicle: Vehicle; imageUrl?: strin
           <p className="text-sm text-gray-400">
             {vehicle.vehicle_type}
             {vehicle.model && ` · ${vehicle.model}`}
+            {vehicle.vehicle_color && ` · ${vehicle.vehicle_color}`}
             {vehicle.assigned_manager && ` · ${vehicle.assigned_manager.full_name}`}
           </p>
         </div>

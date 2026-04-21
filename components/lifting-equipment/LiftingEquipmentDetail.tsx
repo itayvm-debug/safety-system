@@ -9,12 +9,14 @@ import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
+import CameraCapture from '@/components/CameraCapture';
 
 function LiftingImageUploader({ equipmentId, imageUrl, onUploaded }: { equipmentId: string; imageUrl: string | null; onUploaded: (url: string) => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   useEffect(() => {
     if (!imageUrl) return;
@@ -24,11 +26,10 @@ function LiftingImageUploader({ equipmentId, imageUrl, onUploaded }: { equipment
       .catch(() => {});
   }, [imageUrl]);
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
+  async function uploadBlob(file: File | Blob, filename?: string) {
     setUploading(true);
     try {
-      const fd = new FormData(); fd.append('file', file); fd.append('folder', 'equipment');
+      const fd = new FormData(); fd.append('file', file, filename); fd.append('folder', 'equipment');
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
       const ud = await uploadRes.json();
       if (!uploadRes.ok) { alert(ud.error ?? 'שגיאה'); return; }
@@ -44,6 +45,16 @@ function LiftingImageUploader({ equipmentId, imageUrl, onUploaded }: { equipment
     } finally { setUploading(false); }
   }
 
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    await uploadBlob(file, file.name);
+  }
+
+  async function handleCapture(blob: Blob) {
+    setCameraOpen(false);
+    await uploadBlob(blob, `lifting_${Date.now()}.jpg`);
+  }
+
   return (
     <>
       <div className="relative w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -55,8 +66,9 @@ function LiftingImageUploader({ equipmentId, imageUrl, onUploaded }: { equipment
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         )}
-        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-          className="absolute -bottom-1 -left-1 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 disabled:opacity-50" title="החלף תמונה">
+        {/* כפתור מצלמה */}
+        <button type="button" onClick={() => setCameraOpen(true)} disabled={uploading}
+          className="absolute -bottom-1 -left-1 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 disabled:opacity-50" title="צלם תמונה">
           {uploading ? <span className="w-3 h-3 border border-orange-500 border-t-transparent rounded-full animate-spin" /> : (
             <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -64,8 +76,25 @@ function LiftingImageUploader({ equipmentId, imageUrl, onUploaded }: { equipment
             </svg>
           )}
         </button>
+        {/* כפתור גלריה */}
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+          className="absolute -top-1 -left-1 w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 disabled:opacity-50" title="העלה מהגלריה">
+          <svg className="w-2.5 h-2.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+        </button>
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUpload} />
       </div>
+
+      {cameraOpen && (
+        <CameraCapture
+          title="צילום ציוד הרמה"
+          shape="object"
+          onCapture={handleCapture}
+          onClose={() => setCameraOpen(false)}
+        />
+      )}
+
       {lightboxOpen && imgSrc && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4" onClick={() => setLightboxOpen(false)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
