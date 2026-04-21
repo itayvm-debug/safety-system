@@ -8,6 +8,7 @@ import {
   HeavyEquipment,
   LiftingEquipment,
   ProfessionalLicense,
+  Vehicle,
   WorkerWithDocuments,
   REQUIRED_DOCUMENT_TYPES_FOR_FOREIGN,
   REQUIRED_DOCUMENT_TYPES_FOR_ISRAELI,
@@ -163,6 +164,22 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
     }
   }
 
+  // ביטוח חובה — חובה אמיתית למנהלי עבודה
+  if (worker.is_responsible_site_manager) {
+    const mandatoryIns = (worker.manager_insurances ?? []).find(
+      (i) => i.insurance_type === 'ביטוח חובה'
+    );
+    const insStatus = getDocumentStatus(
+      mandatoryIns?.file_url ?? null,
+      mandatoryIns?.expiry_date ?? null,
+      true,
+      true
+    );
+    if (STATUS_SEVERITY[insStatus] > STATUS_SEVERITY[worstStatus]) {
+      worstStatus = insStatus;
+    }
+  }
+
   return worstStatus;
 }
 
@@ -221,3 +238,34 @@ export const STATUS_LABELS: Record<DocumentStatus, string> = {
   missing: 'לא תקין',
   not_required: 'לא נדרש',
 };
+
+/** סטטוס רכב: רישיון רכב + ביטוח חובה חובה; מקיף/צד ג אופציונליים */
+export function getVehicleStatus(vehicle: Vehicle): DocumentStatus {
+  let worst: DocumentStatus = 'valid';
+
+  const lic = (vehicle.vehicle_licenses ?? [])[0] ?? null;
+  const licStatus = getDocumentStatus(lic?.file_url ?? null, lic?.expiry_date ?? null, true, true);
+  if (STATUS_SEVERITY[licStatus] > STATUS_SEVERITY[worst]) worst = licStatus;
+
+  const mandatoryIns = (vehicle.vehicle_insurances ?? []).find(
+    (i) => i.insurance_type === 'ביטוח חובה'
+  );
+  const insStatus = getDocumentStatus(
+    mandatoryIns?.file_url ?? null,
+    mandatoryIns?.expiry_date ?? null,
+    true,
+    true
+  );
+  if (STATUS_SEVERITY[insStatus] > STATUS_SEVERITY[worst]) worst = insStatus;
+
+  // מקיף / צד ג — אופציונליים: אם הועלה קובץ, חייב להיות בתוקף
+  const optional = (vehicle.vehicle_insurances ?? []).filter(
+    (i) => i.insurance_type !== 'ביטוח חובה' && (i.file_url || i.expiry_date)
+  );
+  for (const ins of optional) {
+    const s = getDocumentStatus(ins.file_url, ins.expiry_date, false, true);
+    if (STATUS_SEVERITY[s] > STATUS_SEVERITY[worst]) worst = s;
+  }
+
+  return worst;
+}

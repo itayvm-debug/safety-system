@@ -99,6 +99,7 @@ export interface ManagerLicense {
   id: string;
   worker_id: string;
   license_type: string;
+  vehicle_number: string | null;
   file_url: string | null;
   expiry_date: string | null;
   created_at: string;
@@ -108,6 +109,42 @@ export interface ManagerLicense {
 export interface ManagerInsurance {
   id: string;
   worker_id: string;
+  insurance_type: string;
+  file_url: string | null;
+  expiry_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Vehicle {
+  id: string;
+  vehicle_type: string;
+  model: string | null;
+  vehicle_number: string;
+  image_url: string | null;
+  assigned_manager_id: string | null;
+  assigned_manager?: { id: string; full_name: string } | null;
+  project_name: string | null;
+  is_active: boolean;
+  notes: string | null;
+  vehicle_licenses?: VehicleLicense[];
+  vehicle_insurances?: VehicleInsurance[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VehicleLicense {
+  id: string;
+  vehicle_id: string;
+  file_url: string | null;
+  expiry_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VehicleInsurance {
+  id: string;
+  vehicle_id: string;
   insurance_type: string;
   file_url: string | null;
   expiry_date: string | null;
