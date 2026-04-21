@@ -29,7 +29,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS workers_passport_number_unique
   ON workers (passport_number)
   WHERE passport_number IS NOT NULL;
 
--- 5. כלי צמ"ה: אינדקס ייחודי על מספר רישיון (optional field)
+-- 5. worker_type — שמירת תאימות: ניתן להריץ בעתיד כדי להסיר את השדה
+--    לא חובה להריץ כרגע. הקוד ממלא worker_type אוטומטית לפי is_foreign_worker.
+--    כשתרצה להסיר לחלוטין:
+--    ALTER TABLE workers DROP COLUMN worker_type;
+
+-- 6. כלי צמ"ה: אינדקס ייחודי על מספר רישיון (optional field)
 CREATE UNIQUE INDEX IF NOT EXISTS heavy_equipment_license_number_unique
   ON heavy_equipment (license_number)
   WHERE license_number IS NOT NULL AND trim(license_number) <> '';

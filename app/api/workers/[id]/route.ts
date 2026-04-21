@@ -56,6 +56,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     .from('workers')
     .update({
       full_name: full_name.trim(),
+      worker_type: isForeign ? 'foreign' : 'israeli', // backward compat with DB NOT NULL constraint
       is_foreign_worker: isForeign,
       national_id: nationalIdTrimmed,
       passport_number: passportTrimmed,
