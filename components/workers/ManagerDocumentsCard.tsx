@@ -18,18 +18,13 @@ const REQUIRED_INSURANCE: InsuranceType = 'ביטוח חובה';
 
 const VEHICLE_LICENSE_TYPE = 'רישיון רכב';
 const DRIVING_LICENSE_TYPE = 'רישיון נהיגה';
-const PROFESSIONAL_LICENSE_PRESETS = ['הסמכת קבלן', 'הסמכת מנהל בטיחות', 'רישיון חשמלאי', 'רישיון אינסטלטור', 'רישיון מנהל עבודה'];
 
 export default function ManagerDocumentsCard({ workerId, licenses: initialLicenses, insurances: initialInsurances }: Props) {
   const [licenses, setLicenses] = useState<ManagerLicense[]>(initialLicenses);
   const [insurances, setInsurances] = useState<ManagerInsurance[]>(initialInsurances);
-  const [addingProfessional, setAddingProfessional] = useState(false);
 
   const vehicleLicenses = licenses.filter((l) => l.license_type === VEHICLE_LICENSE_TYPE);
   const drivingLicenses = licenses.filter((l) => l.license_type === DRIVING_LICENSE_TYPE);
-  const professionalLicenses = licenses.filter(
-    (l) => l.license_type !== VEHICLE_LICENSE_TYPE && l.license_type !== DRIVING_LICENSE_TYPE
-  );
 
   function updateLicense(updated: ManagerLicense) {
     setLicenses((prev) => prev.map((l) => l.id === updated.id ? updated : l));
@@ -133,43 +128,6 @@ export default function ManagerDocumentsCard({ workerId, licenses: initialLicens
         </div>
       </div>
 
-      {/* ── ג: רישיונות מקצועיים ── */}
-      <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">רישיונות מקצועיים</h3>
-        <div className="space-y-2">
-          {professionalLicenses.map((lic) => (
-            <ManagerFileRow
-              key={lic.id}
-              id={lic.id}
-              label={lic.license_type}
-              fileUrl={lic.file_url}
-              expiryDate={lic.expiry_date}
-              apiPath="manager-licenses"
-              required={false}
-              onDeleted={deleteLicense}
-              onUpdated={(item) => updateLicense(item as ManagerLicense)}
-            />
-          ))}
-          {addingProfessional ? (
-            <AddDocForm
-              workerId={workerId}
-              typeLabel="סוג הרישיון"
-              typePresets={PROFESSIONAL_LICENSE_PRESETS}
-              apiPath="manager-licenses"
-              fieldName="license_type"
-              onAdded={(item) => { addLicense(item as ManagerLicense); setAddingProfessional(false); }}
-              onCancel={() => setAddingProfessional(false)}
-            />
-          ) : (
-            <button
-              onClick={() => setAddingProfessional(true)}
-              className="w-full border border-dashed border-gray-300 rounded-xl py-2.5 text-sm text-gray-400 hover:border-orange-400 hover:text-orange-500 transition-colors"
-            >
-              + הוסף רישיון מקצועי
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
@@ -570,63 +528,6 @@ function ManagerFileRow({
           {uploading ? 'מעלה...' : fileUrl ? 'החלף' : 'העלה'}
         </button>
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleUpload} />
-      </div>
-    </div>
-  );
-}
-
-// ── טופס הוספת רישיון מקצועי ─────────────────────────────────────
-function AddDocForm({
-  workerId, typeLabel, typePresets, apiPath, fieldName, onAdded, onCancel,
-}: {
-  workerId: string; typeLabel: string; typePresets: string[];
-  apiPath: string; fieldName: string;
-  onAdded: (item: unknown) => void; onCancel: () => void;
-}) {
-  const [docType, setDocType] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  async function handleSave() {
-    if (!docType.trim()) { setError(`נדרש ${typeLabel}`); return; }
-    setSaving(true); setError('');
-    try {
-      const res = await fetch(`/api/${apiPath}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ worker_id: workerId, [fieldName]: docType.trim(), expiry_date: expiryDate || null }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? 'שגיאה'); return; }
-      onAdded(data);
-    } catch { setError('שגיאת תקשורת'); } finally { setSaving(false); }
-  }
-
-  return (
-    <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 space-y-2">
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">{typeLabel} *</label>
-          <input type="text" value={docType} onChange={(e) => setDocType(e.target.value)} list={`presets-${apiPath}`}
-            placeholder={typePresets[0]}
-            className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
-          <datalist id={`presets-${apiPath}`}>
-            {typePresets.map((p) => <option key={p} value={p} />)}
-          </datalist>
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">תאריך תוקף</label>
-          <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" dir="ltr" />
-        </div>
-      </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
-      <div className="flex gap-2">
-        <button onClick={onCancel} className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">ביטול</button>
-        <button onClick={handleSave} disabled={saving}
-          className="px-5 py-1.5 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50">
-          {saving ? 'שומר...' : 'הוסף'}
-        </button>
       </div>
     </div>
   );
