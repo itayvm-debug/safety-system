@@ -7,11 +7,12 @@ import { Vehicle } from '@/types';
 interface Props {
   vehicle?: Vehicle;
   managers: { id: string; full_name: string }[];
+  onSaved?: (vehicle: Vehicle) => void;
 }
 
 const VEHICLE_TYPE_PRESETS = ['טנדר', 'פרייבט', 'מסחרית', 'רכב שטח', 'ואן', 'משאית קלה'];
 
-export default function VehicleForm({ vehicle, managers }: Props) {
+export default function VehicleForm({ vehicle, managers, onSaved }: Props) {
   const router = useRouter();
   const isEdit = !!vehicle;
 
@@ -19,12 +20,14 @@ export default function VehicleForm({ vehicle, managers }: Props) {
     vehicle_type: vehicle?.vehicle_type ?? '',
     model: vehicle?.model ?? '',
     vehicle_number: vehicle?.vehicle_number ?? '',
+    vehicle_color: vehicle?.vehicle_color ?? '',
     assigned_manager_id: vehicle?.assigned_manager_id ?? '',
     project_name: vehicle?.project_name ?? '',
     notes: vehicle?.notes ?? '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
 
   function set(key: string, value: string) {
     setFormData((p) => ({ ...p, [key]: value }));
@@ -48,6 +51,7 @@ export default function VehicleForm({ vehicle, managers }: Props) {
           vehicle_type: formData.vehicle_type.trim(),
           model: formData.model.trim() || null,
           vehicle_number: formData.vehicle_number.trim(),
+          vehicle_color: formData.vehicle_color.trim() || null,
           assigned_manager_id: formData.assigned_manager_id || null,
           project_name: formData.project_name.trim() || null,
           notes: formData.notes.trim() || null,
@@ -55,8 +59,14 @@ export default function VehicleForm({ vehicle, managers }: Props) {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? 'שגיאה'); return; }
-      router.push(`/vehicles/${data.id}`);
-      router.refresh();
+
+      if (isEdit && onSaved) {
+        setSaved(true);
+        onSaved(data as Vehicle);
+      } else {
+        router.push(`/vehicles/${data.id}`);
+        router.refresh();
+      }
     } catch {
       setError('שגיאת תקשורת — נסה שנית');
     } finally {
@@ -95,18 +105,32 @@ export default function VehicleForm({ vehicle, managers }: Props) {
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          מספר רכב <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          value={formData.vehicle_number}
-          onChange={(e) => set('vehicle_number', e.target.value)}
-          placeholder="123-45-678"
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
-          dir="ltr"
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            מספר רכב <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={formData.vehicle_number}
+            onChange={(e) => set('vehicle_number', e.target.value)}
+            placeholder="123-45-678"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+            dir="ltr"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            צבע <span className="text-gray-400 text-xs">(אופציונלי)</span>
+          </label>
+          <input
+            type="text"
+            value={formData.vehicle_color}
+            onChange={(e) => set('vehicle_color', e.target.value)}
+            placeholder="לבן, שחור, כסוף..."
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+          />
+        </div>
       </div>
 
       <div>
@@ -151,6 +175,9 @@ export default function VehicleForm({ vehicle, managers }: Props) {
         />
       </div>
 
+      {saved && (
+        <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm">נשמר בהצלחה</div>
+      )}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{error}</div>
       )}

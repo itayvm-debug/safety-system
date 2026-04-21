@@ -7,6 +7,7 @@ import { getVehicleStatus, getDocumentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import { formatDateSafe } from '@/lib/utils/date';
 import VehicleForm from './VehicleForm';
+import CameraCapture from '@/components/CameraCapture';
 
 interface Props {
   vehicle: Vehicle;
@@ -65,7 +66,14 @@ export default function VehicleDetail({ vehicle: initial, imageUrl: initialImage
           </button>
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-6">עריכת רכב</h2>
-        <VehicleForm vehicle={vehicle} managers={managers} />
+        <VehicleForm
+          vehicle={vehicle}
+          managers={managers}
+          onSaved={(updated) => {
+            setVehicle(updated);
+            setEditing(false);
+          }}
+        />
       </div>
     );
   }
@@ -90,6 +98,7 @@ export default function VehicleDetail({ vehicle: initial, imageUrl: initialImage
                 <p className="text-sm text-gray-500">
                   {vehicle.vehicle_type}
                   {vehicle.model && ` · ${vehicle.model}`}
+                  {vehicle.vehicle_color && ` · ${vehicle.vehicle_color}`}
                 </p>
                 {vehicle.assigned_manager && (
                   <p className="text-sm text-blue-600 mt-0.5">מנהל עבודה: {vehicle.assigned_manager.full_name}</p>
@@ -184,12 +193,14 @@ function VehicleImageUploader({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
+  async function uploadFile(file: File | Blob, filename?: string) {
     setUploading(true);
     try {
-      const fd = new FormData(); fd.append('file', file); fd.append('folder', 'vehicles');
+      const fd = new FormData();
+      fd.append('file', file, filename);
+      fd.append('folder', 'vehicles');
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
       const ud = await uploadRes.json();
       if (!uploadRes.ok) return;
@@ -205,29 +216,65 @@ function VehicleImageUploader({
     } finally { setUploading(false); }
   }
 
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    await uploadFile(file, file.name);
+  }
+
+  async function handleCapture(blob: Blob) {
+    setCameraOpen(false);
+    await uploadFile(blob, `vehicle_${Date.now()}.jpg`);
+  }
+
   return (
-    <div
-      className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer bg-gray-100 border border-gray-200 flex items-center justify-center"
-      onClick={() => fileInputRef.current?.click()}
-      title="לחץ להחלפת תמונה"
-    >
-      {uploading ? (
-        <span className="text-xs text-gray-400">מעלה...</span>
-      ) : imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={imageUrl} alt="תמונת רכב" className="w-full h-full object-cover" />
-      ) : (
-        <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h8l2-2zm0 0l2-5 3 1v4h-5z" />
-        </svg>
+    <>
+      <div
+        className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer bg-gray-100 border border-gray-200 flex items-center justify-center relative"
+        onClick={() => fileInputRef.current?.click()}
+        title="לחץ להעלאת תמונה מגלריה"
+      >
+        {uploading ? (
+          <span className="text-xs text-gray-400">מעלה...</span>
+        ) : imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl} alt="תמונת רכב" className="w-full h-full object-cover" />
+        ) : (
+          <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h8l2-2zm0 0l2-5 3 1v4h-5z" />
+          </svg>
+        )}
+
+        {/* כפתור מצלמה */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setCameraOpen(true); }}
+          disabled={uploading}
+          className="absolute -bottom-1 -left-1 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 disabled:opacity-50"
+          title="צלם תמונה"
+        >
+          <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </button>
+
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile} />
+      </div>
+
+      {cameraOpen && (
+        <CameraCapture
+          title="צילום רכב"
+          shape="object"
+          onCapture={handleCapture}
+          onClose={() => setCameraOpen(false)}
+        />
       )}
-      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile} />
-    </div>
+    </>
   );
 }
 
-// ── שורת מסמך רכב ───────────────────────────────────────────────
+// ── שורת מסמך רכב (עם עריכת תאריך תוקף) ───────────────────────
 function VehicleDocRow({
   id, label, fileUrl, expiryDate, apiPath, required, onUpdated,
 }: {
@@ -239,6 +286,9 @@ function VehicleDocRow({
   const [uploading, setUploading] = useState(false);
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState('');
+  const [editingExpiry, setEditingExpiry] = useState(false);
+  const [newExpiry, setNewExpiry] = useState(expiryDate ?? '');
+  const [savingExpiry, setSavingExpiry] = useState(false);
 
   const status = getDocumentStatus(fileUrl, expiryDate, required, true);
 
@@ -269,18 +319,61 @@ function VehicleDocRow({
     } finally { setOpening(false); }
   }
 
+  async function handleSaveExpiry() {
+    setSavingExpiry(true); setError('');
+    try {
+      const res = await fetch(`/api/${apiPath}/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expiry_date: newExpiry || null }),
+      });
+      const data = await res.json();
+      if (res.ok) { onUpdated(data); setEditingExpiry(false); }
+      else setError(data.error ?? 'שגיאה');
+    } catch { setError('שגיאה'); } finally { setSavingExpiry(false); }
+  }
+
   return (
     <div className="bg-gray-50 rounded-xl border border-gray-200 p-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-gray-900 text-sm">{label}</span>
           {!required && <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">אופציונלי</span>}
-          {expiryDate && formatDateSafe(expiryDate) && (
+          {expiryDate && formatDateSafe(expiryDate) && !editingExpiry && (
             <span className="text-xs text-gray-400">תוקף: {formatDateSafe(expiryDate)}</span>
           )}
         </div>
         <StatusBadge status={status} size="sm" />
       </div>
+
+      {/* עריכת תאריך תוקף */}
+      {editingExpiry ? (
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            type="date"
+            value={newExpiry}
+            onChange={(e) => setNewExpiry(e.target.value)}
+            className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            dir="ltr"
+            autoFocus
+          />
+          <button onClick={handleSaveExpiry} disabled={savingExpiry}
+            className="text-xs px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50">
+            {savingExpiry ? '...' : 'שמור'}
+          </button>
+          <button onClick={() => { setEditingExpiry(false); setNewExpiry(expiryDate ?? ''); }}
+            className="text-xs px-2 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
+            ביטול
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setEditingExpiry(true)}
+          className="text-xs text-gray-400 hover:text-orange-500 mb-2 block transition-colors"
+        >
+          {expiryDate ? `תאריך תוקף: ${formatDateSafe(expiryDate)} (עריכה)` : '+ הגדר תאריך תוקף'}
+        </button>
+      )}
+
       {error && <p className="text-xs text-red-600 mb-1">{error}</p>}
       <div className="flex items-center gap-2">
         {fileUrl ? (
