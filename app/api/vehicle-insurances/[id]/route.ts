@@ -8,20 +8,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const { id } = await params;
   const body = await request.json();
-
-  const allowed = ['license_type', 'file_url', 'expiry_date', 'vehicle_number'] as const;
+  const allowed = ['file_url', 'expiry_date'] as const;
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (key in body) updates[key] = body[key] ?? null;
   }
 
-  if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: 'אין שדות לעדכון' }, { status: 400 });
-  }
+  if (Object.keys(updates).length === 0) return NextResponse.json({ error: 'אין שדות לעדכון' }, { status: 400 });
 
   const supabase = createServiceClient();
   const { data, error } = await supabase
-    .from('manager_licenses')
+    .from('vehicle_insurances')
     .update(updates)
     .eq('id', id)
     .select()
@@ -37,7 +34,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
   const supabase = createServiceClient();
-  const { error } = await supabase.from('manager_licenses').delete().eq('id', id);
+  const { error } = await supabase.from('vehicle_insurances').delete().eq('id', id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

@@ -10,6 +10,7 @@ import ExportWizard from '@/components/export/ExportWizard';
 const NAV_LINKS = [
   { href: '/workers', label: 'עובדים', prefix: '/workers' },
   { href: '/site-managers', label: 'מנהלי עבודה', prefix: '/site-managers' },
+  { href: '/vehicles', label: 'רכבים', prefix: '/vehicles' },
   { href: '/heavy-equipment', label: 'כלי צמ"ה', prefix: '/heavy-equipment' },
   { href: '/lifting-equipment', label: 'ציוד הרמה', prefix: '/lifting-equipment' },
   { href: '/subcontractors', label: 'קבלני משנה', prefix: '/subcontractors' },
