@@ -113,7 +113,7 @@ export default function ManagerDocumentsCard({ workerId, licenses: initialLicens
               fileUrl={lic.file_url}
               expiryDate={lic.expiry_date}
               apiPath="manager-licenses"
-              required={false}
+              required={true}
               onDeleted={deleteLicense}
               onUpdated={(item) => updateLicense(item as ManagerLicense)}
             />
