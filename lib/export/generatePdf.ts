@@ -29,36 +29,48 @@ function buildHtmlShell(title: string, headers: string[], rows: string, count: n
   <meta charset="UTF-8" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; direction: rtl; background: white; color: #1e293b; padding: 24px; font-size: 11px; }
-    .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #ea580c; padding-bottom: 12px; margin-bottom: 16px; }
-    .logo { width: 52px; height: 52px; object-fit: contain; }
-    .company h1 { font-size: 17px; font-weight: 700; }
-    .company p { font-size: 11px; color: #64748b; }
-    .report-title { font-size: 15px; font-weight: 700; color: #ea580c; margin-bottom: 2px; }
-    .report-meta { font-size: 10px; color: #94a3b8; margin-bottom: 16px; }
-    table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    th { background: #f1f5f9; padding: 7px 5px; text-align: right; font-weight: 600; border: 1px solid #e2e8f0; color: #475569; }
-    td { padding: 6px 5px; border: 1px solid #e2e8f0; text-align: right; vertical-align: middle; }
+    body { font-family: Arial, sans-serif; direction: rtl; background: #f8fafc; color: #1e293b; font-size: 12px; }
+    .page { max-width: 1100px; margin: 0 auto; padding: 32px 40px; background: white; min-height: 100%; }
+    .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #ea580c; padding-bottom: 16px; margin-bottom: 24px; }
+    .logo { width: 56px; height: 56px; object-fit: contain; }
+    .company h1 { font-size: 18px; font-weight: 700; }
+    .company p { font-size: 11px; color: #64748b; margin-top: 2px; }
+    .report-title { font-size: 18px; font-weight: 700; color: #ea580c; margin-bottom: 4px; }
+    .report-meta { font-size: 11px; color: #94a3b8; }
+    .report-meta span { display: inline-block; margin-left: 16px; }
+    .table-wrap { border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th { background: #1e293b; color: #f8fafc; padding: 10px 12px; text-align: right; font-weight: 600; font-size: 11px; letter-spacing: 0.02em; }
+    td { padding: 9px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; vertical-align: middle; line-height: 1.4; }
+    tr:last-child td { border-bottom: none; }
     tr:nth-child(even) td { background: #f8fafc; }
-    .footer { margin-top: 14px; font-size: 9px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+    tr:nth-child(odd) td { background: white; }
+    .footer { margin-top: 20px; font-size: 10px; color: #94a3b8; text-align: center; padding-top: 12px; border-top: 1px solid #e2e8f0; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div>
-      <div class="report-title">${title}</div>
-      <div class="report-meta">תאריך הפקה: ${today} · סה"כ: ${count} רשומות</div>
+  <div class="page">
+    <div class="header">
+      <div>
+        <div class="report-title">${title}</div>
+        <div class="report-meta">
+          <span>תאריך הפקה: ${today}</span>
+          <span>סה"כ: ${count} רשומות</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="company" style="text-align:right"><h1>נתן ולדמן ובניו בע"מ</h1><p>ניהול בטיחות · SafeDoc</p></div>
+        <img src="/logo.png" class="logo" />
+      </div>
     </div>
-    <div style="text-align:center;display:flex;align-items:center;gap:10px">
-      <img src="/logo.png" class="logo" />
-      <div class="company"><h1>נתן ולדמן ובניו בע"מ</h1><p>ניהול בטיחות</p></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>${headerCells}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
     </div>
+    <div class="footer">SafeDoc · נתן ולדמן ובניו בע"מ · הופק ב-${today}</div>
   </div>
-  <table>
-    <thead><tr>${headerCells}</tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div class="footer">SafeDoc · נתן ולדמן ובניו בע"מ · הופק ב-${today}</div>
 </body>
 </html>`;
 }
