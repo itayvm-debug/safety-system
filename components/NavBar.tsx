@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { getClientRole } from '@/lib/auth/client';
 import ExportWizard from '@/components/export/ExportWizard';
+import AlertsBell from '@/components/alerts/AlertsBell';
 
 const NAV_LINKS = [
   { href: '/issues', label: 'דורש טיפול', prefix: '/issues' },
@@ -95,6 +96,9 @@ export default function NavBar() {
               יצוא
             </button>
           )}
+
+          {/* פעמון התראות — admin בלבד */}
+          {isAdmin && <AlertsBell />}
 
           {/* משוב */}
           <Link
