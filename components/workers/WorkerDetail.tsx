@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -13,6 +13,7 @@ import {
 } from '@/types';
 import { getWorkerIdentifierLabel, getWorkerIdentifierValue } from '@/lib/workers/identifier';
 import { getDocumentStatus, getWorkerStatus } from '@/lib/documents/status';
+import { buildWorkerIssues, Issue } from '@/lib/documents/issues';
 import StatusBadge from '@/components/StatusBadge';
 import SafetyBriefingCard from '@/components/workers/SafetyBriefingCard';
 import HeightBanCard from '@/components/workers/HeightBanCard';
@@ -26,6 +27,88 @@ import { he } from 'date-fns/locale';
 
 interface WorkerDetailProps {
   worker: WorkerWithDocuments;
+}
+
+// ─── Section accordion ─────────────────────────────────────────
+function Section({
+  title,
+  children,
+  defaultOpen = false,
+  issueCount = 0,
+  hint,
+  headerAction,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  issueCount?: number;
+  hint?: string;
+  headerAction?: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 text-right hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-gray-900">{title}</span>
+          {issueCount > 0 && (
+            <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium">
+              {issueCount}
+            </span>
+          )}
+          {hint && <span className="text-xs text-gray-400 font-normal">{hint}</span>}
+        </div>
+        <div className="flex items-center gap-3">
+          {headerAction && (
+            <div onClick={(e) => e.stopPropagation()}>{headerAction}</div>
+          )}
+          <svg
+            className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${open ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      {open && (
+        <div className="px-5 pb-5 pt-2 border-t border-gray-100">{children}</div>
+      )}
+    </div>
+  );
+}
+
+// ─── כרטיס סיכום בעיות ────────────────────────────────────────
+function WorkerSummaryBanner({ issues }: { issues: Issue[] }) {
+  if (issues.length === 0) return null;
+  const urgent = issues.filter((i) => i.status !== 'expiring_soon');
+  const expiring = issues.filter((i) => i.status === 'expiring_soon');
+
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+      <p className="text-sm font-semibold text-red-700 mb-2">דורש טיפול</p>
+      <ul className="space-y-1.5">
+        {urgent.map((i) => (
+          <li key={i.id} className="flex items-center gap-2 text-sm">
+            <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+            <span className="text-red-700">{i.problem}</span>
+          </li>
+        ))}
+        {expiring.map((i) => (
+          <li key={i.id} className="flex items-center gap-2 text-sm">
+            <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" />
+            <span className="text-orange-700">{i.problem} — עומד לפוג</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 export default function WorkerDetail({ worker }: WorkerDetailProps) {
@@ -42,7 +125,6 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   const [localAppointments, setLocalAppointments] = useState(worker.lifting_machine_appointments ?? []);
 
   const [pendingExpiry, setPendingExpiry] = useState<Map<string, string>>(new Map());
-  // state מקומי של מסמכים — מתעדכן מיד אחרי upload/delete ללא תלות ב-router.refresh()
   const [localDocs, setLocalDocs] = useState<Document[]>(worker.documents);
 
   const overallStatus = getWorkerStatus(worker);
@@ -54,6 +136,28 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   );
 
   const hasPending = pendingExpiry.size > 0;
+
+  // חישוב בעיות לפי state מקומי נוכחי
+  const workerWithLocalData = {
+    ...worker,
+    documents: localDocs,
+    lifting_machine_appointments: localAppointments,
+    is_crane_operator: isCraneOperator,
+    is_responsible_site_manager: isResponsibleManager,
+  } as WorkerWithDocuments;
+
+  const workerIssues = buildWorkerIssues(workerWithLocalData);
+
+  const docIssues = workerIssues.filter(
+    (i) => !i.id.match(/-(height|briefing|crane|proflicense|manlicense|vehlicense|vehins)/)
+  );
+  const briefingIssues = workerIssues.filter((i) => i.id.includes('-briefing'));
+  const heightIssues = workerIssues.filter((i) => i.id.includes('-height'));
+  const licenseIssues = workerIssues.filter((i) => i.id.includes('-proflicense'));
+  const craneIssues = workerIssues.filter((i) => i.id.includes('-crane'));
+  const managerIssues = workerIssues.filter((i) =>
+    i.id.match(/-(manlicense|vehlicense|vehins)/)
+  );
 
   function handleExpiryChange(docType: string, value: string) {
     const savedValue = docMap.get(docType)?.expiry_date ?? '';
@@ -162,8 +266,8 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   }
 
   return (
-    <div className="space-y-6 pb-32">
-      {/* כרטיס פרטי עובד */}
+    <div className="space-y-3 pb-32">
+      {/* כרטיס פרטים כלליים */}
       <div className={`bg-white rounded-xl border p-6 ${!worker.is_active ? 'border-gray-300 opacity-80' : 'border-gray-200'}`}>
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-4">
@@ -195,16 +299,13 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
           </div>
         )}
 
-        <div className="mt-4">
+        <div className="mt-4 space-y-2">
           <SubcontractorDisplay
             worker={worker}
             managerWorkerId={localManagerId}
             onChanged={() => router.refresh()}
           />
-        </div>
-
-        {!isResponsibleManager && (
-          <div className="mt-3">
+          {!isResponsibleManager && (
             <ManagerSelector
               worker={worker}
               onChanged={(newManagerId) => {
@@ -212,39 +313,20 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
                 router.refresh();
               }}
             />
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
-          <Link
-            href={`/workers/${worker.id}/edit`}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            עריכת פרטים
-          </Link>
-          <div className="flex items-center gap-2 px-1">
-            <ToggleSwitch
-              checked={!!worker.is_active}
-              onChange={handleToggleActive}
-              disabled={togglingActive}
-            />
-            <span className="text-sm text-gray-600">
-              {togglingActive ? '...' : worker.is_active ? 'סמן כלא פעיל' : 'סמן כפעיל'}
-            </span>
-          </div>
-          <button
-            onClick={handleDeleteWorker}
-            disabled={deletingWorker}
-            className="px-4 py-2 text-sm border border-red-200 rounded-lg text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-          >
-            {deletingWorker ? 'מוחק...' : 'מחיקת עובד'}
-          </button>
+          )}
         </div>
       </div>
 
+      {/* באנר סיכום בעיות */}
+      <WorkerSummaryBanner issues={workerIssues} />
+
       {/* מסמכים */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">מסמכים</h2>
+      <Section
+        title="מסמכים"
+        defaultOpen={docIssues.length > 0}
+        issueCount={docIssues.length}
+        hint={hasPending ? `· ${pendingExpiry.size} ממתין לשמירה` : undefined}
+      >
         <div className="space-y-3">
           {ALL_DOCUMENT_TYPES.map((docType) => {
             if (docType === 'work_visa' && !worker.is_foreign_worker) return null;
@@ -277,30 +359,51 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
             );
           })}
         </div>
-      </div>
+      </Section>
 
       {/* תדריך בטיחות */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">תדריך בטיחות</h2>
+      <Section
+        title="תדריך בטיחות"
+        defaultOpen={briefingIssues.length > 0}
+        issueCount={briefingIssues.length}
+      >
         <SafetyBriefingCard
           worker={worker}
           briefings={worker.safety_briefings ?? []}
         />
-      </div>
+      </Section>
 
-      {/* איסור עבודה בגובה */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">איסור עבודה בגובה</h2>
+      {/* עבודה בגובה */}
+      <Section
+        title="עבודה בגובה"
+        defaultOpen={heightIssues.length > 0}
+        issueCount={heightIssues.length}
+        hint="מספיק שאחד מהם תקין"
+      >
         <HeightBanCard
           worker={worker}
           restrictions={worker.height_restrictions ?? []}
         />
-      </div>
+      </Section>
+
+      {/* רישיונות מקצועיים */}
+      <Section
+        title="רישיונות מקצועיים"
+        defaultOpen={licenseIssues.length > 0}
+        issueCount={licenseIssues.length}
+      >
+        <ProfessionalLicensesCard
+          workerId={worker.id}
+          licenses={worker.professional_licenses ?? []}
+        />
+      </Section>
 
       {/* מפעיל מכונת הרמה */}
-      <div>
-        <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-lg font-semibold text-gray-900">מפעיל מכונת הרמה</h2>
+      <Section
+        title="מפעיל מכונת הרמה"
+        defaultOpen={isCraneOperator && craneIssues.length > 0}
+        issueCount={isCraneOperator ? craneIssues.length : 0}
+        headerAction={
           <div className="flex items-center gap-2">
             <ToggleSwitch
               checked={isCraneOperator}
@@ -311,21 +414,26 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
               {togglingCraneOp ? '...' : isCraneOperator ? 'כן' : 'לא'}
             </span>
           </div>
-        </div>
-        {isCraneOperator && (
+        }
+      >
+        {isCraneOperator ? (
           <LiftingMachineAppointmentCard
             worker={worker}
             appointments={localAppointments}
             onAppointmentAdded={(appt) => setLocalAppointments((prev) => [appt, ...prev])}
             onAppointmentDeleted={(id) => setLocalAppointments((prev) => prev.filter((a) => a.id !== id))}
           />
+        ) : (
+          <p className="text-sm text-gray-400">העובד אינו מוגדר כמפעיל מכונת הרמה.</p>
         )}
-      </div>
+      </Section>
 
       {/* מנהל עבודה */}
-      <div>
-        <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-lg font-semibold text-gray-900">מנהל עבודה</h2>
+      <Section
+        title="מנהל עבודה"
+        defaultOpen={isResponsibleManager && managerIssues.length > 0}
+        issueCount={isResponsibleManager ? managerIssues.length : 0}
+        headerAction={
           <div className="flex items-center gap-2">
             <ToggleSwitch
               checked={isResponsibleManager}
@@ -336,32 +444,58 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
               {togglingManager ? '...' : isResponsibleManager ? 'כן' : 'לא'}
             </span>
           </div>
-        </div>
-        {isResponsibleManager && (
+        }
+      >
+        {isResponsibleManager ? (
           <div className="space-y-4">
             <ManagerDocumentsCard
               workerId={worker.id}
               licenses={worker.manager_licenses ?? []}
             />
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">רכב עבודה <span className="font-normal text-gray-400">(אופציונלי)</span></h3>
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-sm font-semibold text-gray-700">רכב עבודה</h3>
+                <span className="text-xs text-gray-400">נדרש רק אם מנהל העבודה נוהג ברכב חברה</span>
+              </div>
               <WorkerVehicleCard
                 workerId={worker.id}
                 initialVehicles={worker.vehicles ?? []}
               />
             </div>
           </div>
+        ) : (
+          <p className="text-sm text-gray-400">העובד אינו מוגדר כמנהל עבודה אחראי.</p>
         )}
-      </div>
+      </Section>
 
-      {/* רישיונות מקצועיים */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">רישיונות מקצועיים</h2>
-        <ProfessionalLicensesCard
-          workerId={worker.id}
-          licenses={worker.professional_licenses ?? []}
-        />
-      </div>
+      {/* פעולות */}
+      <Section title="פעולות" defaultOpen={false}>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Link
+            href={`/workers/${worker.id}/edit`}
+            className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            עריכת פרטים
+          </Link>
+          <div className="flex items-center gap-2 px-1">
+            <ToggleSwitch
+              checked={!!worker.is_active}
+              onChange={handleToggleActive}
+              disabled={togglingActive}
+            />
+            <span className="text-sm text-gray-600">
+              {togglingActive ? '...' : worker.is_active ? 'סמן כלא פעיל' : 'סמן כפעיל'}
+            </span>
+          </div>
+          <button
+            onClick={handleDeleteWorker}
+            disabled={deletingWorker}
+            className="px-4 py-2 text-sm border border-red-200 rounded-lg text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+          >
+            {deletingWorker ? 'מוחק...' : 'מחיקת עובד'}
+          </button>
+        </div>
+      </Section>
 
       {/* כפתור שמירה גלובלי */}
       {(hasPending || saveError) && (
@@ -419,7 +553,7 @@ function SubcontractorDisplay({
       setManagerName('');
       return;
     }
-    setManagerSub(undefined); // reset למצב טעינה
+    setManagerSub(undefined);
     fetch(`/api/workers/${managerWorkerId}`)
       .then((r) => r.json())
       .then((data) => {
@@ -429,7 +563,6 @@ function SubcontractorDisplay({
       .catch(() => setManagerSub(null));
   }, [managerWorkerId]);
 
-  // עדיין טוען — לא מציגים כלום
   if (managerWorkerId && managerSub === undefined) {
     return (
       <div className="flex items-center gap-2">
@@ -439,7 +572,6 @@ function SubcontractorDisplay({
     );
   }
 
-  // מנהל עם קבלן → שדה נעול
   if (managerSub) {
     return (
       <div className="flex items-center gap-2 flex-wrap">
@@ -452,7 +584,6 @@ function SubcontractorDisplay({
     );
   }
 
-  // ללא נעילה → שדה עריכה רגיל
   return <SubcontractorSelector worker={worker} onChanged={onChanged} />;
 }
 
@@ -564,14 +695,12 @@ function ManagerSelector({
     setSelectedId(newId);
     setSaving(true);
     try {
-      // שיוך מנהל עבודה
       await fetch(`/api/workers/${worker.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ responsible_manager_id: newId || null }),
       });
 
-      // אם למנהל החדש יש קבלן — מנקים שיוך ישיר של העובד למניעת סתירה
       if (newId) {
         const selectedManager = managers.find((m) => m.id === newId);
         if (selectedManager?.subcontractor_id) {
@@ -645,7 +774,6 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
       .catch(() => {});
   }, [worker.photo_url]);
 
-  // ציור overlay על canvas מעל הוידאו
   const drawOverlay = useCallback(() => {
     const canvas = overlayCanvasRef.current;
     const video = videoRef.current;
@@ -664,25 +792,21 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // רקע כהה
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // חתוך את האליפסה מהרקע
     ctx.globalCompositeOperation = 'destination-out';
     ctx.beginPath();
     ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
 
-    // מסגרת לבנה
     ctx.strokeStyle = 'rgba(255,255,255,0.9)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     ctx.stroke();
 
-    // טקסט הדרכה
     ctx.fillStyle = 'white';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
@@ -729,7 +853,6 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
     const video = videoRef.current;
     if (!video) return;
 
-    // חיתוך ריבועי מרכזי (1:1)
     const size = Math.min(video.videoWidth, video.videoHeight);
     const sx = (video.videoWidth - size) / 2;
     const sy = (video.videoHeight - size) / 2;
@@ -802,7 +925,6 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
           <span className="text-2xl font-bold text-orange-700">{worker.full_name.charAt(0)}</span>
         )}
 
-        {/* מצלמה */}
         <button
           type="button"
           onClick={openCamera}
@@ -820,7 +942,6 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
           )}
         </button>
 
-        {/* קובץ מגלריה */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
@@ -835,7 +956,6 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
       </div>
 
-      {/* מסך מצלמה */}
       {cameraOpen && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 bg-black">
@@ -848,7 +968,6 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
 
           <div className="flex-1 relative overflow-hidden">
             {capturedPreview ? (
-              // תצוגה מקדימה לאחר צילום
               // eslint-disable-next-line @next/next/no-img-element
               <img src={capturedPreview} alt="preview" className="absolute inset-0 w-full h-full object-contain" />
             ) : (
@@ -900,7 +1019,6 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
         </div>
       )}
 
-      {/* lightbox */}
       {lightboxOpen && photoSrc && (
         <div
           className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4"
@@ -1077,58 +1195,60 @@ function DocumentCard({
 
       {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
 
-      {/* פעולות קובץ */}
+      {/* פעולות קובץ — סדר: צפה → העלה/החלף → מחק → לא נדרש */}
       <div className="flex items-center gap-2 flex-wrap">
-        {hasFile ? (
-          <>
-            <button onClick={handleViewDocument} disabled={opening}
-              className="flex items-center gap-1.5 text-sm text-orange-500 hover:text-orange-600 disabled:opacity-50">
-              {opening ? <span className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" /> :
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>}
-              {opening ? 'פותח...' : 'צפה'}
-            </button>
-            <button onClick={handleDeleteDocument} disabled={deleting}
-              className="flex items-center gap-1 text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
-              {deleting ? <span className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" /> :
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>}
-              {deleting ? 'מוחק...' : 'מחק'}
-            </button>
-          </>
-        ) : (
-          <span className="text-sm text-gray-400">לא הועלה קובץ</span>
+        {hasFile && (
+          <button onClick={handleViewDocument} disabled={opening}
+            className="flex items-center gap-1.5 text-sm text-orange-500 hover:text-orange-600 disabled:opacity-50">
+            {opening ? <span className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" /> :
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>}
+            {opening ? 'פותח...' : 'צפה'}
+          </button>
         )}
+
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50">
+          {uploading ? <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" /> :
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>}
+          {uploading ? 'מעלה...' : hasFile ? 'החלף' : 'העלה'}
+        </button>
+
+        {hasFile && (
+          <button onClick={handleDeleteDocument} disabled={deleting}
+            className="flex items-center gap-1 text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
+            {deleting ? <span className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" /> :
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>}
+            {deleting ? 'מוחק...' : 'מחק'}
+          </button>
+        )}
+
         {uploadSuccess && <span className="text-xs text-green-600">✓ הועלה</span>}
 
-        <div className="flex items-center gap-2 mr-auto">
-          {/* toggle לא נדרש — לא מוצג עבור תעודת זהות שהיא תמיד חובה */}
-          {docType !== 'id_document' && (
-            <button
-              onClick={handleToggleRequired}
-              disabled={togglingRequired}
-              className={`text-xs px-2 py-1 rounded-full border transition-colors disabled:opacity-50 ${
-                !isRequired
-                  ? 'bg-gray-100 text-gray-500 border-gray-200'
-                  : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              {togglingRequired ? '...' : isRequired ? 'סמן כ"לא נדרש"' : '✓ לא נדרש'}
-            </button>
-          )}
+        {!hasFile && !uploading && (
+          <span className="text-sm text-gray-400">לא הועלה קובץ</span>
+        )}
 
-          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50">
-            {uploading ? <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" /> :
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>}
-            {uploading ? 'מעלה...' : hasFile ? 'החלף' : 'העלה'}
+        {docType !== 'id_document' && (
+          <button
+            onClick={handleToggleRequired}
+            disabled={togglingRequired}
+            className={`text-xs px-2 py-1 rounded-full border transition-colors disabled:opacity-50 mr-auto ${
+              !isRequired
+                ? 'bg-gray-100 text-gray-500 border-gray-200'
+                : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            {togglingRequired ? '...' : isRequired ? 'סמן כ"לא נדרש"' : '✓ לא נדרש'}
           </button>
-        </div>
+        )}
+
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleFileUpload} />
       </div>
     </div>
