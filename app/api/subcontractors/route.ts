@@ -9,7 +9,7 @@ export async function GET() {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('subcontractors')
-    .select('*')
+    .select('*, responsible_worker:workers!subcontractors_responsible_worker_id_fkey(id, full_name)')
     .order('name');
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

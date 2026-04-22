@@ -10,7 +10,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('subcontractors')
-    .select('*')
+    .select('*, responsible_worker:workers!subcontractors_responsible_worker_id_fkey(id, full_name)')
     .eq('id', id)
     .single();
 
@@ -42,7 +42,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .from('subcontractors')
     .update(updates)
     .eq('id', id)
-    .select()
+    .select('*, responsible_worker:workers!subcontractors_responsible_worker_id_fkey(id, full_name)')
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

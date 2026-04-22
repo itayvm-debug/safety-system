@@ -29,10 +29,9 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
     imageUrl = signed?.signedUrl ?? null;
   }
 
-  const { data: managers } = await supabase
+  const { data: workers } = await supabase
     .from('workers')
     .select('id, full_name')
-    .eq('is_responsible_site_manager', true)
     .eq('is_active', true)
     .order('full_name');
 
@@ -43,7 +42,7 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
           ← רשימת רכבים
         </Link>
       </div>
-      <VehicleDetail vehicle={vehicle} imageUrl={imageUrl} managers={managers ?? []} />
+      <VehicleDetail vehicle={vehicle} imageUrl={imageUrl} workers={workers ?? []} />
     </div>
   );
 }

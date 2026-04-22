@@ -12,13 +12,13 @@ import CameraCapture from '@/components/CameraCapture';
 interface Props {
   vehicle: Vehicle;
   imageUrl: string | null;
-  managers: { id: string; full_name: string }[];
+  workers: { id: string; full_name: string }[];
 }
 
 const INSURANCE_TYPES = ['ביטוח חובה', 'ביטוח מקיף', 'ביטוח צד ג'] as const;
 type InsuranceType = typeof INSURANCE_TYPES[number];
 
-export default function VehicleDetail({ vehicle: initial, imageUrl: initialImageUrl, managers }: Props) {
+export default function VehicleDetail({ vehicle: initial, imageUrl: initialImageUrl, workers }: Props) {
   const router = useRouter();
   const [vehicle, setVehicle] = useState<Vehicle>(initial);
   const [imageUrl, setImageUrl] = useState<string | null>(initialImageUrl);
@@ -68,7 +68,7 @@ export default function VehicleDetail({ vehicle: initial, imageUrl: initialImage
         <h2 className="text-xl font-bold text-gray-900 mb-6">עריכת רכב</h2>
         <VehicleForm
           vehicle={vehicle}
-          managers={managers}
+          workers={workers}
           onSaved={(updated) => {
             setVehicle(updated);
             setEditing(false);
@@ -101,7 +101,7 @@ export default function VehicleDetail({ vehicle: initial, imageUrl: initialImage
                   {vehicle.vehicle_color && ` · ${vehicle.vehicle_color}`}
                 </p>
                 {vehicle.assigned_manager && (
-                  <p className="text-sm text-blue-600 mt-0.5">מנהל עבודה: {vehicle.assigned_manager.full_name}</p>
+                  <p className="text-sm text-blue-600 mt-0.5">עובד משויך: {vehicle.assigned_manager.full_name}</p>
                 )}
                 {vehicle.project_name && (
                   <p className="text-sm text-gray-400 mt-0.5">פרויקט: {vehicle.project_name}</p>
