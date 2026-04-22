@@ -114,8 +114,6 @@ function WorkerSummaryBanner({ issues }: { issues: Issue[] }) {
 export default function WorkerDetail({ worker }: WorkerDetailProps) {
   const router = useRouter();
   const [deletingWorker, setDeletingWorker] = useState(false);
-  const [savingAll, setSavingAll] = useState(false);
-  const [saveError, setSaveError] = useState('');
   const [togglingActive, setTogglingActive] = useState(false);
   const [togglingCraneOp, setTogglingCraneOp] = useState(false);
   const [togglingManager, setTogglingManager] = useState(false);
@@ -123,8 +121,6 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   const [isResponsibleManager, setIsResponsibleManager] = useState(!!worker.is_responsible_site_manager);
   const [localManagerId, setLocalManagerId] = useState<string | null>(worker.responsible_manager_id ?? null);
   const [localAppointments, setLocalAppointments] = useState(worker.lifting_machine_appointments ?? []);
-
-  const [pendingExpiry, setPendingExpiry] = useState<Map<string, string>>(new Map());
   const [localDocs, setLocalDocs] = useState<Document[]>(worker.documents);
 
   const overallStatus = getWorkerStatus(worker);
@@ -134,8 +130,6 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
       .filter((d) => d.doc_type !== 'optional_license')
       .map((d) => [d.doc_type, d])
   );
-
-  const hasPending = pendingExpiry.size > 0;
 
   // חישוב בעיות לפי state מקומי נוכחי
   const workerWithLocalData = {
@@ -159,54 +153,16 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
     i.id.match(/-(manlicense|vehlicense|vehins)/)
   );
 
-  function handleExpiryChange(docType: string, value: string) {
-    const savedValue = docMap.get(docType)?.expiry_date ?? '';
-    setPendingExpiry((prev) => {
-      const next = new Map(prev);
-      if (value === savedValue) {
-        next.delete(docType);
-      } else {
-        next.set(docType, value);
-      }
-      return next;
+  function handleDocUpdated(newDoc: Document) {
+    setLocalDocs((prev) => {
+      const idx = prev.findIndex((d) => d.doc_type === newDoc.doc_type && d.doc_type !== 'optional_license');
+      if (idx >= 0) { const next = [...prev]; next[idx] = newDoc; return next; }
+      return [...prev, newDoc];
     });
   }
 
-  async function handleSaveAll() {
-    if (!hasPending) return;
-    setSavingAll(true);
-    setSaveError('');
-
-    try {
-      const promises = Array.from(pendingExpiry.entries()).map(([docType, expiry]) => {
-        const doc = docMap.get(docType);
-        return fetch('/api/documents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            worker_id: worker.id,
-            doc_type: docType,
-            file_url: doc?.file_url ?? null,
-            expiry_date: expiry || null,
-            is_required: doc?.is_required !== false,
-          }),
-        });
-      });
-
-      const results = await Promise.all(promises);
-      const failed = results.filter((r) => !r.ok);
-
-      if (failed.length > 0) {
-        setSaveError('חלק מהשמירות נכשלו — נסה שוב');
-        return;
-      }
-
-      router.push('/workers');
-    } catch {
-      setSaveError('שגיאת תקשורת');
-    } finally {
-      setSavingAll(false);
-    }
+  function handleDocDeleted(docType: string) {
+    setLocalDocs((prev) => prev.filter((d) => d.doc_type !== docType));
   }
 
   async function handleDeleteWorker() {
@@ -266,7 +222,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   }
 
   return (
-    <div className="space-y-3 pb-32">
+    <div className="space-y-3 pb-10">
       {/* כרטיס פרטים כלליים */}
       <div className={`bg-white rounded-xl border p-6 ${!worker.is_active ? 'border-gray-300 opacity-80' : 'border-gray-200'}`}>
         <div className="flex items-start justify-between mb-4">
@@ -320,21 +276,17 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
       {/* באנר סיכום בעיות */}
       <WorkerSummaryBanner issues={workerIssues} />
 
-      {/* מסמכים */}
+      {/* מסמכים — height_permit מופיע בסקשן "עבודה בגובה" בנפרד */}
       <Section
         title="מסמכים"
         defaultOpen={docIssues.length > 0}
         issueCount={docIssues.length}
-        hint={hasPending ? `· ${pendingExpiry.size} ממתין לשמירה` : undefined}
       >
         <div className="space-y-3">
           {ALL_DOCUMENT_TYPES.map((docType) => {
+            if (docType === 'height_permit') return null;
             if (docType === 'work_visa' && !worker.is_foreign_worker) return null;
             const doc = docMap.get(docType);
-            const localExpiry = pendingExpiry.has(docType)
-              ? pendingExpiry.get(docType)!
-              : (doc?.expiry_date ?? '');
-            const isPending = pendingExpiry.has(docType);
 
             return (
               <DocumentCard
@@ -342,19 +294,8 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
                 workerId={worker.id}
                 docType={docType}
                 document={doc}
-                localExpiry={localExpiry}
-                isPending={isPending}
-                onExpiryChange={(val) => handleExpiryChange(docType, val)}
-                onFileUploaded={(newDoc: Document) => {
-                  setLocalDocs((prev) => {
-                    const idx = prev.findIndex((d) => d.doc_type === newDoc.doc_type && d.doc_type !== 'optional_license');
-                    if (idx >= 0) { const next = [...prev]; next[idx] = newDoc; return next; }
-                    return [...prev, newDoc];
-                  });
-                }}
-                onDeleted={(docType: string) => {
-                  setLocalDocs((prev) => prev.filter((d) => d.doc_type !== docType));
-                }}
+                onFileUploaded={handleDocUpdated}
+                onDeleted={handleDocDeleted}
               />
             );
           })}
@@ -373,17 +314,32 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
         />
       </Section>
 
-      {/* עבודה בגובה */}
+      {/* עבודה בגובה — אישור + איסור באותו סקשן */}
       <Section
         title="עבודה בגובה"
         defaultOpen={heightIssues.length > 0}
         issueCount={heightIssues.length}
         hint="מספיק שאחד מהם תקין"
       >
-        <HeightBanCard
-          worker={worker}
-          restrictions={worker.height_restrictions ?? []}
-        />
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">אישור עבודה בגובה</h3>
+            <DocumentCard
+              workerId={worker.id}
+              docType="height_permit"
+              document={docMap.get('height_permit')}
+              onFileUploaded={handleDocUpdated}
+              onDeleted={handleDocDeleted}
+            />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">איסור עבודה בגובה</h3>
+            <HeightBanCard
+              worker={worker}
+              restrictions={worker.height_restrictions ?? []}
+            />
+          </div>
+        </div>
       </Section>
 
       {/* רישיונות מקצועיים */}
@@ -496,40 +452,6 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
           </button>
         </div>
       </Section>
-
-      {/* כפתור שמירה גלובלי */}
-      {(hasPending || saveError) && (
-        <div className="fixed bottom-0 inset-x-0 z-20 bg-white border-t border-gray-200 shadow-lg px-4 py-3">
-          <div className="max-w-2xl mx-auto flex items-center gap-3">
-            {saveError ? (
-              <p className="text-sm text-red-600">{saveError}</p>
-            ) : (
-              <p className="text-sm text-gray-500">
-                {pendingExpiry.size} שינוי{pendingExpiry.size !== 1 ? 'ים' : ''} ממתין{pendingExpiry.size !== 1 ? 'ים' : ''} לשמירה
-              </p>
-            )}
-            <div className="flex gap-2 mr-auto">
-              {hasPending && (
-                <>
-                  <button
-                    onClick={() => { setPendingExpiry(new Map()); setSaveError(''); }}
-                    className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 text-gray-600"
-                  >
-                    בטל שינויים
-                  </button>
-                  <button
-                    onClick={handleSaveAll}
-                    disabled={savingAll}
-                    className="px-6 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
-                  >
-                    {savingAll ? 'שומר...' : 'שמור שינויים'}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -791,22 +713,18 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
     const ry = rx * 1.28;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     ctx.globalCompositeOperation = 'destination-out';
     ctx.beginPath();
     ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
-
     ctx.strokeStyle = 'rgba(255,255,255,0.9)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     ctx.stroke();
-
     ctx.fillStyle = 'white';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
@@ -818,7 +736,6 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
     setCapturedBlob(null);
     setCapturedPreview(null);
     setCameraOpen(true);
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } },
@@ -852,17 +769,14 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
   function capturePhoto() {
     const video = videoRef.current;
     if (!video) return;
-
     const size = Math.min(video.videoWidth, video.videoHeight);
     const sx = (video.videoWidth - size) / 2;
     const sy = (video.videoHeight - size) / 2;
-
     const canvas = document.createElement('canvas');
     canvas.width = 640;
     canvas.height = 640;
     const ctx = canvas.getContext('2d')!;
     ctx.drawImage(video, sx, sy, size, size, 0, 0, 640, 640);
-
     canvas.toBlob((blob) => {
       if (!blob) return;
       setCapturedBlob(blob);
@@ -915,40 +829,20 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
       <div className="relative w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
         {photoSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={photoSrc}
-            alt={worker.full_name}
-            className="w-16 h-16 rounded-full object-cover cursor-pointer"
-            onClick={() => setLightboxOpen(true)}
-          />
+          <img src={photoSrc} alt={worker.full_name} className="w-16 h-16 rounded-full object-cover cursor-pointer" onClick={() => setLightboxOpen(true)} />
         ) : (
           <span className="text-2xl font-bold text-orange-700">{worker.full_name.charAt(0)}</span>
         )}
-
-        <button
-          type="button"
-          onClick={openCamera}
-          disabled={uploading}
-          className="absolute -bottom-1 -left-1 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 disabled:opacity-50"
-          title="צלם תמונה"
-        >
-          {uploading ? (
-            <span className="w-3 h-3 border border-orange-500 border-t-transparent rounded-full animate-spin" />
-          ) : (
+        <button type="button" onClick={openCamera} disabled={uploading}
+          className="absolute -bottom-1 -left-1 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 disabled:opacity-50" title="צלם תמונה">
+          {uploading ? <span className="w-3 h-3 border border-orange-500 border-t-transparent rounded-full animate-spin" /> :
             <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          )}
+            </svg>}
         </button>
-
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          className="absolute -top-1 -left-1 w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 disabled:opacity-50"
-          title="העלה מהגלריה"
-        >
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+          className="absolute -top-1 -left-1 w-5 h-5 bg-gray-100 border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 disabled:opacity-50" title="העלה מהגלריה">
           <svg className="w-2.5 h-2.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
@@ -959,107 +853,57 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
       {cameraOpen && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 bg-black">
-            <button onClick={closeCamera} className="text-white text-sm px-3 py-1.5 rounded-lg border border-white/30 hover:bg-white/10">
-              ביטול
-            </button>
+            <button onClick={closeCamera} className="text-white text-sm px-3 py-1.5 rounded-lg border border-white/30 hover:bg-white/10">ביטול</button>
             <span className="text-white font-medium text-sm">צילום עובד</span>
             <div className="w-16" />
           </div>
-
           <div className="flex-1 relative overflow-hidden">
             {capturedPreview ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={capturedPreview} alt="preview" className="absolute inset-0 w-full h-full object-contain" />
             ) : (
               <>
-                <video
-                  ref={videoRef}
-                  playsInline
-                  muted
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={{ transform: 'scaleX(-1)' }}
-                />
-                <canvas
-                  ref={overlayCanvasRef}
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                />
+                <video ref={videoRef} playsInline muted className="absolute inset-0 w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+                <canvas ref={overlayCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
               </>
             )}
           </div>
-
-          {cameraError && (
-            <div className="px-4 py-2 bg-red-900/80 text-red-200 text-sm text-center">{cameraError}</div>
-          )}
-
+          {cameraError && <div className="px-4 py-2 bg-red-900/80 text-red-200 text-sm text-center">{cameraError}</div>}
           <div className="flex items-center justify-center gap-6 px-4 py-6 bg-black">
             {capturedPreview ? (
               <>
-                <button
-                  onClick={() => { setCapturedBlob(null); setCapturedPreview(null); }}
-                  className="px-5 py-2.5 rounded-full border border-white/40 text-white text-sm hover:bg-white/10"
-                >
-                  צלם מחדש
-                </button>
-                <button
-                  onClick={uploadCapturedPhoto}
-                  disabled={uploading}
-                  className="px-7 py-2.5 rounded-full bg-orange-500 text-white font-medium text-sm hover:bg-orange-600 disabled:opacity-50"
-                >
-                  {uploading ? 'שומר...' : 'שמור תמונה'}
-                </button>
+                <button onClick={() => { setCapturedBlob(null); setCapturedPreview(null); }} className="px-5 py-2.5 rounded-full border border-white/40 text-white text-sm hover:bg-white/10">צלם מחדש</button>
+                <button onClick={uploadCapturedPhoto} disabled={uploading} className="px-7 py-2.5 rounded-full bg-orange-500 text-white font-medium text-sm hover:bg-orange-600 disabled:opacity-50">{uploading ? 'שומר...' : 'שמור תמונה'}</button>
               </>
             ) : (
-              <button
-                onClick={capturePhoto}
-                className="w-16 h-16 rounded-full bg-white border-4 border-orange-400 hover:bg-orange-50 transition-colors shadow-lg"
-                aria-label="צלם"
-              />
+              <button onClick={capturePhoto} className="w-16 h-16 rounded-full bg-white border-4 border-orange-400 hover:bg-orange-50 transition-colors shadow-lg" aria-label="צלם" />
             )}
           </div>
         </div>
       )}
 
       {lightboxOpen && photoSrc && (
-        <div
-          className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4"
-          onClick={() => setLightboxOpen(false)}
-        >
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4" onClick={() => setLightboxOpen(false)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={photoSrc}
-            alt={worker.full_name}
-            className="max-w-full max-h-full rounded-xl shadow-2xl object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button
-            className="absolute top-4 left-4 text-white bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70"
-            onClick={() => setLightboxOpen(false)}
-          >
-            ✕
-          </button>
+          <img src={photoSrc} alt={worker.full_name} className="max-w-full max-h-full rounded-xl shadow-2xl object-contain" onClick={(e) => e.stopPropagation()} />
+          <button className="absolute top-4 left-4 text-white bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70" onClick={() => setLightboxOpen(false)}>✕</button>
         </div>
       )}
     </>
   );
 }
 
-// ─── כרטיס מסמך ───────────────────────────────────────────────
+// ─── כרטיס מסמך — תאריך נשמר אוטומטית ב-blur ─────────────────
 function DocumentCard({
   workerId,
   docType,
   document,
-  localExpiry,
-  isPending,
-  onExpiryChange,
   onFileUploaded,
   onDeleted,
 }: {
   workerId: string;
   docType: DocumentType;
   document: Document | undefined;
-  localExpiry: string;
-  isPending: boolean;
-  onExpiryChange: (val: string) => void;
   onFileUploaded: (doc: Document) => void;
   onDeleted: (docType: string) => void;
 }) {
@@ -1071,6 +915,16 @@ function DocumentCard({
   const [togglingRequired, setTogglingRequired] = useState(false);
   const [error, setError] = useState('');
 
+  // תאריך תוקף — נשמר אוטומטית כשמשתמש עוזב את השדה
+  const [localExpiry, setLocalExpiry] = useState(document?.expiry_date ?? '');
+  const [savingDate, setSavingDate] = useState(false);
+  const [dateError, setDateError] = useState('');
+
+  // סנכרון כאשר document.expiry_date מתעדכן מבחוץ (אחרי שמירה)
+  useEffect(() => {
+    setLocalExpiry(document?.expiry_date ?? '');
+  }, [document?.expiry_date]);
+
   const isRequired = document?.is_required !== false;
   const statusFileUrl = document?.file_url ?? null;
   const statusExpiry = docType === 'id_document' ? null : localExpiry || null;
@@ -1079,17 +933,42 @@ function DocumentCard({
   const hasFile = !!document?.file_url;
   const showExpiry = docType !== 'id_document';
 
+  async function handleDateBlur() {
+    const original = document?.expiry_date ?? '';
+    if (localExpiry === original) return;
+    setSavingDate(true);
+    setDateError('');
+    try {
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          worker_id: workerId,
+          doc_type: docType,
+          file_url: document?.file_url ?? null,
+          expiry_date: localExpiry || null,
+          is_required: isRequired,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setDateError(data.error ?? 'שגיאה בשמירה'); return; }
+      onFileUploaded(data);
+    } catch {
+      setDateError('שגיאה בשמירה');
+    } finally {
+      setSavingDate(false);
+    }
+  }
+
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
     setUploading(true); setError(''); setUploadSuccess(false);
     try {
       const formData = new FormData();
       formData.append('file', file); formData.append('folder', 'documents');
-      console.log('[upload:doc] starting', file.name, file.size, file.type);
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-      console.log('[upload:doc] status:', uploadRes.status, uploadRes.ok);
-      const uploadData = await uploadRes.json().catch(e => { console.error('[upload:doc] json parse error:', e, 'content-type:', uploadRes.headers.get('content-type')); return {}; });
-      if (!uploadRes.ok) { console.error('[upload:doc] server error:', uploadRes.status, uploadData); setError(uploadData.error ?? 'שגיאה בהעלאה'); return; }
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) { setError(uploadData.error ?? 'שגיאה בהעלאה'); return; }
 
       const docRes = await fetch('/api/documents', {
         method: 'POST',
@@ -1108,7 +987,7 @@ function DocumentCard({
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000);
       onFileUploaded(docData);
-    } catch (err) { console.error('[upload:doc] fetch error:', err); setError('שגיאה בהעלאה'); } finally { setUploading(false); }
+    } catch { setError('שגיאה בהעלאה'); } finally { setUploading(false); }
   }
 
   async function handleDeleteDocument() {
@@ -1158,16 +1037,13 @@ function DocumentCard({
   }
 
   return (
-    <div className={`bg-white rounded-xl border p-4 transition-colors ${isPending ? 'border-orange-300 bg-orange-50/30' : 'border-gray-200'}`}>
+    <div className="bg-white rounded-xl border border-gray-200 p-4 transition-colors">
       {/* כותרת + סטטוס */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="font-medium text-gray-900">
             {DOCUMENT_TYPE_LABELS[docType as Exclude<DocumentType, 'optional_license'>]}
           </h3>
-          {isPending && (
-            <span className="text-xs text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">ממתין לשמירה</span>
-          )}
           {document?.updated_at && (
             <span className="text-xs text-gray-300">
               עודכן: {format(parseISO(document.updated_at), 'dd/MM/yy', { locale: he })}
@@ -1177,19 +1053,20 @@ function DocumentCard({
         <StatusBadge status={status} size="sm" />
       </div>
 
-      {/* תאריך תוקף */}
+      {/* תאריך תוקף — נשמר אוטומטית */}
       {showExpiry && isRequired && (
         <div className="flex items-center gap-2 mb-3">
           <label className="text-sm text-gray-500 whitespace-nowrap">תוקף:</label>
           <input
             type="date"
             value={localExpiry}
-            onChange={(e) => onExpiryChange(e.target.value)}
-            className={`flex-1 px-2 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 ${
-              isPending ? 'border-orange-300 bg-white' : 'border-gray-200'
-            }`}
+            onChange={(e) => setLocalExpiry(e.target.value)}
+            onBlur={handleDateBlur}
+            className="flex-1 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
             dir="ltr"
           />
+          {savingDate && <span className="text-xs text-gray-400 whitespace-nowrap">שומר...</span>}
+          {dateError && <span className="text-xs text-red-500 whitespace-nowrap">{dateError}</span>}
         </div>
       )}
 
@@ -1230,10 +1107,7 @@ function DocumentCard({
         )}
 
         {uploadSuccess && <span className="text-xs text-green-600">✓ הועלה</span>}
-
-        {!hasFile && !uploading && (
-          <span className="text-sm text-gray-400">לא הועלה קובץ</span>
-        )}
+        {!hasFile && !uploading && <span className="text-sm text-gray-400">לא הועלה קובץ</span>}
 
         {docType !== 'id_document' && (
           <button

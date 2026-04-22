@@ -6,14 +6,14 @@ import { Vehicle } from '@/types';
 
 interface Props {
   vehicle?: Vehicle;
-  managers: { id: string; full_name: string }[];
+  workers: { id: string; full_name: string }[];
   onSaved?: (vehicle: Vehicle) => void;
   defaultManagerId?: string;
 }
 
 const VEHICLE_TYPE_PRESETS = ['טנדר', 'פרייבט', 'מסחרית', 'רכב שטח', 'ואן', 'משאית קלה'];
 
-export default function VehicleForm({ vehicle, managers, onSaved, defaultManagerId }: Props) {
+export default function VehicleForm({ vehicle, workers, onSaved, defaultManagerId }: Props) {
   const router = useRouter();
   const isEdit = !!vehicle;
 
@@ -136,16 +136,16 @@ export default function VehicleForm({ vehicle, managers, onSaved, defaultManager
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          מנהל עבודה משויך <span className="text-gray-400 text-xs">(אופציונלי)</span>
+          עובד משויך <span className="text-gray-400 text-xs">(אופציונלי)</span>
         </label>
         <select
           value={formData.assigned_manager_id}
           onChange={(e) => set('assigned_manager_id', e.target.value)}
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
         >
-          <option value="">ללא מנהל עבודה קבוע</option>
-          {managers.map((m) => (
-            <option key={m.id} value={m.id}>{m.full_name}</option>
+          <option value="">ללא עובד משויך</option>
+          {workers.map((w) => (
+            <option key={w.id} value={w.id}>{w.full_name}</option>
           ))}
         </select>
       </div>
