@@ -117,15 +117,18 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* כפתור הוספה */}
-      {!showAddForm && (
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="w-full py-3 border-2 border-dashed border-orange-300 rounded-xl text-orange-500 font-medium hover:border-orange-400 hover:bg-orange-50 transition-colors"
-        >
-          + הוסף קבלן משנה
-        </button>
-      )}
+      {/* כותרת + כפתור הוספה */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">{list.length} קבלנים</p>
+        {!showAddForm && (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            + קבלן משנה חדש
+          </button>
+        )}
+      </div>
 
       {/* טופס הוספה */}
       {showAddForm && (

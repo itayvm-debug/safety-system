@@ -124,18 +124,26 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
             {inactiveCount > 0 && ` · ${inactiveCount} לא פעילים`}
           </p>
         </div>
-        {inactiveCount > 0 && (
-          <button
-            onClick={() => setShowInactive((v) => !v)}
-            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-              showInactive
-                ? 'bg-gray-200 text-gray-700 border-gray-300'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-            }`}
+        <div className="flex items-center gap-2">
+          {inactiveCount > 0 && (
+            <button
+              onClick={() => setShowInactive((v) => !v)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                showInactive
+                  ? 'bg-gray-200 text-gray-700 border-gray-300'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              {showInactive ? 'הסתר לא פעילים' : 'הצג לא פעילים'}
+            </button>
+          )}
+          <Link
+            href="/workers/new"
+            className="bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
           >
-            {showInactive ? 'הסתר לא פעילים' : 'הצג לא פעילים'}
-          </button>
-        )}
+            + עובד חדש
+          </Link>
+        </div>
       </div>
 
       {/* חיפוש */}
