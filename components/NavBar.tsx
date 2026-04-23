@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -8,15 +8,12 @@ import { getClientRole } from '@/lib/auth/client';
 import ExportWizard from '@/components/export/ExportWizard';
 import AlertsBell from '@/components/alerts/AlertsBell';
 
-const PRIMARY_NAV = [
+const NAV_LINKS = [
   { href: '/issues', label: 'דורש טיפול', prefix: '/issues' },
   { href: '/workers', label: 'עובדים', prefix: '/workers' },
   { href: '/site-managers', label: 'מנהלי עבודה', prefix: '/site-managers' },
   { href: '/vehicles', label: 'רכבים', prefix: '/vehicles' },
   { href: '/heavy-equipment', label: 'כלי צמ"ה', prefix: '/heavy-equipment' },
-];
-
-const SECONDARY_NAV = [
   { href: '/lifting-equipment', label: 'ציוד הרמה', prefix: '/lifting-equipment' },
   { href: '/subcontractors', label: 'קבלני משנה', prefix: '/subcontractors' },
 ];
@@ -25,19 +22,9 @@ export default function NavBar() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [showMore, setShowMore] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsAdmin(getClientRole() === 'admin');
-  }, []);
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setShowMore(false);
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   async function handleSignOut() {
@@ -46,31 +33,35 @@ export default function NavBar() {
   }
 
   const isWorkersSection = pathname.startsWith('/workers');
-  const secondaryActive = SECONDARY_NAV.some((l) => pathname.startsWith(l.prefix));
 
   return (
     <>
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center gap-3">
+        {/*
+          קונטיינר רחב (1400px) כדי לאפשר לכל הפריטים להיכנס בשורה אחת.
+          flex items-center gap-2 — שלושה בלוקים: לוגו | nav | פעולות.
+          הסרנו overflow-x-auto מה-nav — אין גלילה אופקית.
+        */}
+        <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center gap-2">
 
           {/* לוגו */}
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
             <Image src="/logo.png" alt="לוגו חברה" width={36} height={36} className="object-contain" priority />
-            <div className="leading-tight hidden lg:block">
+            <div className="leading-tight hidden xl:block">
               <p className="font-bold text-gray-900 text-sm">נתן ולדמן ובניו בע"מ</p>
               <p className="text-xs text-gray-500">ניהול בטיחות</p>
             </div>
           </Link>
 
-          {/* ניווט ראשי — ללא overflow scroll */}
-          <nav className="flex items-center gap-0.5 flex-1 min-w-0">
-            {PRIMARY_NAV.map(({ href, label, prefix }) => {
+          {/* ניווט — flex-1 ממלא את השטח הפנוי, ללא גלילה */}
+          <nav className="flex items-center flex-1 min-w-0">
+            {NAV_LINKS.map(({ href, label, prefix }) => {
               const active = pathname.startsWith(prefix);
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`px-2.5 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                  className={`px-2 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                     active
                       ? 'bg-orange-50 text-orange-600'
                       : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
@@ -80,56 +71,11 @@ export default function NavBar() {
                 </Link>
               );
             })}
-
-            {/* dropdown "עוד" */}
-            <div ref={moreRef} className="relative">
-              <button
-                onClick={() => setShowMore((o) => !o)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                  secondaryActive
-                    ? 'bg-orange-50 text-orange-600'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                עוד
-                <svg
-                  className={`w-3.5 h-3.5 transition-transform ${showMore ? 'rotate-180' : ''}`}
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
-
-              {showMore && (
-                <div className="absolute top-full mt-1.5 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[140px] z-50">
-                  {SECONDARY_NAV.map(({ href, label, prefix }) => {
-                    const active = pathname.startsWith(prefix);
-                    return (
-                      <Link
-                        key={href}
-                        href={href}
-                        onClick={() => setShowMore(false)}
-                        className={`block px-4 py-2 text-sm font-medium transition-colors ${
-                          active ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        {label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
           </nav>
 
           {/* פעולות */}
-          <div className="flex items-center gap-1 shrink-0">
-            {/* כפתורי הוספה — admin בלבד */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            {/* כפתורי הוספה — admin בלבד, לפי עמוד */}
             {isAdmin && isWorkersSection && pathname !== '/workers/new' && (
               <Link
                 href="/workers/new"
@@ -155,11 +101,11 @@ export default function NavBar() {
               </Link>
             )}
 
-            {/* יצוא — admin בלבד */}
+            {/* יצוא — admin, מוסתר מתחת ל-lg */}
             {isAdmin && (
               <button
                 onClick={() => setShowExport(true)}
-                className="text-sm text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden md:inline-block whitespace-nowrap"
+                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden lg:inline-block whitespace-nowrap"
               >
                 יצוא
               </button>
@@ -171,16 +117,16 @@ export default function NavBar() {
             {/* משוב */}
             <Link
               href="/submit-feedback"
-              className="text-sm text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden md:inline-block whitespace-nowrap"
+              className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden md:inline-block whitespace-nowrap"
             >
               משוב
             </Link>
 
-            {/* פניות — admin בלבד */}
+            {/* פניות — admin, מוסתר מתחת ל-xl */}
             {isAdmin && (
               <Link
                 href="/feedback"
-                className="text-sm text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden lg:inline-block whitespace-nowrap"
+                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden xl:inline-block whitespace-nowrap"
               >
                 פניות
               </Link>
@@ -195,7 +141,7 @@ export default function NavBar() {
 
             <button
               onClick={handleSignOut}
-              className="text-sm text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap"
+              className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap"
             >
               יציאה
             </button>
