@@ -38,8 +38,6 @@ export default function NavBar() {
     window.location.replace('/login');
   }
 
-  const isWorkersSection = pathname.startsWith('/workers');
-
   return (
     <>
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
@@ -78,21 +76,6 @@ export default function NavBar() {
 
           {/* פעולות */}
           <div className="flex items-center gap-0.5 shrink-0">
-            {isAdmin && isWorkersSection && pathname !== '/workers/new' && (
-              <Link href="/workers/new" className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap">
-                + עובד
-              </Link>
-            )}
-            {isAdmin && pathname === '/heavy-equipment' && (
-              <Link href="/heavy-equipment/new" className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap">
-                + כלי
-              </Link>
-            )}
-            {isAdmin && pathname === '/lifting-equipment' && (
-              <Link href="/lifting-equipment/new" className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap">
-                + ציוד
-              </Link>
-            )}
             {isAdmin && (
               <button
                 onClick={() => setShowExport(true)}
@@ -182,27 +165,6 @@ export default function NavBar() {
                 );
               })}
             </nav>
-
-            {/* כפתור הוספה — admin לפי עמוד */}
-            {isAdmin && (isWorkersSection || pathname === '/heavy-equipment' || pathname === '/lifting-equipment') && (
-              <div className="px-3 pt-2">
-                {isWorkersSection && pathname !== '/workers/new' && (
-                  <Link href="/workers/new" className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors">
-                    + הוסף עובד
-                  </Link>
-                )}
-                {pathname === '/heavy-equipment' && (
-                  <Link href="/heavy-equipment/new" className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors">
-                    + הוסף כלי צמ"ה
-                  </Link>
-                )}
-                {pathname === '/lifting-equipment' && (
-                  <Link href="/lifting-equipment/new" className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors">
-                    + הוסף ציוד הרמה
-                  </Link>
-                )}
-              </div>
-            )}
 
             {/* פעולות משניות */}
             <div className="px-3 pt-2 mt-1 border-t border-gray-100 space-y-0.5">
