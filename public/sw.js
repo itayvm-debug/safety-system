@@ -2,7 +2,7 @@
 // Strategy: Network-first for navigation, cache-first for static assets.
 // Supabase and API calls are never intercepted — always go to network.
 
-const CACHE_VERSION = 'safedoc-v1';
+const CACHE_VERSION = 'safedoc-v2';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE = [
@@ -50,11 +50,12 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Never intercept: Supabase, API routes, next internals
+  // Never intercept: Supabase, API routes, next internals, briefing templates
   const passThrough =
     url.hostname.includes('supabase.co') ||
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/_next/') ||
+    url.pathname.startsWith('/briefing-templates/') ||
     url.pathname.includes('__nextjs');
 
   if (passThrough) return;

@@ -411,6 +411,17 @@ function SignatureCanvas({ onCapture }: { onCapture: (dataUrl: string) => void }
   const hasSignatureRef = useRef(false);
   const [hasSignature, setHasSignature] = useState(false);
 
+  // Scale canvas buffer to devicePixelRatio so strokes are sharp on retina/mobile screens
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    if (ctx) ctx.scale(dpr, dpr);
+  }, []);
+
   function pos(e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) {
     const r = canvas.getBoundingClientRect();
     const sx = canvas.width / r.width, sy = canvas.height / r.height;
@@ -458,9 +469,9 @@ function SignatureCanvas({ onCapture }: { onCapture: (dataUrl: string) => void }
 
   return (
     <div>
-      <canvas ref={canvasRef} width={600} height={140}
+      <canvas ref={canvasRef}
         className="border-2 border-dashed border-gray-300 rounded-lg w-full touch-none bg-white cursor-crosshair"
-        style={{ maxHeight: '110px' }}
+        style={{ height: 'clamp(160px, 22vw, 200px)', display: 'block' }}
         onMouseDown={start} onMouseMove={move} onMouseUp={end} onMouseLeave={end}
         onTouchStart={start} onTouchMove={move} onTouchEnd={end} />
       <div className="flex gap-2 mt-1.5">
