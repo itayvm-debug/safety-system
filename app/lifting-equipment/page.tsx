@@ -1,19 +1,7 @@
 import Link from 'next/link';
-import { createServiceClient } from '@/lib/supabase/server';
-import { LiftingEquipment } from '@/types';
 import LiftingEquipmentList from '@/components/lifting-equipment/LiftingEquipmentList';
 
-export const dynamic = 'force-dynamic';
-
-export default async function LiftingEquipmentPage() {
-  const supabase = createServiceClient();
-  const { data } = await supabase
-    .from('lifting_equipment')
-    .select('*, subcontractor:subcontractors(id, name)')
-    .order('description');
-
-  const equipment = (data ?? []) as LiftingEquipment[];
-
+export default function LiftingEquipmentPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6 flex items-start justify-between gap-4">
@@ -28,7 +16,7 @@ export default async function LiftingEquipmentPage() {
           + ציוד הרמה חדש
         </Link>
       </div>
-      <LiftingEquipmentList equipment={equipment} />
+      <LiftingEquipmentList />
     </div>
   );
 }

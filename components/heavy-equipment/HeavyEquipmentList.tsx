@@ -7,11 +7,9 @@ import { HeavyEquipment } from '@/types';
 import { getHeavyEquipmentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
-import { saveSnapshot } from '@/lib/offline/cache';
-
-interface Props {
-  equipment: HeavyEquipment[];
-}
+import { saveSnapshot, loadSnapshot } from '@/lib/offline/cache';
+import { createClient } from '@/lib/supabase/client';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 function HeavyEquipmentRow({ eq: initialEq }: { eq: HeavyEquipment }) {
   const router = useRouter();
@@ -71,13 +69,34 @@ function HeavyEquipmentRow({ eq: initialEq }: { eq: HeavyEquipment }) {
   );
 }
 
-export default function HeavyEquipmentList({ equipment }: Props) {
+export default function HeavyEquipmentList() {
+  const [equipment, setEquipment] = useState<HeavyEquipment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isOnline = useOnlineStatus();
+
   const [showInactive, setShowInactive] = useState(false);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    if (equipment.length > 0) saveSnapshot('heavy_equipment', equipment);
-  }, [equipment]);
+    let active = true;
+    async function load() {
+      const cached = loadSnapshot<HeavyEquipment[]>('heavy_equipment');
+      if (cached && active) { setEquipment(cached); setLoading(false); }
+
+      if (!navigator.onLine) { if (active) setLoading(false); return; }
+
+      try {
+        const { data } = await createClient()
+          .from('heavy_equipment').select('*, subcontractor:subcontractors(id, name)').order('description');
+        if (active) {
+          const list = (data ?? []) as HeavyEquipment[];
+          setEquipment(list); setLoading(false); saveSnapshot('heavy_equipment', list);
+        }
+      } catch { if (active) setLoading(false); }
+    }
+    load();
+    return () => { active = false; };
+  }, []);
 
   const filtered = useMemo(() => {
     return equipment.filter((e) => {
@@ -93,11 +112,20 @@ export default function HeavyEquipmentList({ equipment }: Props) {
   const activeCount = equipment.filter((e) => e.is_active).length;
   const inactiveCount = equipment.length - activeCount;
 
-  if (equipment.length === 0) {
+  if (loading && equipment.length === 0) return (
+    <div className="space-y-3 animate-pulse">
+      {[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded-xl" />)}
+    </div>
+  );
+
+  if (!loading && equipment.length === 0) {
     return (
       <div className="text-center py-20 text-gray-400">
-        <p className="text-base font-medium">אין כלי צמ"ה רשומים עדיין</p>
-        <p className="text-sm mt-1">לחץ על "+ כלי" כדי להוסיף</p>
+        {!isOnline
+          ? <p className="text-base font-medium">אין נתונים שמורים להצגה במצב לא מקוון</p>
+          : <><p className="text-base font-medium">אין כלי צמ"ה רשומים עדיין</p>
+              <p className="text-sm mt-1">לחץ על &quot;+ כלי&quot; כדי להוסיף</p></>
+        }
       </div>
     );
   }

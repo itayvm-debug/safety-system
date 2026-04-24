@@ -5,20 +5,40 @@ import Link from 'next/link';
 import { Vehicle } from '@/types';
 import { getVehicleStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
-import { saveSnapshot } from '@/lib/offline/cache';
+import { saveSnapshot, loadSnapshot } from '@/lib/offline/cache';
+import { createClient } from '@/lib/supabase/client';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
-interface Props {
-  vehicles: Vehicle[];
-  imageUrls: Record<string, string>;
-}
+const VEHICLES_QUERY = '*, assigned_manager:workers!vehicles_assigned_manager_id_fkey(id, full_name), vehicle_licenses(*), vehicle_insurances(*)';
 
-export default function VehicleList({ vehicles, imageUrls }: Props) {
+export default function VehicleList() {
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isOnline = useOnlineStatus();
+
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
 
   useEffect(() => {
-    if (vehicles.length > 0) saveSnapshot('vehicles', vehicles);
-  }, [vehicles]);
+    let active = true;
+    async function load() {
+      const cached = loadSnapshot<Vehicle[]>('vehicles');
+      if (cached && active) { setVehicles(cached); setLoading(false); }
+
+      if (!navigator.onLine) { if (active) setLoading(false); return; }
+
+      try {
+        const { data } = await createClient()
+          .from('vehicles').select(VEHICLES_QUERY).order('vehicle_number');
+        if (active) {
+          const list = (data ?? []) as Vehicle[];
+          setVehicles(list); setLoading(false); saveSnapshot('vehicles', list);
+        }
+      } catch { if (active) setLoading(false); }
+    }
+    load();
+    return () => { active = false; };
+  }, []);
 
   const active = vehicles.filter((v) => v.is_active !== false);
   const inactiveCount = vehicles.length - active.length;
@@ -37,6 +57,16 @@ export default function VehicleList({ vehicles, imageUrls }: Props) {
       );
     });
   }, [vehicles, search, showInactive]);
+
+  if (loading && vehicles.length === 0) return (
+    <div className="space-y-3 animate-pulse">
+      {[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded-xl" />)}
+    </div>
+  );
+
+  if (!isOnline && vehicles.length === 0) return (
+    <div className="text-center py-16 text-gray-400 text-sm">אין נתונים שמורים להצגה במצב לא מקוון</div>
+  );
 
   return (
     <div className="space-y-5">
@@ -99,7 +129,7 @@ export default function VehicleList({ vehicles, imageUrls }: Props) {
       ) : (
         <div className="space-y-2">
           {filtered.map((vehicle) => (
-            <VehicleCard key={vehicle.id} vehicle={vehicle} imageUrl={imageUrls[vehicle.id]} />
+            <VehicleCard key={vehicle.id} vehicle={vehicle} imageUrl={undefined} />
           ))}
         </div>
       )}
