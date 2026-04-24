@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Vehicle } from '@/types';
 import { getVehicleStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
+import { saveSnapshot } from '@/lib/offline/cache';
 
 interface Props {
   vehicles: Vehicle[];
@@ -14,6 +15,10 @@ interface Props {
 export default function VehicleList({ vehicles, imageUrls }: Props) {
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+
+  useEffect(() => {
+    if (vehicles.length > 0) saveSnapshot('vehicles', vehicles);
+  }, [vehicles]);
 
   const active = vehicles.filter((v) => v.is_active !== false);
   const inactiveCount = vehicles.length - active.length;

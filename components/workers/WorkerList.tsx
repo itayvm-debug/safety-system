@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { WorkerWithDocuments, DocumentStatus } from '@/types';
@@ -9,6 +9,7 @@ import { getWorkerStatus } from '@/lib/documents/status';
 import { getEffectiveSubcontractor, EffectiveSubcontractor } from '@/lib/workers/subcontractor';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
+import { saveSnapshot } from '@/lib/offline/cache';
 
 type FilterType = 'all' | DocumentStatus;
 
@@ -23,6 +24,10 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
   const [showInactive, setShowInactive] = useState(false);
   const [subcontractorFilter, setSubcontractorFilter] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
+
+  useEffect(() => {
+    if (workers.length > 0) saveSnapshot('workers', workers);
+  }, [workers]);
 
   // מפה של כל העובדים לפי ID — לחישוב ירושת קבלן
   const workersById = useMemo(() => {

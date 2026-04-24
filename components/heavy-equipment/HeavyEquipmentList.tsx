@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { HeavyEquipment } from '@/types';
 import { getHeavyEquipmentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
+import { saveSnapshot } from '@/lib/offline/cache';
 
 interface Props {
   equipment: HeavyEquipment[];
@@ -73,6 +74,10 @@ function HeavyEquipmentRow({ eq: initialEq }: { eq: HeavyEquipment }) {
 export default function HeavyEquipmentList({ equipment }: Props) {
   const [showInactive, setShowInactive] = useState(false);
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    if (equipment.length > 0) saveSnapshot('heavy_equipment', equipment);
+  }, [equipment]);
 
   const filtered = useMemo(() => {
     return equipment.filter((e) => {
