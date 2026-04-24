@@ -65,10 +65,24 @@ self.addEventListener('fetch', (event) => {
 
   if (passThrough) return;
 
-  // Navigation (page loads): network-first — always fresh HTML, offline fallback only
+  // Navigation (page loads): network-first, cache for offline reuse
+  // On offline: serve cached page (last known data) → fallback to offline.html
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match(OFFLINE_URL))
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_VERSION)
+              .then((c) => c.put(request, clone))
+              .catch(() => {});
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request)
+            .then((cached) => cached ?? caches.match(OFFLINE_URL))
+        )
     );
     return;
   }

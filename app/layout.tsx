@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
 import PwaRegistration from '@/components/pwa/PwaRegistration';
+import OfflineBanner from '@/components/offline/OfflineBanner';
 
 const geist = Geist({ subsets: ['latin'] });
 
@@ -59,6 +60,7 @@ export default function RootLayout({
       <body className={`${geist.className} bg-gray-50 min-h-screen`}>
         {children}
         <PwaRegistration />
+        <OfflineBanner />
       </body>
     </html>
   );

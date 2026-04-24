@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LiftingEquipment } from '@/types';
 import { getLiftingEquipmentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
+import { saveSnapshot } from '@/lib/offline/cache';
 
 function LiftingEquipmentRow({ eq: initialEq }: { eq: LiftingEquipment }) {
   const router = useRouter();
@@ -66,6 +67,10 @@ function LiftingEquipmentRow({ eq: initialEq }: { eq: LiftingEquipment }) {
 export default function LiftingEquipmentList({ equipment }: { equipment: LiftingEquipment[] }) {
   const [showInactive, setShowInactive] = useState(false);
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    if (equipment.length > 0) saveSnapshot('lifting_equipment', equipment);
+  }, [equipment]);
 
   const filtered = useMemo(() => {
     return equipment.filter((e) => {
