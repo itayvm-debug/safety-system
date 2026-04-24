@@ -411,15 +411,16 @@ function SignatureCanvas({ onCapture }: { onCapture: (dataUrl: string) => void }
   const hasSignatureRef = useRef(false);
   const [hasSignature, setHasSignature] = useState(false);
 
-  // Scale canvas buffer to devicePixelRatio so strokes are sharp on retina/mobile screens
+  // Size the canvas buffer to match its CSS-rendered size × devicePixelRatio.
+  // pos() already maps CSS coords → buffer coords via (canvas.width / rect.width),
+  // so we must NOT also call ctx.scale(dpr) — that would double-scale coordinates.
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    const ctx = canvas.getContext('2d');
-    if (ctx) ctx.scale(dpr, dpr);
+    if (rect.width === 0) return;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
   }, []);
 
   function pos(e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) {
@@ -445,7 +446,9 @@ function SignatureCanvas({ onCapture }: { onCapture: (dataUrl: string) => void }
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const p = pos(e, canvas);
     ctx.lineTo(p.x, p.y);
-    ctx.strokeStyle = '#111'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2.5 * (window.devicePixelRatio || 1);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.stroke();
     hasSignatureRef.current = true;
     setHasSignature(true);
