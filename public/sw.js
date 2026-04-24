@@ -1,14 +1,14 @@
-// SafeDoc Service Worker
-// Strategy: Network-first for navigation, cache-first for static assets.
-// Supabase and API calls are never intercepted — always go to network.
+// SafeDoc Service Worker v3
+// Navigation + app pages: network-first (never serve stale HTML)
+// Static assets (icons, logo): cache-first (safe to cache indefinitely)
+// Supabase / API / Next.js chunks: always network (never intercepted)
 
-const CACHE_VERSION = 'safedoc-v2';
+const CACHE_VERSION = 'safedoc-v3';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE = [
   '/offline.html',
   '/logo.png',
-  '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/apple-touch-icon.png',
@@ -18,39 +18,44 @@ const PRECACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) =>
-      // addAll with individual error handling — a missing icon won't break install
       Promise.allSettled(PRECACHE.map((url) => cache.add(url)))
     )
   );
+  // Activate immediately — do not wait for old SW clients to close
   self.skipWaiting();
 });
 
-// ─── Activate: remove old caches ──────────────────────────────
+// ─── Activate: purge old caches, then claim all clients ───────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
       .then((keys) =>
         Promise.all(
-          keys
-            .filter((k) => k !== CACHE_VERSION)
-            .map((k) => caches.delete(k))
+          keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))
         )
       )
+      // claim() runs after old caches are gone so clients immediately
+      // get the new SW without a page reload being needed on next visit
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
+});
+
+// ─── Message: allow clients to trigger skipWaiting manually ───
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 // ─── Fetch ────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // Only intercept GET requests
+  // Only intercept GET
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
 
-  // Never intercept: Supabase, API routes, next internals, briefing templates
+  // Never intercept: Supabase, API routes, Next.js chunks, briefing templates
   const passThrough =
     url.hostname.includes('supabase.co') ||
     url.pathname.startsWith('/api/') ||
@@ -60,22 +65,20 @@ self.addEventListener('fetch', (event) => {
 
   if (passThrough) return;
 
-  // Navigation requests (page loads): network first → offline fallback
+  // Navigation (page loads): network-first — always fresh HTML, offline fallback only
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .catch(() => caches.match(OFFLINE_URL))
+      fetch(request).catch(() => caches.match(OFFLINE_URL))
     );
     return;
   }
 
-  // Static assets (images, fonts, etc.): cache first → network → cache update
+  // Static assets (icons, logo, offline page): cache-first → network → cache
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
-
       return fetch(request).then((response) => {
-        if (response && response.ok && response.type !== 'opaque') {
+        if (response?.ok && response.type !== 'opaque') {
           const clone = response.clone();
           caches.open(CACHE_VERSION).then((cache) => cache.put(request, clone));
         }
