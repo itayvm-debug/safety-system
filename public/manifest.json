@@ -1,0 +1,52 @@
+{
+  "name": "SafeDoc — ניהול בטיחות",
+  "short_name": "SafeDoc",
+  "description": "ניהול מסמכי בטיחות — נתן ולדמן ובניו בע\"מ",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#ea580c",
+  "lang": "he",
+  "dir": "rtl",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "עובדים",
+      "url": "/workers",
+      "description": "רשימת עובדים"
+    },
+    {
+      "name": "דורש טיפול",
+      "url": "/issues",
+      "description": "ליקויים פעילים"
+    }
+  ]
+}
