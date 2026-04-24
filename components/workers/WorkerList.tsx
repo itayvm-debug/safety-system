@@ -9,16 +9,19 @@ import { getWorkerStatus } from '@/lib/documents/status';
 import { getEffectiveSubcontractor, EffectiveSubcontractor } from '@/lib/workers/subcontractor';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
-import { saveSnapshot } from '@/lib/offline/cache';
+import { saveSnapshot, loadSnapshot } from '@/lib/offline/cache';
+import { createClient } from '@/lib/supabase/client';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 type FilterType = 'all' | DocumentStatus;
 
-interface WorkerListProps {
-  workers: WorkerWithDocuments[];
-  photoUrls: Record<string, string>;
-}
+const WORKERS_QUERY = '*, documents(*), safety_briefings(*), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name), lifting_machine_appointments(id), manager_licenses(*), vehicles(*, vehicle_licenses(*), vehicle_insurances(*))';
 
-export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
+export default function WorkerList() {
+  const [workers, setWorkers] = useState<WorkerWithDocuments[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isOnline = useOnlineStatus();
+
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [showInactive, setShowInactive] = useState(false);
@@ -26,8 +29,26 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
   const [managerFilter, setManagerFilter] = useState('');
 
   useEffect(() => {
-    if (workers.length > 0) saveSnapshot('workers', workers);
-  }, [workers]);
+    let active = true;
+    async function load() {
+      // Show cached data immediately (stale-while-revalidate)
+      const cached = loadSnapshot<WorkerWithDocuments[]>('workers');
+      if (cached && active) { setWorkers(cached); setLoading(false); }
+
+      if (!navigator.onLine) { if (active) setLoading(false); return; }
+
+      try {
+        const { data } = await createClient()
+          .from('workers').select(WORKERS_QUERY).order('full_name');
+        if (active) {
+          const list = (data ?? []) as WorkerWithDocuments[];
+          setWorkers(list); setLoading(false); saveSnapshot('workers', list);
+        }
+      } catch { if (active) setLoading(false); }
+    }
+    load();
+    return () => { active = false; };
+  }, []);
 
   // מפה של כל העובדים לפי ID — לחישוב ירושת קבלן
   const workersById = useMemo(() => {
@@ -117,6 +138,18 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
         return eff?.id === subcontractorFilter;
       }).length
     : 0;
+
+  if (loading && workers.length === 0) return (
+    <div className="space-y-3 animate-pulse">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="h-16 bg-gray-100 rounded-xl" />
+      ))}
+    </div>
+  );
+
+  if (!isOnline && workers.length === 0) return (
+    <div className="text-center py-16 text-gray-400 text-sm">אין נתונים שמורים להצגה במצב לא מקוון</div>
+  );
 
   return (
     <div className="space-y-5">
@@ -224,7 +257,7 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
         <ManagerFilterHeader
           manager={selectedManagerWorker}
           workerCount={managerWorkerCount}
-          photoUrl={photoUrls[selectedManagerWorker.id]}
+          photoUrl={undefined}
           onClear={() => setManagerFilter('')}
         />
       )}
@@ -259,7 +292,7 @@ export default function WorkerList({ workers, photoUrls }: WorkerListProps) {
             <WorkerCard
               key={worker.id}
               worker={worker}
-              photoUrl={photoUrls[worker.id]}
+              photoUrl={undefined}
               effectiveSub={getEffectiveSubcontractor(worker, workersById)}
             />
           ))}
