@@ -89,10 +89,15 @@ function WorkerSummaryBanner({ issues }: { issues: Issue[] }) {
   if (issues.length === 0) return null;
   const urgent = issues.filter((i) => i.status !== 'expiring_soon');
   const expiring = issues.filter((i) => i.status === 'expiring_soon');
+  const hasUrgent = urgent.length > 0;
+
+  const bg    = hasUrgent ? 'bg-red-50 border-red-200'       : 'bg-yellow-50 border-yellow-200';
+  const title = hasUrgent ? 'text-red-700'                   : 'text-yellow-700';
+  const label = hasUrgent ? 'דורש טיפול מיידי'               : 'דורש מעקב';
 
   return (
-    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-      <p className="text-sm font-semibold text-red-700 mb-2">דורש טיפול</p>
+    <div className={`${bg} border rounded-xl p-4`}>
+      <p className={`text-sm font-semibold ${title} mb-2`}>{label}</p>
       <ul className="space-y-1.5">
         {urgent.map((i) => (
           <li key={i.id} className="flex items-center gap-2 text-sm">
@@ -102,8 +107,8 @@ function WorkerSummaryBanner({ issues }: { issues: Issue[] }) {
         ))}
         {expiring.map((i) => (
           <li key={i.id} className="flex items-center gap-2 text-sm">
-            <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" />
-            <span className="text-orange-700">{i.problem} — עומד לפוג</span>
+            <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0" />
+            <span className="text-yellow-700">{i.problem} — עומד לפוג</span>
           </li>
         ))}
       </ul>
@@ -319,7 +324,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
         title="עבודה בגובה"
         defaultOpen={heightIssues.length > 0}
         issueCount={heightIssues.length}
-        hint="מספיק שאחד מהם תקין"
+        hint="יש להגדיר אישור עבודה בגובה (או להגדיר איסור במידת הצורך)"
       >
         <div className="space-y-4">
           <div>

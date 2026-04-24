@@ -148,7 +148,7 @@ export default function AlertsBell() {
                   key={alert.id}
                   className={`flex items-start gap-3 px-4 py-3 transition-colors hover:bg-gray-50 ${isRead ? '' : 'bg-orange-50/50'}`}
                 >
-                  <div className={`mt-2 w-2 h-2 rounded-full shrink-0 ${isUrgent ? 'bg-red-500' : 'bg-amber-400'}`} />
+                  <div className={`mt-2 w-2 h-2 rounded-full shrink-0 ${isUrgent ? 'bg-red-500' : 'bg-yellow-400'}`} />
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
@@ -156,7 +156,7 @@ export default function AlertsBell() {
                         {ENTITY_LABELS[alert.entityType]}
                       </span>
                       <span className="text-[10px] text-gray-300">·</span>
-                      <span className={`text-[10px] font-semibold ${isUrgent ? 'text-red-600' : 'text-amber-600'}`}>
+                      <span className={`text-[10px] font-semibold ${isUrgent ? 'text-red-600' : 'text-yellow-600'}`}>
                         {STATUS_LABELS[alert.status]}
                       </span>
                     </div>

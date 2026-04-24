@@ -20,7 +20,7 @@ const STATUS_LABELS: Record<IssueStatus, string> = {
 const STATUS_COLORS: Record<IssueStatus, { row: string; badge: string; dot: string }> = {
   expired: { row: 'border-r-red-500', badge: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
   missing: { row: 'border-r-red-500', badge: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
-  expiring_soon: { row: 'border-r-orange-400', badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-400' },
+  expiring_soon: { row: 'border-r-yellow-400', badge: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-400' },
 };
 
 interface Props {

@@ -95,7 +95,7 @@ function IssueBadge({ counts }: { counts: EntityCounts }) {
         </span>
       )}
       {expiring > 0 && (
-        <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-semibold leading-none">
+        <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-semibold leading-none">
           {expiring} עומד לפוג
         </span>
       )}
@@ -223,8 +223,8 @@ export default async function DashboardPage() {
         <p className="text-sm text-gray-500">מערכת ניהול מסמכי בטיחות לעובדים וכלים</p>
       </div>
 
-      {/* Alert */}
-      {hasUrgent && (
+      {/* Alert — red for expired/missing, yellow for expiring-only */}
+      {hasUrgent ? (
         <Link
           href="/issues?status=urgent"
           className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 mb-6 hover:bg-red-100 transition-colors"
@@ -238,7 +238,21 @@ export default async function DashboardPage() {
           </div>
           <span className="text-red-400 text-xs font-medium shrink-0">צפה בכולם ←</span>
         </Link>
-      )}
+      ) : expiringTotal > 0 ? (
+        <Link
+          href="/issues?status=expiring"
+          className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-2xl px-5 py-4 mb-6 hover:bg-yellow-100 transition-colors"
+        >
+          <span className="text-yellow-500 shrink-0"><IconAlert /></span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-yellow-800">
+              {expiringTotal} פריטים דורשים מעקב
+            </p>
+            <p className="text-xs text-yellow-600 mt-0.5">מסמכים שעומדים לפוג בקרוב</p>
+          </div>
+          <span className="text-yellow-500 text-xs font-medium shrink-0">צפה בכולם ←</span>
+        </Link>
+      ) : null}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-10">
