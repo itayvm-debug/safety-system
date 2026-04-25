@@ -45,305 +45,169 @@
       border-bottom: 1px solid var(--gray-200);
       padding: env(safe-area-inset-top, 0) 16px 0;
     }
-
     .header-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 12px 0;
     }
-
-    .logo-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .logo-img {
-      width: 28px;
-      height: 28px;
-      object-fit: contain;
-    }
-
-    .app-title {
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--gray-900);
-    }
-
+    .logo-row { display: flex; align-items: center; gap: 8px; }
+    .logo-img { width: 28px; height: 28px; object-fit: contain; }
+    .app-title { font-size: 17px; font-weight: 700; color: var(--gray-900); }
     .offline-badge {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      background: #fef9c3;
-      border: 1px solid #fde047;
-      color: #713f12;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 20px;
+      display: flex; align-items: center; gap: 5px;
+      background: #fef9c3; border: 1px solid #fde047; color: #713f12;
+      font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 20px;
     }
-
-    .offline-dot {
-      width: 7px;
-      height: 7px;
-      background: #ca8a04;
-      border-radius: 50%;
-    }
+    .offline-dot { width: 7px; height: 7px; background: #ca8a04; border-radius: 50%; }
 
     /* ─── Tabs ──────────────────────────────────── */
     .tabs {
-      display: flex;
-      overflow-x: auto;
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-      gap: 0;
+      display: flex; overflow-x: auto; scrollbar-width: none;
+      -webkit-overflow-scrolling: touch; gap: 0;
       border-top: 1px solid var(--gray-100);
     }
-
     .tabs::-webkit-scrollbar { display: none; }
-
     .tab {
-      flex-shrink: 0;
-      padding: 10px 14px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--gray-500);
-      border-bottom: 2px solid transparent;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: color 0.15s, border-color 0.15s;
-      background: none;
-      border-top: none;
-      border-right: none;
-      border-left: none;
+      flex-shrink: 0; padding: 10px 14px; font-size: 13px; font-weight: 500;
+      color: var(--gray-500); border-bottom: 2px solid transparent; cursor: pointer;
+      white-space: nowrap; transition: color 0.15s, border-color 0.15s;
+      background: none; border-top: none; border-right: none; border-left: none;
     }
+    .tab.active { color: var(--orange); border-bottom-color: var(--orange); font-weight: 600; }
 
-    .tab.active {
-      color: var(--orange);
-      border-bottom-color: var(--orange);
-      font-weight: 600;
-    }
-
-    /* ─── Main content ──────────────────────────── */
-    .main {
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 16px 16px env(safe-area-inset-bottom, 16px);
-    }
-
+    /* ─── Main ──────────────────────────────────── */
+    .main { max-width: 640px; margin: 0 auto; padding: 16px 16px env(safe-area-inset-bottom, 16px); }
     .section { display: none; }
     .section.active { display: block; }
 
     /* ─── Page header ───────────────────────────── */
-    .page-header {
-      margin-bottom: 16px;
-    }
-
-    .page-title {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--gray-900);
-    }
-
-    .page-subtitle {
-      font-size: 13px;
-      color: var(--gray-500);
-      margin-top: 2px;
-    }
+    .page-header { margin-bottom: 16px; }
+    .page-title { font-size: 22px; font-weight: 700; color: var(--gray-900); }
+    .page-subtitle { font-size: 13px; color: var(--gray-500); margin-top: 2px; }
 
     /* ─── Search ────────────────────────────────── */
-    .search-wrap {
-      position: relative;
-      margin-bottom: 14px;
-    }
-
+    .search-wrap { position: relative; margin-bottom: 14px; }
     .search-icon {
-      position: absolute;
-      right: 11px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 16px;
-      height: 16px;
-      color: var(--gray-400);
-      pointer-events: none;
+      position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px; color: var(--gray-400); pointer-events: none;
     }
-
     .search-input {
-      width: 100%;
-      padding: 10px 36px 10px 14px;
-      border: 1px solid var(--gray-200);
-      border-radius: 12px;
-      background: var(--white);
-      font-size: 14px;
-      color: var(--gray-900);
-      outline: none;
+      width: 100%; padding: 10px 36px 10px 14px;
+      border: 1px solid var(--gray-200); border-radius: 12px; background: var(--white);
+      font-size: 14px; color: var(--gray-900); outline: none;
       box-shadow: 0 1px 2px rgba(0,0,0,0.06);
     }
-
-    .search-input:focus {
-      border-color: var(--orange);
-      box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
-    }
-
+    .search-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(234,88,12,0.12); }
     .search-input::placeholder { color: var(--gray-400); }
 
-    /* ─── Cards ─────────────────────────────────── */
+    /* ─── List cards ────────────────────────────── */
     .card-list { display: flex; flex-direction: column; gap: 8px; }
-
     .card {
-      background: var(--white);
-      border: 1px solid var(--gray-100);
-      border-radius: 14px;
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-right: 4px solid var(--gray-200);
+      background: var(--white); border: 1px solid var(--gray-100); border-radius: 14px;
+      padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+      border-right: 4px solid var(--gray-200); cursor: pointer;
+      transition: box-shadow 0.15s;
     }
-
+    .card:active { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     .card.status-valid     { border-right-color: #22c55e; }
     .card.status-expiring  { border-right-color: #eab308; }
     .card.status-expired   { border-right-color: #ef4444; }
     .card.status-missing   { border-right-color: #ef4444; }
-
     .card-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: #fed7aa;
-      color: var(--orange);
-      font-weight: 700;
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      width: 40px; height: 40px; border-radius: 50%; background: #fed7aa; color: var(--orange);
+      font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-
-    .card-avatar.vehicle {
-      border-radius: 10px;
-      background: #dbeafe;
-      color: #3b82f6;
-    }
-
-    .card-avatar.equipment {
-      border-radius: 10px;
-      background: #f0fdf4;
-      color: #16a34a;
-    }
-
-    .card-avatar.lifting {
-      border-radius: 10px;
-      background: #fdf4ff;
-      color: #9333ea;
-    }
-
+    .card-avatar.vehicle  { border-radius: 10px; background: #dbeafe; color: #3b82f6; }
+    .card-avatar.equipment { border-radius: 10px; background: #f0fdf4; color: #16a34a; }
+    .card-avatar.lifting  { border-radius: 10px; background: #fdf4ff; color: #9333ea; }
     .card-body { flex: 1; min-width: 0; }
-
-    .card-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--gray-900);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .card-meta {
-      font-size: 13px;
-      color: var(--gray-400);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
+    .card-name { font-size: 15px; font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-meta { font-size: 13px; color: var(--gray-400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .card-end { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
     /* ─── Status badge ──────────────────────────── */
-    .badge {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 20px;
-      white-space: nowrap;
-    }
-
+    .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
     .badge-valid    { background: #dcfce7; color: #15803d; }
     .badge-expiring { background: #fef9c3; color: #854d0e; }
     .badge-expired  { background: #fee2e2; color: #b91c1c; }
     .badge-missing  { background: #fee2e2; color: #b91c1c; }
-    .badge-ok       { background: var(--gray-100); color: var(--gray-500); }
-
-    /* ─── Inactive badge ────────────────────────── */
     .badge-inactive { background: var(--gray-100); color: var(--gray-500); font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 20px; }
 
-    /* ─── Dashboard ─────────────────────────────── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 18px;
-    }
-
-    .stat-card {
-      background: var(--white);
-      border: 1px solid var(--gray-200);
-      border-radius: 14px;
-      padding: 16px;
-      text-align: center;
-    }
-
-    .stat-number {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--gray-900);
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: var(--gray-500);
-    }
-
+    /* ─── Dashboard stats ───────────────────────── */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+    .stat-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: 14px; padding: 16px; text-align: center; }
+    .stat-number { font-size: 28px; font-weight: 700; color: var(--gray-900); line-height: 1; margin-bottom: 4px; }
+    .stat-label { font-size: 12px; color: var(--gray-500); }
     .stat-card.red    .stat-number { color: var(--red); }
     .stat-card.yellow .stat-number { color: var(--yellow); }
     .stat-card.green  .stat-number { color: var(--green); }
 
-    /* ─── Empty states ──────────────────────────── */
-    .empty {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--gray-400);
-    }
-
-    .empty-icon {
-      width: 48px;
-      height: 48px;
-      margin: 0 auto 12px;
-      opacity: 0.3;
-    }
-
+    /* ─── Empty state ───────────────────────────── */
+    .empty { text-align: center; padding: 60px 20px; color: var(--gray-400); }
+    .empty-icon { width: 48px; height: 48px; margin: 0 auto 12px; opacity: 0.3; }
     .empty-title { font-size: 15px; font-weight: 600; color: var(--gray-500); margin-bottom: 4px; }
-    .empty-sub   { font-size: 13px; }
+    .empty-sub { font-size: 13px; }
 
     /* ─── Saved-at label ────────────────────────── */
-    .saved-at {
-      font-size: 12px;
-      color: var(--gray-400);
-      text-align: center;
-      margin-top: 20px;
-    }
+    .saved-at { font-size: 12px; color: var(--gray-400); text-align: center; margin-top: 20px; }
 
     /* ─── Chevron ───────────────────────────────── */
-    .chevron {
-      width: 16px;
-      height: 16px;
-      color: var(--gray-300);
-      transform: rotate(180deg);
-      flex-shrink: 0;
+    .chevron { width: 16px; height: 16px; color: var(--gray-300); transform: rotate(180deg); flex-shrink: 0; }
+
+    /* ─── Worker detail view ────────────────────── */
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      color: var(--orange); font-size: 14px; font-weight: 500; cursor: pointer;
+      padding: 4px 0 16px; -webkit-tap-highlight-color: transparent;
     }
+    .basic-data-notice {
+      background: #fef9c3; border: 1px solid #fde047; color: #713f12;
+      font-size: 12px; padding: 8px 12px; border-radius: 10px; margin-bottom: 12px;
+    }
+    .worker-header {
+      display: flex; gap: 14px; align-items: flex-start;
+      margin-bottom: 12px; padding: 16px; background: var(--white);
+      border-radius: 14px; border: 1px solid var(--gray-200);
+    }
+    .worker-avatar-lg {
+      width: 52px; height: 52px; border-radius: 50%; background: #fed7aa;
+      color: var(--orange); font-weight: 700; font-size: 22px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .worker-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .worker-name { font-size: 18px; font-weight: 700; color: var(--gray-900); }
+    .worker-meta { font-size: 13px; color: var(--gray-500); margin-top: 2px; }
+    .detail-section {
+      background: var(--white); border-radius: 14px; border: 1px solid var(--gray-200);
+      margin-bottom: 10px; overflow: hidden;
+    }
+    .detail-section-title {
+      font-size: 14px; font-weight: 600; color: var(--gray-700);
+      padding: 11px 14px 10px; border-bottom: 1px solid var(--gray-100);
+      background: var(--gray-50);
+    }
+    .doc-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 14px; gap: 10px;
+    }
+    .doc-row + .doc-row { border-top: 1px solid var(--gray-100); }
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-label { font-size: 14px; color: var(--gray-900); }
+    .doc-expiry { font-size: 12px; color: var(--gray-500); margin-top: 1px; }
+    .doc-end { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .view-file-btn {
+      font-size: 12px; color: var(--orange); border: 1px solid var(--orange-border);
+      background: var(--orange-light); padding: 3px 10px; border-radius: 8px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .notes-card {
+      background: var(--white); border-radius: 14px; border: 1px solid var(--gray-200);
+      padding: 14px; font-size: 14px; color: var(--gray-700); margin-bottom: 10px;
+    }
+    .notes-label { font-size: 12px; font-weight: 600; color: var(--gray-400); margin-bottom: 4px; }
+    .opacity-50 { opacity: 0.5; }
   </style>
 </head>
 <body>
@@ -380,22 +244,30 @@
     </div>
     <div class="stats-grid" id="dash-stats"></div>
     <div id="dash-issues"></div>
+    <div class="saved-at" id="dash-saved"></div>
   </div>
 
   <!-- Workers -->
   <div class="section" id="section-workers">
-    <div class="page-header">
-      <div class="page-title">עובדים</div>
-      <div class="page-subtitle" id="workers-subtitle"></div>
+    <!-- List view -->
+    <div id="workers-list-view">
+      <div class="page-header">
+        <div class="page-title">עובדים</div>
+        <div class="page-subtitle" id="workers-subtitle"></div>
+      </div>
+      <div class="search-wrap">
+        <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input class="search-input" id="workers-search" type="search" placeholder="חיפוש לפי שם או ת.ז..." />
+      </div>
+      <div class="card-list" id="workers-list"></div>
+      <div class="saved-at" id="workers-saved"></div>
     </div>
-    <div class="search-wrap">
-      <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-      </svg>
-      <input class="search-input" id="workers-search" type="search" placeholder="חיפוש לפי שם או ת.ז..." />
+    <!-- Detail view -->
+    <div id="workers-detail-view" style="display:none">
+      <div id="workers-detail-content"></div>
     </div>
-    <div class="card-list" id="workers-list"></div>
-    <div class="saved-at" id="workers-saved"></div>
   </div>
 
   <!-- Vehicles -->
@@ -457,22 +329,22 @@ function loadSnap(key) {
   try {
     const raw = localStorage.getItem(PREFIX + key);
     if (!raw) return null;
-    const { data, savedAt } = JSON.parse(raw);
-    if (Date.now() - savedAt > MAX_AGE) { localStorage.removeItem(PREFIX + key); return null; }
-    return { data, savedAt };
+    const parsed = JSON.parse(raw);
+    const ts = parsed.ts; // cache.ts stores as { data, ts }
+    if (!ts || Date.now() - ts > MAX_AGE) { localStorage.removeItem(PREFIX + key); return null; }
+    return { data: parsed.data, ts };
   } catch { return null; }
 }
 
 function fmtSaved(ts) {
-  const d = new Date(ts);
-  const now = new Date();
-  const mins = Math.floor((Date.now() - ts) / 60000);
-  if (mins < 1) return 'נשמר עכשיו';
+  if (!ts || typeof ts !== 'number' || isNaN(ts)) return 'נשמר — תאריך לא ידוע';
+  const mins = Math.round((Date.now() - ts) / 60000);
+  if (mins < 1)  return 'נשמר הרגע';
   if (mins < 60) return `נשמר לפני ${mins} דקות`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `נשמר לפני ${hrs} שעות`;
-  const days = Math.floor(hrs / 24);
-  return `נשמר לפני ${days} ימים`;
+  if (hrs < 24)  return `נשמר לפני ${hrs} שעות`;
+  if (hrs < 48)  return 'נשמר אתמול';
+  return `נשמר לפני ${Math.floor(hrs / 24)} ימים`;
 }
 
 // ─── Status logic ────────────────────────────────
@@ -481,9 +353,7 @@ function dateStatus(dateStr) {
   const today = new Date(); today.setHours(0,0,0,0);
   const exp = new Date(dateStr); exp.setHours(0,0,0,0);
   if (exp < today) return 'expired';
-  const diff = (exp - today) / 86400000;
-  if (diff <= 14) return 'expiring';
-  return 'valid';
+  return (exp - today) / 86400000 <= 14 ? 'expiring' : 'valid';
 }
 
 function worstStatus(statuses) {
@@ -496,10 +366,8 @@ function worstStatus(statuses) {
 
 function workerStatus(worker) {
   const docs = worker.documents || [];
-  // Documents with expiry dates
   const statuses = docs.map(d => dateStatus(d.expiry_date)).filter(Boolean);
-  // Check for missing required docs
-  const hasId     = docs.some(d => d.doc_type === 'id_document');
+  const hasId     = docs.some(d => d.doc_type === 'id_document' && d.file_url);
   const hasHeight = docs.some(d => d.doc_type === 'height_permit');
   const hasVisa   = docs.some(d => d.doc_type === 'work_visa');
   if (!hasId) statuses.push('missing');
@@ -508,56 +376,51 @@ function workerStatus(worker) {
 }
 
 function vehicleStatus(vehicle) {
-  const statuses = [];
-  (vehicle.vehicle_licenses || []).forEach(l => { const s = dateStatus(l.expiry_date); if (s) statuses.push(s); });
-  (vehicle.vehicle_insurances || []).forEach(i => { const s = dateStatus(i.expiry_date); if (s) statuses.push(s); });
-  return worstStatus(statuses) || 'valid';
+  const st = [
+    ...(vehicle.vehicle_licenses  || []).map(l => dateStatus(l.expiry_date)),
+    ...(vehicle.vehicle_insurances || []).map(i => dateStatus(i.expiry_date)),
+  ].filter(Boolean);
+  return worstStatus(st) || 'valid';
 }
 
 function heavyStatus(eq) {
-  const statuses = [
+  const st = [
     dateStatus(eq.license_expiry),
     dateStatus(eq.insurance_expiry),
     dateStatus(eq.inspection_expiry),
   ].filter(Boolean);
-  return worstStatus(statuses) || 'valid';
+  return worstStatus(st) || 'valid';
 }
 
-function liftingStatus(eq) {
-  const s = dateStatus(eq.inspection_expiry);
-  return s || 'valid';
-}
+function liftingStatus(eq) { return dateStatus(eq.inspection_expiry) || 'valid'; }
 
 // ─── Badge helpers ───────────────────────────────
 const STATUS_LABELS = { valid: 'תקין', expiring: 'עומד לפוג', expired: 'פג תוקף', missing: 'חסר' };
-const STATUS_BADGE  = { valid: 'valid', expiring: 'expiring', expired: 'expired', missing: 'missing' };
-
 function badge(status) {
-  const label = STATUS_LABELS[status] || '';
-  if (!label) return '';
-  return `<span class="badge badge-${STATUS_BADGE[status]}">${label}</span>`;
+  const label = STATUS_LABELS[status]; if (!label) return '';
+  return `<span class="badge badge-${status}">${label}</span>`;
 }
+function cardClass(status) { return `card status-${status}`; }
 
-function cardClass(status) {
-  return 'card status-' + (status === 'expiring' ? 'expiring' : status);
-}
-
-// ─── SVG chevron ─────────────────────────────────
 const CHEVRON = `<svg class="chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>`;
 
-// ─── Render empty ────────────────────────────────
-function emptyHtml(msg) {
+function emptyHtml(msg, sub) {
   return `<div class="empty">
     <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
         d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
     </svg>
     <div class="empty-title">${msg}</div>
-    <div class="empty-sub">אין נתונים שמורים להצגה במצב לא מקוון</div>
+    <div class="empty-sub">${sub || 'אין נתונים שמורים להצגה במצב לא מקוון'}</div>
   </div>`;
 }
 
-// ─── Render workers ──────────────────────────────
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Worker list rendering ───────────────────────
 function renderWorkers(workers, query) {
   const q = (query || '').trim();
   const list = workers.filter(w => {
@@ -566,44 +429,160 @@ function renderWorkers(workers, query) {
       (w.national_id || '').includes(q) ||
       (w.passport_number || '').includes(q);
   });
-
   if (!list.length) return emptyHtml(q ? 'לא נמצאו עובדים' : 'אין עובדים');
-
   return list.map(w => {
     const st = workerStatus(w);
     const inactive = w.is_active === false;
     const idLabel = w.is_foreign_worker ? 'דרכון' : 'ת.ז.';
     const idVal = w.national_id || w.passport_number || '—';
-    const sub = w.subcontractor ? ` · ${w.subcontractor.name}` : '';
+    const sub = w.subcontractor?.name ? ` · ${w.subcontractor.name}` : '';
     const proj = w.project_name ? ` · ${w.project_name}` : '';
-    return `<div class="${cardClass(st)}${inactive ? ' opacity-50' : ''}">
+    return `<div class="${cardClass(st)}${inactive?' opacity-50':''}" data-worker-id="${escHtml(w.id)}">
       <div class="card-avatar">${w.full_name.charAt(0)}</div>
       <div class="card-body">
-        <div class="card-name">${escHtml(w.full_name)}${inactive ? ` <span class="badge-inactive">לא פעיל</span>` : ''}</div>
-        <div class="card-meta">${idLabel} ${escHtml(idVal)} · ${w.is_foreign_worker ? 'עובד זר' : 'ישראלי'}${escHtml(sub)}${escHtml(proj)}</div>
+        <div class="card-name">${escHtml(w.full_name)}${inactive?` <span class="badge-inactive">לא פעיל</span>`:''}</div>
+        <div class="card-meta">${idLabel} ${escHtml(idVal)} · ${w.is_foreign_worker?'עובד זר':'ישראלי'}${escHtml(sub)}${escHtml(proj)}</div>
       </div>
-      <div class="card-end">${inactive ? '' : badge(st)}${CHEVRON}</div>
+      <div class="card-end">${inactive?'':badge(st)}${CHEVRON}</div>
     </div>`;
   }).join('');
 }
 
-// ─── Render vehicles ─────────────────────────────
+// ─── Worker detail rendering ─────────────────────
+const DOC_LABELS = { id_document: 'תעודת זהות', height_permit: 'אישור עבודה בגובה', work_visa: 'אשרת עבודה' };
+const DOC_TYPES  = ['id_document', 'height_permit', 'work_visa'];
+
+function renderWorkerDetail(worker, isFullSnap) {
+  if (!worker) return emptyHtml('עובד לא נמצא', 'הנתונים אינם זמינים במצב לא מקוון');
+  const st = workerStatus(worker);
+  const idLabel = worker.is_foreign_worker ? 'דרכון' : 'ת.ז.';
+  const idVal = worker.national_id || worker.passport_number || '—';
+
+  const metaRows = [
+    `${idLabel}: ${escHtml(idVal)}`,
+    worker.is_foreign_worker ? 'עובד זר' : 'ישראלי',
+    worker.phone ? `<span dir="ltr">${escHtml(worker.phone)}</span>` : null,
+    worker.subcontractor?.name ? `קבלן: ${escHtml(worker.subcontractor.name)}` : null,
+    worker.project_name ? `פרויקט: ${escHtml(worker.project_name)}` : null,
+  ].filter(Boolean);
+
+  let html = `
+    <div class="back-btn" onclick="backToWorkerList()">← חזור לרשימה</div>
+    ${!isFullSnap ? `<div class="basic-data-notice">מוצגים נתונים בסיסיים שנשמרו מהרשימה. לפרטים מלאים נדרש חיבור לאינטרנט.</div>` : ''}
+    <div class="worker-header">
+      <div class="worker-avatar-lg">${worker.full_name.charAt(0)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="worker-name-row">
+          <span class="worker-name">${escHtml(worker.full_name)}</span>
+          ${badge(st)}
+          ${worker.is_active===false?`<span class="badge-inactive">לא פעיל</span>`:''}
+        </div>
+        ${metaRows.map(r=>`<div class="worker-meta">${r}</div>`).join('')}
+      </div>
+    </div>`;
+
+  // Documents
+  const docs = worker.documents || [];
+  const docMap = {};
+  docs.forEach(d => { if (!docMap[d.doc_type]) docMap[d.doc_type] = d; });
+
+  const docRows = DOC_TYPES.map(type => {
+    if (type === 'work_visa' && !worker.is_foreign_worker) return null;
+    const doc = docMap[type];
+    const hasFile = !!doc?.file_url;
+    let st2;
+    if (type === 'id_document') {
+      st2 = hasFile ? 'valid' : 'missing';
+    } else {
+      st2 = doc ? (dateStatus(doc.expiry_date) || (hasFile ? 'valid' : 'missing')) : 'missing';
+    }
+    const expiryStr = doc?.expiry_date
+      ? `תוקף: ${new Date(doc.expiry_date).toLocaleDateString('he-IL')}`
+      : null;
+    return `<div class="doc-row">
+      <div class="doc-info">
+        <div class="doc-label">${DOC_LABELS[type]}</div>
+        ${expiryStr ? `<div class="doc-expiry">${escHtml(expiryStr)}</div>` : ''}
+      </div>
+      <div class="doc-end">
+        ${badge(st2)}
+        ${hasFile ? `<button class="view-file-btn" onclick="showOfflineFileMsg()">צפה</button>` : ''}
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  html += `<div class="detail-section">
+    <div class="detail-section-title">מסמכים</div>
+    ${docRows || `<div class="doc-row"><div class="doc-info"><div class="doc-label" style="color:var(--gray-400)">אין מסמכים</div></div></div>`}
+  </div>`;
+
+  // Safety briefing
+  const briefings = (worker.safety_briefings || []).slice().sort((a,b) => new Date(b.briefed_at)-new Date(a.briefed_at));
+  if (briefings.length) {
+    const last = briefings[0];
+    const bDate  = last.briefed_at ? new Date(last.briefed_at).toLocaleDateString('he-IL') : '—';
+    const expDate = last.expires_at ? new Date(last.expires_at).toLocaleDateString('he-IL') : null;
+    const bSt = last.expires_at ? (dateStatus(last.expires_at) || 'valid') : 'valid';
+    html += `<div class="detail-section">
+      <div class="detail-section-title">תדריך בטיחות</div>
+      <div class="doc-row">
+        <div class="doc-info">
+          <div class="doc-label">תדריך אחרון: ${bDate}</div>
+          ${expDate ? `<div class="doc-expiry">תוקף: ${expDate}</div>` : ''}
+        </div>
+        <div class="doc-end">${badge(bSt)}</div>
+      </div>
+    </div>`;
+  }
+
+  // Notes
+  if (worker.notes) {
+    html += `<div class="notes-card"><div class="notes-label">הערות</div>${escHtml(worker.notes)}</div>`;
+  }
+
+  return html;
+}
+
+function showWorkerDetail(workerId) {
+  // Try full per-worker snapshot first, fall back to list snapshot
+  const fullSnap = loadSnap('worker_' + workerId);
+  let workerData = null;
+  let isFullSnap = false;
+  if (fullSnap) {
+    workerData = fullSnap.data;
+    isFullSnap = true;
+  } else {
+    const listSnap = loadSnap('workers');
+    if (listSnap) workerData = (listSnap.data || []).find(w => w.id === workerId) || null;
+  }
+  document.getElementById('workers-detail-content').innerHTML = renderWorkerDetail(workerData, isFullSnap);
+  document.getElementById('workers-list-view').style.display = 'none';
+  document.getElementById('workers-detail-view').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function backToWorkerList() {
+  document.getElementById('workers-list-view').style.display = 'block';
+  document.getElementById('workers-detail-view').style.display = 'none';
+}
+
+function showOfflineFileMsg() {
+  alert('הקובץ עצמו דורש חיבור לאינטרנט.\nבמצב לא מקוון ניתן לצפות בפרטי המסמך בלבד.');
+}
+
+// ─── Vehicles rendering ──────────────────────────
 function renderVehicles(vehicles, query) {
   const q = (query || '').trim().toLowerCase();
-  const list = vehicles.filter(v => {
-    if (!q) return true;
-    return v.vehicle_number.toLowerCase().includes(q) ||
-      v.vehicle_type.toLowerCase().includes(q) ||
-      (v.model || '').toLowerCase().includes(q);
-  });
-
+  const list = vehicles.filter(v => !q ||
+    v.vehicle_number.toLowerCase().includes(q) ||
+    v.vehicle_type.toLowerCase().includes(q) ||
+    (v.model||'').toLowerCase().includes(q));
   if (!list.length) return emptyHtml(q ? 'לא נמצאו רכבים' : 'אין רכבים');
-
   return list.map(v => {
     const st = vehicleStatus(v);
     const inactive = v.is_active === false;
     const meta = [v.vehicle_type, v.model, v.assigned_manager?.full_name].filter(Boolean).join(' · ');
-    return `<div class="${cardClass(st)}${inactive ? ' opacity-50' : ''}">
+    return `<div class="${cardClass(st)}${inactive?' opacity-50':''}">
       <div class="card-avatar vehicle">
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -611,35 +590,25 @@ function renderVehicles(vehicles, query) {
         </svg>
       </div>
       <div class="card-body">
-        <div class="card-name" dir="ltr">${escHtml(v.vehicle_number)}${inactive ? ` <span class="badge-inactive">לא פעיל</span>` : ''}</div>
+        <div class="card-name" dir="ltr">${escHtml(v.vehicle_number)}${inactive?` <span class="badge-inactive">לא פעיל</span>`:''}</div>
         <div class="card-meta">${escHtml(meta)}</div>
       </div>
-      <div class="card-end">${inactive ? '' : badge(st)}${CHEVRON}</div>
+      <div class="card-end">${inactive?'':badge(st)}</div>
     </div>`;
   }).join('');
 }
 
-// ─── Render heavy equipment ──────────────────────
+// ─── Heavy equipment rendering ───────────────────
 function renderHeavy(list, query) {
   const q = (query || '').trim();
-  const filtered = list.filter(e => {
-    if (!q) return true;
-    return e.description.includes(q) ||
-      (e.license_number || '').includes(q) ||
-      (e.machine_identifier || '').includes(q);
-  });
-
+  const filtered = list.filter(e => !q ||
+    e.description.includes(q) || (e.license_number||'').includes(q) || (e.machine_identifier||'').includes(q));
   if (!filtered.length) return emptyHtml(q ? 'לא נמצא ציוד' : 'אין כלי צמ"ה');
-
   return filtered.map(e => {
     const st = heavyStatus(e);
     const inactive = !e.is_active;
-    const meta = [
-      e.license_number ? `רישיון: ${e.license_number}` : null,
-      e.subcontractor?.name,
-      e.project_name,
-    ].filter(Boolean).join(' · ');
-    return `<div class="${cardClass(st)}${inactive ? ' opacity-50' : ''}">
+    const meta = [e.license_number?`רישיון: ${e.license_number}`:null, e.subcontractor?.name, e.project_name].filter(Boolean).join(' · ');
+    return `<div class="${cardClass(st)}${inactive?' opacity-50':''}">
       <div class="card-avatar equipment">
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
@@ -647,36 +616,34 @@ function renderHeavy(list, query) {
         </svg>
       </div>
       <div class="card-body">
-        <div class="card-name">${escHtml(e.description)}${inactive ? ` <span class="badge-inactive">לא פעיל</span>` : ''}</div>
-        <div class="card-meta">${escHtml(meta || '—')}</div>
+        <div class="card-name">${escHtml(e.description)}${inactive?` <span class="badge-inactive">לא פעיל</span>`:''}</div>
+        <div class="card-meta">${escHtml(meta||'—')}</div>
       </div>
-      <div class="card-end">${inactive ? '' : badge(st)}${CHEVRON}</div>
+      <div class="card-end">${inactive?'':badge(st)}</div>
     </div>`;
   }).join('');
 }
 
-// ─── Render lifting equipment ────────────────────
+// ─── Lifting equipment rendering ─────────────────
 function renderLifting(list, query) {
   const q = (query || '').trim();
   const filtered = list.filter(e => !q || e.description.includes(q));
-
   if (!filtered.length) return emptyHtml(q ? 'לא נמצא ציוד' : 'אין ציוד הרמה');
-
   return filtered.map(e => {
     const st = liftingStatus(e);
     const inactive = !e.is_active;
     const meta = [e.subcontractor?.name, e.project_name].filter(Boolean).join(' · ');
-    return `<div class="${cardClass(st)}${inactive ? ' opacity-50' : ''}">
+    return `<div class="${cardClass(st)}${inactive?' opacity-50':''}">
       <div class="card-avatar lifting">
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11a2 2 0 012 2v3m-7 13H17m0 0a2 2 0 100-4 2 2 0 000 4zm0 0v-4m4-10H11a1 1 0 00-1 1v5"/>
         </svg>
       </div>
       <div class="card-body">
-        <div class="card-name">${escHtml(e.description)}${inactive ? ` <span class="badge-inactive">לא פעיל</span>` : ''}</div>
-        <div class="card-meta">${escHtml(meta || '—')}</div>
+        <div class="card-name">${escHtml(e.description)}${inactive?` <span class="badge-inactive">לא פעיל</span>`:''}</div>
+        <div class="card-meta">${escHtml(meta||'—')}</div>
       </div>
-      <div class="card-end">${inactive ? '' : badge(st)}${CHEVRON}</div>
+      <div class="card-end">${inactive?'':badge(st)}</div>
     </div>`;
   }).join('');
 }
@@ -684,172 +651,169 @@ function renderLifting(list, query) {
 // ─── Dashboard ───────────────────────────────────
 function renderDashboard(snaps) {
   const workers  = (snaps.workers?.data  || []).filter(w => w.is_active !== false);
-  const vehicles = (snaps.vehicles?.data || []).filter(v => v.is_active !== false);
-  const heavy    = (snaps.heavy?.data    || []).filter(e => e.is_active !== false);
-  const lifting  = (snaps.lifting?.data  || []).filter(e => e.is_active !== false);
-
   const wStatuses = workers.map(workerStatus);
-  const vStatuses = vehicles.map(vehicleStatus);
-  const hStatuses = heavy.map(heavyStatus);
-  const lStatuses = lifting.map(liftingStatus);
+  const dashData = snaps.dashboard?.data;
 
-  const allStatuses = [...wStatuses, ...vStatuses, ...hStatuses, ...lStatuses];
-  const total   = workers.length;
-  const expired  = wStatuses.filter(s => s === 'expired' || s === 'missing').length;
-  const expiring = wStatuses.filter(s => s === 'expiring').length;
-  const ok       = total - expired - expiring;
+  // Prefer computed stats; fall back to dashboard snapshot
+  const urgentTotal   = workers.length ? wStatuses.filter(s=>s==='expired'||s==='missing').length : (dashData?.urgentTotal??0);
+  const expiringTotal = workers.length ? wStatuses.filter(s=>s==='expiring').length : (dashData?.expiringTotal??0);
+  const total         = workers.length || (dashData?.workersCount ?? 0);
+  const ok            = total - urgentTotal - expiringTotal;
+
+  const hasAnyData = total > 0 || snaps.vehicles?.data?.length || snaps.heavy?.data?.length;
 
   const statsEl = document.getElementById('dash-stats');
-  statsEl.innerHTML = `
+  statsEl.innerHTML = hasAnyData ? `
     <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">עובדים פעילים</div></div>
-    <div class="stat-card red"><div class="stat-number">${expired}</div><div class="stat-label">לא תקינים</div></div>
-    <div class="stat-card yellow"><div class="stat-number">${expiring}</div><div class="stat-label">עומדים לפוג</div></div>
-    <div class="stat-card green"><div class="stat-number">${ok}</div><div class="stat-label">תקינים</div></div>
-  `;
+    <div class="stat-card red"><div class="stat-number">${urgentTotal}</div><div class="stat-label">לא תקינים</div></div>
+    <div class="stat-card yellow"><div class="stat-number">${expiringTotal}</div><div class="stat-label">עומדים לפוג</div></div>
+    <div class="stat-card green"><div class="stat-number">${ok < 0 ? 0 : ok}</div><div class="stat-label">תקינים</div></div>
+  ` : `<div style="grid-column:1/-1">${emptyHtml('אין נתונים שמורים', 'התחבר לאינטרנט פעם אחת כדי לשמור נתונים')}</div>`;
 
+  // Issue list from workers
   const issuesEl = document.getElementById('dash-issues');
-  const allIssues = allStatuses.filter(s => s !== 'valid');
-
-  if (allIssues.length === 0 && total === 0) {
-    issuesEl.innerHTML = emptyHtml('אין נתונים שמורים');
-    return;
-  }
-
+  const urgentWorkers  = workers.filter(w => { const s=workerStatus(w); return s==='expired'||s==='missing'; });
+  const warningWorkers = workers.filter(w => workerStatus(w)==='expiring');
   let issueHtml = '';
-  const urgentWorkers   = workers.filter(w => { const s = workerStatus(w); return s === 'expired' || s === 'missing'; });
-  const warningWorkers  = workers.filter(w => workerStatus(w) === 'expiring');
-  const urgentVehicles  = vehicles.filter(v => { const s = vehicleStatus(v); return s === 'expired'; });
-  const urgentHeavy     = heavy.filter(e => { const s = heavyStatus(e); return s === 'expired'; });
-
   if (urgentWorkers.length) {
     issueHtml += `<div style="font-size:13px;font-weight:600;color:#b91c1c;margin-bottom:6px;">עובדים לא תקינים (${urgentWorkers.length})</div>`;
-    issueHtml += `<div class="card-list" style="margin-bottom:14px;">` +
-      urgentWorkers.slice(0, 5).map(w =>
-        `<div class="card status-expired" style="padding:10px 14px;">
-          <div class="card-avatar" style="width:32px;height:32px;font-size:13px;">${w.full_name.charAt(0)}</div>
-          <div class="card-body"><div class="card-name" style="font-size:14px;">${escHtml(w.full_name)}</div></div>
-          <div class="card-end"><span class="badge badge-expired">לא תקין</span></div>
-        </div>`
-      ).join('') + `</div>`;
+    issueHtml += `<div class="card-list" style="margin-bottom:14px;">${
+      urgentWorkers.slice(0,5).map(w=>`<div class="card status-expired" style="padding:10px 14px" data-worker-id="${escHtml(w.id)}">
+        <div class="card-avatar" style="width:32px;height:32px;font-size:13px">${w.full_name.charAt(0)}</div>
+        <div class="card-body"><div class="card-name" style="font-size:14px">${escHtml(w.full_name)}</div></div>
+        <div class="card-end"><span class="badge badge-expired">לא תקין</span>${CHEVRON}</div>
+      </div>`).join('')
+    }</div>`;
   }
-
   if (warningWorkers.length) {
     issueHtml += `<div style="font-size:13px;font-weight:600;color:#92400e;margin-bottom:6px;">עובדים עם מסמכים עומדים לפוג (${warningWorkers.length})</div>`;
-    issueHtml += `<div class="card-list" style="margin-bottom:14px;">` +
-      warningWorkers.slice(0, 5).map(w =>
-        `<div class="card status-expiring" style="padding:10px 14px;">
-          <div class="card-avatar" style="width:32px;height:32px;font-size:13px;">${w.full_name.charAt(0)}</div>
-          <div class="card-body"><div class="card-name" style="font-size:14px;">${escHtml(w.full_name)}</div></div>
-          <div class="card-end"><span class="badge badge-expiring">עומד לפוג</span></div>
-        </div>`
-      ).join('') + `</div>`;
+    issueHtml += `<div class="card-list" style="margin-bottom:14px;">${
+      warningWorkers.slice(0,5).map(w=>`<div class="card status-expiring" style="padding:10px 14px" data-worker-id="${escHtml(w.id)}">
+        <div class="card-avatar" style="width:32px;height:32px;font-size:13px">${w.full_name.charAt(0)}</div>
+        <div class="card-body"><div class="card-name" style="font-size:14px">${escHtml(w.full_name)}</div></div>
+        <div class="card-end"><span class="badge badge-expiring">עומד לפוג</span>${CHEVRON}</div>
+      </div>`).join('')
+    }</div>`;
   }
-
   if (!issueHtml && total > 0) {
-    issueHtml = `<div class="empty" style="padding:30px 0;"><div class="empty-title" style="color:#16a34a;">כל הנתונים תקינים</div></div>`;
+    issueHtml = `<div class="empty" style="padding:24px 0"><div class="empty-title" style="color:#16a34a">כל העובדים תקינים</div></div>`;
   }
-
   issuesEl.innerHTML = issueHtml;
-}
 
-// ─── Escape HTML ─────────────────────────────────
-function escHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  const savedEl = document.getElementById('dash-saved');
+  const bestTs = snaps.workers?.ts || snaps.dashboard?.ts;
+  if (bestTs) savedEl.textContent = fmtSaved(bestTs);
 }
 
 // ─── Tab switching ───────────────────────────────
 function showTab(name) {
+  // Reset worker detail view when switching away
+  if (name !== 'workers') {
+    document.getElementById('workers-list-view').style.display = 'block';
+    document.getElementById('workers-detail-view').style.display = 'none';
+  }
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.section === name));
   document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'section-' + name));
-  // scroll active tab into view
   const activeTab = document.querySelector(`.tab[data-section="${name}"]`);
   if (activeTab) activeTab.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
 }
 
-// ─── Wire search inputs ──────────────────────────
-function wireSearch(inputId, renderFn, listId, data) {
-  const inp = document.getElementById(inputId);
-  const lst = document.getElementById(listId);
-  if (!inp || !lst) return;
-  inp.addEventListener('input', () => { lst.innerHTML = renderFn(data, inp.value); });
+// ─── Event delegation for worker clicks ─────────
+function setupWorkerClickDelegation() {
+  ['workers-list', 'dash-issues'].forEach(listId => {
+    const el = document.getElementById(listId);
+    if (el) el.addEventListener('click', e => {
+      const card = e.target.closest('[data-worker-id]');
+      if (!card) return;
+      const id = card.dataset.workerId;
+      // If clicking from dashboard, switch to workers tab first
+      if (listId === 'dash-issues') showTab('workers');
+      showWorkerDetail(id);
+    });
+  });
 }
 
 // ─── Init ────────────────────────────────────────
 (function init() {
   const snaps = {
-    workers:  loadSnap('workers'),
-    vehicles: loadSnap('vehicles'),
-    heavy:    loadSnap('heavy_equipment'),
-    lifting:  loadSnap('lifting_equipment'),
+    dashboard: loadSnap('dashboard'),
+    workers:   loadSnap('workers'),
+    vehicles:  loadSnap('vehicles'),
+    heavy:     loadSnap('heavy_equipment'),
+    lifting:   loadSnap('lifting_equipment'),
   };
 
-  // Workers
+  // Workers list
   const wData = snaps.workers?.data || [];
   document.getElementById('workers-subtitle').textContent = wData.length
-    ? `${wData.filter(w => w.is_active !== false).length} עובדים פעילים`
+    ? `${wData.filter(w=>w.is_active!==false).length} עובדים פעילים`
     : 'אין נתונים שמורים';
-  document.getElementById('workers-list').innerHTML = wData.length
-    ? renderWorkers(wData, '')
-    : emptyHtml('אין עובדים');
-  if (snaps.workers) document.getElementById('workers-saved').textContent = fmtSaved(snaps.workers.savedAt);
-  wireSearch('workers-search', renderWorkers, 'workers-list', wData);
+  document.getElementById('workers-list').innerHTML = wData.length ? renderWorkers(wData,'') : emptyHtml('אין עובדים שמורים');
+  if (snaps.workers) document.getElementById('workers-saved').textContent = fmtSaved(snaps.workers.ts);
+  document.getElementById('workers-search').addEventListener('input', e => {
+    document.getElementById('workers-list').innerHTML = renderWorkers(wData, e.target.value);
+  });
 
   // Vehicles
   const vData = snaps.vehicles?.data || [];
   document.getElementById('vehicles-subtitle').textContent = vData.length
-    ? `${vData.filter(v => v.is_active !== false).length} רכבים פעילים`
+    ? `${vData.filter(v=>v.is_active!==false).length} רכבים פעילים`
     : 'אין נתונים שמורים';
-  document.getElementById('vehicles-list').innerHTML = vData.length
-    ? renderVehicles(vData, '')
-    : emptyHtml('אין רכבים');
-  if (snaps.vehicles) document.getElementById('vehicles-saved').textContent = fmtSaved(snaps.vehicles.savedAt);
-  wireSearch('vehicles-search', renderVehicles, 'vehicles-list', vData);
+  document.getElementById('vehicles-list').innerHTML = vData.length ? renderVehicles(vData,'') : emptyHtml('אין רכבים שמורים');
+  if (snaps.vehicles) document.getElementById('vehicles-saved').textContent = fmtSaved(snaps.vehicles.ts);
+  document.getElementById('vehicles-search').addEventListener('input', e => {
+    document.getElementById('vehicles-list').innerHTML = renderVehicles(vData, e.target.value);
+  });
 
   // Heavy equipment
   const hData = snaps.heavy?.data || [];
   document.getElementById('heavy-subtitle').textContent = hData.length
-    ? `${hData.filter(e => e.is_active).length} פעילים`
+    ? `${hData.filter(e=>e.is_active).length} פעילים`
     : 'אין נתונים שמורים';
-  document.getElementById('heavy-list').innerHTML = hData.length
-    ? renderHeavy(hData, '')
-    : emptyHtml('אין כלי צמ"ה');
-  if (snaps.heavy) document.getElementById('heavy-saved').textContent = fmtSaved(snaps.heavy.savedAt);
-  wireSearch('heavy-search', renderHeavy, 'heavy-list', hData);
+  document.getElementById('heavy-list').innerHTML = hData.length ? renderHeavy(hData,'') : emptyHtml('אין כלי צמ"ה שמורים');
+  if (snaps.heavy) document.getElementById('heavy-saved').textContent = fmtSaved(snaps.heavy.ts);
+  document.getElementById('heavy-search').addEventListener('input', e => {
+    document.getElementById('heavy-list').innerHTML = renderHeavy(hData, e.target.value);
+  });
 
   // Lifting equipment
   const lData = snaps.lifting?.data || [];
   document.getElementById('lifting-subtitle').textContent = lData.length
-    ? `${lData.filter(e => e.is_active).length} פעילים`
+    ? `${lData.filter(e=>e.is_active).length} פעילים`
     : 'אין נתונים שמורים';
-  document.getElementById('lifting-list').innerHTML = lData.length
-    ? renderLifting(lData, '')
-    : emptyHtml('אין ציוד הרמה');
-  if (snaps.lifting) document.getElementById('lifting-saved').textContent = fmtSaved(snaps.lifting.savedAt);
-  wireSearch('lifting-search', renderLifting, 'lifting-list', lData);
+  document.getElementById('lifting-list').innerHTML = lData.length ? renderLifting(lData,'') : emptyHtml('אין ציוד הרמה שמור');
+  if (snaps.lifting) document.getElementById('lifting-saved').textContent = fmtSaved(snaps.lifting.ts);
+  document.getElementById('lifting-search').addEventListener('input', e => {
+    document.getElementById('lifting-list').innerHTML = renderLifting(lData, e.target.value);
+  });
 
   // Dashboard
   renderDashboard(snaps);
 
-  // Tab click handlers
+  // Tab handlers
   document.querySelectorAll('.tab').forEach(t => {
     t.addEventListener('click', () => showTab(t.dataset.section));
   });
 
-  // Route-based initial tab
-  const path = window.location.pathname;
-  let initialTab = 'dashboard';
-  if (path.startsWith('/workers'))          initialTab = 'workers';
-  else if (path.startsWith('/vehicles'))    initialTab = 'vehicles';
-  else if (path.startsWith('/heavy-equipment')) initialTab = 'heavy';
-  else if (path.startsWith('/lifting-equipment')) initialTab = 'lifting';
-  showTab(initialTab);
+  // Worker click delegation
+  setupWorkerClickDelegation();
 
-  // If connection comes back, reload the real app
+  // Initial tab based on URL path
+  const path = window.location.pathname;
+  let tab = 'dashboard';
+  if (path.startsWith('/workers'))              tab = 'workers';
+  else if (path.startsWith('/vehicles'))        tab = 'vehicles';
+  else if (path.startsWith('/heavy-equipment')) tab = 'heavy';
+  else if (path.startsWith('/lifting-equipment')) tab = 'lifting';
+  showTab(tab);
+
+  // If navigated to a specific worker route, open detail
+  if (path.startsWith('/workers/') && path.length > '/workers/'.length) {
+    const workerId = path.split('/workers/')[1].split('/')[0];
+    if (workerId) showWorkerDetail(workerId);
+  }
+
+  // Reload when connection returns
   window.addEventListener('online', () => window.location.reload());
 })();
 </script>

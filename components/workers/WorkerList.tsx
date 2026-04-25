@@ -175,12 +175,14 @@ export default function WorkerList() {
               {showInactive ? 'הסתר לא פעילים' : 'הצג לא פעילים'}
             </button>
           )}
-          <Link
-            href="/workers/new"
-            className="bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
-          >
-            + עובד חדש
-          </Link>
+          {isOnline && (
+            <Link
+              href="/workers/new"
+              className="bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
+            >
+              + עובד חדש
+            </Link>
+          )}
         </div>
       </div>
 

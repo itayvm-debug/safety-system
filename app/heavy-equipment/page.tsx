@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import HeavyEquipmentList from '@/components/heavy-equipment/HeavyEquipmentList';
+import { NewEntityButton } from '@/components/ui/NewEntityButton';
 
 export default function HeavyEquipmentPage() {
   return (
@@ -9,12 +9,7 @@ export default function HeavyEquipmentPage() {
           <h1 className="text-2xl font-bold text-gray-900">כלי צמ&quot;ה</h1>
           <p className="text-sm text-gray-500 mt-1">ניהול ציוד כבד ורכבי עבודה</p>
         </div>
-        <Link
-          href="/heavy-equipment/new"
-          className="bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors shrink-0"
-        >
-          + כלי צמ&quot;ה חדש
-        </Link>
+        <NewEntityButton href="/heavy-equipment/new" label='+ כלי צמ"ה חדש' />
       </div>
       <HeavyEquipmentList />
     </div>
