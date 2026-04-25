@@ -89,12 +89,14 @@ export default function VehicleList() {
               {showInactive ? 'הסתר לא פעילים' : 'הצג לא פעילים'}
             </button>
           )}
-          <Link
-            href="/vehicles/new"
-            className="bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-          >
-            + רכב חדש
-          </Link>
+          {isOnline && (
+            <Link
+              href="/vehicles/new"
+              className="bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+            >
+              + רכב חדש
+            </Link>
+          )}
         </div>
       </div>
 

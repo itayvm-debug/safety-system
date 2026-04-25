@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth/session';
 import Link from 'next/link';
 import { WorkerWithDocuments, Vehicle, HeavyEquipment, LiftingEquipment } from '@/types';
 import { buildAllIssues, countByEntity, EntityCounts } from '@/lib/documents/issues';
+import { DashboardOfflineCapture } from '@/components/pwa/DashboardOfflineCapture';
 
 export const dynamic = 'force-dynamic';
 
@@ -213,6 +214,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10" dir="rtl">
+      <DashboardOfflineCapture data={{
+        urgentTotal,
+        expiringTotal,
+        workersCount: workers.length,
+        vehiclesCount: vehicles.length,
+        heavyCount: heavy.length,
+        liftingCount: lifting.length,
+      }} />
 
       {/* Header */}
       <div className="mb-8">

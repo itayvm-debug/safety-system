@@ -13,6 +13,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 function LiftingEquipmentRow({ eq: initialEq }: { eq: LiftingEquipment }) {
   const router = useRouter();
+  const isOnline = useOnlineStatus();
   const [eq, setEq] = useState(initialEq);
   const [toggling, setToggling] = useState(false);
   const status = getLiftingEquipmentStatus(eq);
@@ -57,7 +58,7 @@ function LiftingEquipmentRow({ eq: initialEq }: { eq: LiftingEquipment }) {
       </div>
       <div className="flex items-center gap-2 shrink-0 mr-2">
         {!isInactive && <StatusBadge status={status} size="sm" />}
-        <ToggleSwitch checked={eq.is_active} onChange={handleToggle} disabled={toggling} />
+        <ToggleSwitch checked={eq.is_active} onChange={handleToggle} disabled={toggling || !isOnline} />
         <svg className="w-4 h-4 text-gray-300 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
