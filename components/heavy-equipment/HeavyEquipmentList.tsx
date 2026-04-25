@@ -8,7 +8,6 @@ import { getHeavyEquipmentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
 import { saveSnapshot, loadSnapshot } from '@/lib/offline/cache';
-import { createClient } from '@/lib/supabase/client';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 function HeavyEquipmentRow({ eq: initialEq }: { eq: HeavyEquipment }) {
@@ -87,11 +86,11 @@ export default function HeavyEquipmentList() {
       if (!navigator.onLine) { if (active) setLoading(false); return; }
 
       try {
-        const { data } = await createClient()
-          .from('heavy_equipment').select('*, subcontractor:subcontractors(id, name)').order('description');
+        const res = await fetch('/api/heavy-equipment');
+        if (!res.ok) throw new Error('fetch failed');
+        const data: HeavyEquipment[] = await res.json();
         if (active) {
-          const list = (data ?? []) as HeavyEquipment[];
-          setEquipment(list); setLoading(false); saveSnapshot('heavy_equipment', list);
+          setEquipment(data); setLoading(false); saveSnapshot('heavy_equipment', data);
         }
       } catch { if (active) setLoading(false); }
     }

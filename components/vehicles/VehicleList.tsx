@@ -6,10 +6,7 @@ import { Vehicle } from '@/types';
 import { getVehicleStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import { saveSnapshot, loadSnapshot } from '@/lib/offline/cache';
-import { createClient } from '@/lib/supabase/client';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-
-const VEHICLES_QUERY = '*, assigned_manager:workers!vehicles_assigned_manager_id_fkey(id, full_name), vehicle_licenses(*), vehicle_insurances(*)';
 
 export default function VehicleList() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -28,11 +25,12 @@ export default function VehicleList() {
       if (!navigator.onLine) { if (active) setLoading(false); return; }
 
       try {
-        const { data } = await createClient()
-          .from('vehicles').select(VEHICLES_QUERY).order('vehicle_number');
+        // Use API route (service client) to bypass RLS on nested tables
+        const res = await fetch('/api/vehicles');
+        if (!res.ok) throw new Error('fetch failed');
+        const data: Vehicle[] = await res.json();
         if (active) {
-          const list = (data ?? []) as Vehicle[];
-          setVehicles(list); setLoading(false); saveSnapshot('vehicles', list);
+          setVehicles(data); setLoading(false); saveSnapshot('vehicles', data);
         }
       } catch { if (active) setLoading(false); }
     }
