@@ -137,8 +137,6 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [worker.id]);
 
-  const overallStatus = getWorkerStatus(worker);
-
   const docMap = new Map<string, Document>(
     localDocs
       .filter((d) => d.doc_type !== 'optional_license')
@@ -154,6 +152,8 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
     is_responsible_site_manager: isResponsibleManager,
   } as WorkerWithDocuments;
 
+  // overall status derived from local state so badge updates immediately after uploads/changes
+  const overallStatus = getWorkerStatus(workerWithLocalData);
   const workerIssues = buildWorkerIssues(workerWithLocalData);
 
   const docIssues = workerIssues.filter(
