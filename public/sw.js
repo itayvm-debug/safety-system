@@ -1,13 +1,20 @@
-// SafeDoc Service Worker v3
+// SafeDoc Service Worker v4
 // Navigation + app pages: network-first (never serve stale HTML)
 // Static assets (icons, logo): cache-first (safe to cache indefinitely)
 // Supabase / API / Next.js chunks: always network (never intercepted)
+// Offline fallback: known app routes → offline-app.html (reads localStorage snapshots)
+//                   unknown routes   → offline.html
 
-const CACHE_VERSION = 'safedoc-v3';
+const CACHE_VERSION = 'safedoc-v4';
 const OFFLINE_URL = '/offline.html';
+const OFFLINE_APP_URL = '/offline-app.html';
+
+// Known app routes that have localStorage snapshots
+const APP_ROUTES = ['/', '/dashboard', '/workers', '/vehicles', '/heavy-equipment', '/lifting-equipment'];
 
 const PRECACHE = [
   '/offline.html',
+  '/offline-app.html',
   '/logo.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -79,10 +86,19 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() =>
-          caches.match(request)
-            .then((cached) => cached ?? caches.match(OFFLINE_URL))
-        )
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          const pathname = new URL(request.url).pathname;
+          const isAppRoute = APP_ROUTES.some(
+            (r) => pathname === r || pathname.startsWith(r + '/')
+          );
+          if (isAppRoute) {
+            const offlineApp = await caches.match(OFFLINE_APP_URL);
+            if (offlineApp) return offlineApp;
+          }
+          return caches.match(OFFLINE_URL);
+        })
     );
     return;
   }
