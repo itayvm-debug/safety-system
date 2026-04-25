@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ea580c" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>SafeDoc — מצב לא מקוון</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange: #ea580c;
+      --orange-light: #fff7ed;
+      --orange-border: #fed7aa;
+      --green: #16a34a;
+      --yellow: #ca8a04;
+      --red: #dc2626;
+      --gray-900: #111827;
+      --gray-700: #374151;
+      --gray-500: #6b7280;
+      --gray-400: #9ca3af;
+      --gray-200: #e5e7eb;
+      --gray-100: #f3f4f6;
+      --gray-50: #f9fafb;
+      --white: #ffffff;
+    }
+
+    html, body {
+      font-family: Arial, 'Helvetica Neue', sans-serif;
+      direction: rtl;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      min-height: 100dvh;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    /* ─── Header ────────────────────────────────── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+      padding: env(safe-area-inset-top, 0) 16px 0;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+    }
+
+    .app-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .offline-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: #fef9c3;
+      border: 1px solid #fde047;
+      color: #713f12;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    .offline-dot {
+      width: 7px;
+      height: 7px;
+      background: #ca8a04;
+      border-radius: 50%;
+    }
+
+    /* ─── Tabs ──────────────────────────────────── */
+    .tabs {
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      gap: 0;
+      border-top: 1px solid var(--gray-100);
+    }
+
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      flex-shrink: 0;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-500);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+      background: none;
+      border-top: none;
+      border-right: none;
+      border-left: none;
+    }
+
+    .tab.active {
+      color: var(--orange);
+      border-bottom-color: var(--orange);
+      font-weight: 600;
+    }
+
+    /* ─── Main content ──────────────────────────── */
+    .main {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 16px 16px env(safe-area-inset-bottom, 16px);
+    }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ─── Page header ───────────────────────────── */
+    .page-header {
+      margin-bottom: 16px;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .page-subtitle {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+
+    /* ─── Search ────────────────────────────────── */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 14px;
+    }
+
+    .search-icon {
+      position: absolute;
+      right: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      color: var(--gray-400);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 10px 36px 10px 14px;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      background: var(--white);
+      font-size: 14px;
+      color: var(--gray-900);
+      outline: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    .search-input:focus {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+    }
+
+    .search-input::placeholder { color: var(--gray-400); }
+
+    /* ─── Cards ─────────────────────────────────── */
+    .card-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--gray-100);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-right: 4px solid var(--gray-200);
+    }
+
+    .card.status-valid     { border-right-color: #22c55e; }
+    .card.status-expiring  { border-right-color: #eab308; }
+    .card.status-expired   { border-right-color: #ef4444; }
+    .card.status-missing   { border-right-color: #ef4444; }
+
+    .card-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #fed7aa;
+      color: var(--orange);
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .card-avatar.vehicle {
+      border-radius: 10px;
+      background: #dbeafe;
+      color: #3b82f6;
+    }
+
+    .card-avatar.equipment {
+      border-radius: 10px;
+      background: #f0fdf4;
+      color: #16a34a;
+    }
+
+    .card-avatar.lifting {
+      border-radius: 10px;
+      background: #fdf4ff;
+      color: #9333ea;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-900);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-meta {
+      font-size: 13px;
+      color: var(--gray-400);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-end { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+    /* ─── Status badge ──────────────────────────── */
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .badge-valid    { background: #dcfce7; color: #15803d; }
+    .badge-expiring { background: #fef9c3; color: #854d0e; }
+    .badge-expired  { background: #fee2e2; color: #b91c1c; }
+    .badge-missing  { background: #fee2e2; color: #b91c1c; }
+    .badge-ok       { background: var(--gray-100); color: var(--gray-500); }
+
+    /* ─── Inactive badge ────────────────────────── */
+    .badge-inactive { background: var(--gray-100); color: var(--gray-500); font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 20px; }
+
+    /* ─── Dashboard ─────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gray-900);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    .stat-card.red    .stat-number { color: var(--red); }
+    .stat-card.yellow .stat-number { color: var(--yellow); }
+    .stat-card.green  .stat-number { color: var(--green); }
+
+    /* ─── Empty states ──────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--gray-400);
+    }
+
+    .empty-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      opacity: 0.3;
+    }
+
+    .empty-title { font-size: 15px; font-weight: 600; color: var(--gray-500); margin-bottom: 4px; }
+    .empty-sub   { font-size: 13px; }
+
+    /* ─── Saved-at label ────────────────────────── */
+    .saved-at {
+      font-size: 12px;
+      color: var(--gray-400);
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    /* ─── Chevron ───────────────────────────────── */
+    .chevron {
+      width: 16px;
+      height: 16px;
+      color: var(--gray-300);
+      transform: rotate(180deg);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Header ─────────────────────────────────── -->
+<div class="header">
+  <div class="header-top">
+    <div class="logo-row">
+      <img src="/logo.png" alt="SafeDoc" class="logo-img" onerror="this.style.display='none'" />
+      <span class="app-title">SafeDoc</span>
+    </div>
+    <div class="offline-badge">
+      <span class="offline-dot"></span>
+      לא מקוון
+    </div>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab" data-section="dashboard">דשבורד</button>
+    <button class="tab" data-section="workers">עובדים</button>
+    <button class="tab" data-section="vehicles">רכבים</button>
+    <button class="tab" data-section="heavy">כלי צמ"ה</button>
+    <button class="tab" data-section="lifting">ציוד הרמה</button>
+  </div>
+</div>
+
+<!-- ─── Main ────────────────────────────────────── -->
+<div class="main">
+
+  <!-- Dashboard -->
+  <div class="section" id="section-dashboard">
+    <div class="page-header">
+      <div class="page-title">סיכום</div>
+      <div class="page-subtitle">נתונים שמורים — קריאה בלבד</div>
+    </div>
+    <div class="stats-grid" id="dash-stats"></div>
+    <div id="dash-issues"></div>
+  </div>
+
+  <!-- Workers -->
+  <div class="section" id="section-workers">
+    <div class="page-header">
+      <div class="page-title">עובדים</div>
+      <div class="page-subtitle" id="workers-subtitle"></div>
+    </div>
+    <div class="search-wrap">
+      <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input class="search-input" id="workers-search" type="search" placeholder="חיפוש לפי שם או ת.ז..." />
+    </div>
+    <div class="card-list" id="workers-list"></div>
+    <div class="saved-at" id="workers-saved"></div>
+  </div>
+
+  <!-- Vehicles -->
+  <div class="section" id="section-vehicles">
+    <div class="page-header">
+      <div class="page-title">רכבים</div>
+      <div class="page-subtitle" id="vehicles-subtitle"></div>
+    </div>
+    <div class="search-wrap">
+      <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input class="search-input" id="vehicles-search" type="search" placeholder="חיפוש לפי מספר, סוג..." />
+    </div>
+    <div class="card-list" id="vehicles-list"></div>
+    <div class="saved-at" id="vehicles-saved"></div>
+  </div>
+
+  <!-- Heavy equipment -->
+  <div class="section" id="section-heavy">
+    <div class="page-header">
+      <div class="page-title">כלי צמ"ה</div>
+      <div class="page-subtitle" id="heavy-subtitle"></div>
+    </div>
+    <div class="search-wrap">
+      <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input class="search-input" id="heavy-search" type="search" placeholder="חיפוש לפי תיאור, רישיון..." />
+    </div>
+    <div class="card-list" id="heavy-list"></div>
+    <div class="saved-at" id="heavy-saved"></div>
+  </div>
+
+  <!-- Lifting equipment -->
+  <div class="section" id="section-lifting">
+    <div class="page-header">
+      <div class="page-title">ציוד הרמה</div>
+      <div class="page-subtitle" id="lifting-subtitle"></div>
+    </div>
+    <div class="search-wrap">
+      <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input class="search-input" id="lifting-search" type="search" placeholder="חיפוש לפי תיאור..." />
+    </div>
+    <div class="card-list" id="lifting-list"></div>
+    <div class="saved-at" id="lifting-saved"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── Snapshot loader ─────────────────────────────
+const PREFIX = 'safedoc_snap_';
+const MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+
+function loadSnap(key) {
+  try {
+    const raw = localStorage.getItem(PREFIX + key);
+    if (!raw) return null;
+    const { data, savedAt } = JSON.parse(raw);
+    if (Date.now() - savedAt > MAX_AGE) { localStorage.removeItem(PREFIX + key); return null; }
+    return { data, savedAt };
+  } catch { return null; }
+}
+
+function fmtSaved(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return 'נשמר עכשיו';
+  if (mins < 60) return `נשמר לפני ${mins} דקות`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `נשמר לפני ${hrs} שעות`;
+  const days = Math.floor(hrs / 24);
+  return `נשמר לפני ${days} ימים`;
+}
+
+// ─── Status logic ────────────────────────────────
+function dateStatus(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const exp = new Date(dateStr); exp.setHours(0,0,0,0);
+  if (exp < today) return 'expired';
+  const diff = (exp - today) / 86400000;
+  if (diff <= 14) return 'expiring';
+  return 'valid';
+}
+
+function worstStatus(statuses) {
+  if (statuses.includes('expired'))  return 'expired';
+  if (statuses.includes('missing'))  return 'missing';
+  if (statuses.includes('expiring')) return 'expiring';
+  if (statuses.includes('valid'))    return 'valid';
+  return null;
+}
+
+function workerStatus(worker) {
+  const docs = worker.documents || [];
+  // Documents with expiry dates
+  const statuses = docs.map(d => dateStatus(d.expiry_date)).filter(Boolean);
+  // Check for missing required docs
+  const hasId     = docs.some(d => d.doc_type === 'id_document');
+  const hasHeight = docs.some(d => d.doc_type === 'height_permit');
+  const hasVisa   = docs.some(d => d.doc_type === 'work_visa');
+  if (!hasId) statuses.push('missing');
+  if (worker.is_foreign_worker && !hasVisa) statuses.push('missing');
+  return worstStatus(statuses) || 'valid';
+}
+
+function vehicleStatus(vehicle) {
+  const statuses = [];
+  (vehicle.vehicle_licenses || []).forEach(l => { const s = dateStatus(l.expiry_date); if (s) statuses.push(s); });
+  (vehicle.vehicle_insurances || []).forEach(i => { const s = dateStatus(i.expiry_date); if (s) statuses.push(s); });
+  return worstStatus(statuses) || 'valid';
+}
+
+function heavyStatus(eq) {
+  const statuses = [
+    dateStatus(eq.license_expiry),
+    dateStatus(eq.insurance_expiry),
+    dateStatus(eq.inspection_expiry),
+  ].filter(Boolean);
+  return worstStatus(statuses) || 'valid';
+}
+
+function liftingStatus(eq) {
+  const s = dateStatus(eq.inspection_expiry);
+  return s || 'valid';
+}
+
+// ─── Badge helpers ───────────────────────────────
+const STATUS_LABELS = { valid: 'תקין', expiring: 'עומד לפוג', expired: 'פג תוקף', missing: 'חסר' };
+const STATUS_BADGE  = { valid: 'valid', expiring: 'expiring', expired: 'expired', missing: 'missing' };
+
+function badge(status) {
+  const label = STATUS_LABELS[status] || '';
+  if (!label) return '';
+  return `<span class="badge badge-${STATUS_BADGE[status]}">${label}</span>`;
+}
+
+function cardClass(status) {
+  return 'card status-' + (status === 'expiring' ? 'expiring' : status);
+}
+
+// ─── SVG chevron ─────────────────────────────────
+const CHEVRON = `<svg class="chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>`;
+
+// ─── Render empty ────────────────────────────────
+function emptyHtml(msg) {
+  return `<div class="empty">
+    <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+    </svg>
+    <div class="empty-title">${msg}</div>
+    <div class="empty-sub">אין נתונים שמורים להצגה במצב לא מקוון</div>
+  </div>`;
+}
+
+// ─── Render workers ──────────────────────────────
+function renderWorkers(workers, query) {
+  const q = (query || '').trim();
+  const list = workers.filter(w => {
+    if (!q) return true;
+    return w.full_name.includes(q) ||
+      (w.national_id || '').includes(q) ||
+      (w.passport_number || '').includes(q);
+  });
+
+  if (!list.length) return emptyHtml(q ? 'לא נמצאו עובדים' : 'אין עובדים');
+
+  return list.map(w => {
+    const st = workerStatus(w);
+    const inactive = w.is_active === false;
+    const idLabel = w.is_foreign_worker ? 'דרכון' : 'ת.ז.';
+    const idVal = w.national_id || w.passport_number || '—';
+    const sub = w.subcontractor ? ` · ${w.subcontractor.name}` : '';
+    const proj = w.project_name ? ` · ${w.project_name}` : '';
+    return `<div class="${cardClass(st)}${inactive ? ' opacity-50' : ''}">
+      <div class="card-avatar">${w.full_name.charAt(0)}</div>
+      <div class="card-body">
+        <div class="card-name">${escHtml(w.full_name)}${inactive ? ` <span class="badge-inactive">לא פעיל</span>` : ''}</div>
+        <div class="card-meta">${idLabel} ${escHtml(idVal)} · ${w.is_foreign_worker ? 'עובד זר' : 'ישראלי'}${escHtml(sub)}${escHtml(proj)}</div>
+      </div>
+      <div class="card-end">${inactive ? '' : badge(st)}${CHEVRON}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Render vehicles ─────────────────────────────
+function renderVehicles(vehicles, query) {
+  const q = (query || '').trim().toLowerCase();
+  const list = vehicles.filter(v => {
+    if (!q) return true;
+    return v.vehicle_number.toLowerCase().includes(q) ||
+      v.vehicle_type.toLowerCase().includes(q) ||
+      (v.model || '').toLowerCase().includes(q);
+  });
+
+  if (!list.length) return emptyHtml(q ? 'לא נמצאו רכבים' : 'אין רכבים');
+
+  return list.map(v => {
+    const st = vehicleStatus(v);
+    const inactive = v.is_active === false;
+    const meta = [v.vehicle_type, v.model, v.assigned_manager?.full_name].filter(Boolean).join(' · ');
+    return `<div class="${cardClass(st)}${inactive ? ' opacity-50' : ''}">
+      <div class="card-avatar vehicle">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h8l2-2zm0 0l2-5 3 1v4h-5z"/>
+        </svg>
+      </div>
+      <div class="card-body">
+        <div class="card-name" dir="ltr">${escHtml(v.vehicle_number)}${inactive ? ` <span class="badge-inactive">לא פעיל</span>` : ''}</div>
+        <div class="card-meta">${escHtml(meta)}</div>
+      </div>
+      <div class="card-end">${inactive ? '' : badge(st)}${CHEVRON}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Render heavy equipment ──────────────────────
+function renderHeavy(list, query) {
+  const q = (query || '').trim();
+  const filtered = list.filter(e => {
+    if (!q) return true;
+    return e.description.includes(q) ||
+      (e.license_number || '').includes(q) ||
+      (e.machine_identifier || '').includes(q);
+  });
+
+  if (!filtered.length) return emptyHtml(q ? 'לא נמצא ציוד' : 'אין כלי צמ"ה');
+
+  return filtered.map(e => {
+    const st = heavyStatus(e);
+    const inactive = !e.is_active;
+    const meta = [
+      e.license_number ? `רישיון: ${e.license_number}` : null,
+      e.subcontractor?.name,
+      e.project_name,
+    ].filter(Boolean).join(' · ');
+    return `<div class="${cardClass(st)}${inactive ? ' opacity-50' : ''}">
+      <div class="card-avatar equipment">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${escHtml(e.description)}${inactive ? ` <span class="badge-inactive">לא פעיל</span>` : ''}</div>
+        <div class="card-meta">${escHtml(meta || '—')}</div>
+      </div>
+      <div class="card-end">${inactive ? '' : badge(st)}${CHEVRON}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Render lifting equipment ────────────────────
+function renderLifting(list, query) {
+  const q = (query || '').trim();
+  const filtered = list.filter(e => !q || e.description.includes(q));
+
+  if (!filtered.length) return emptyHtml(q ? 'לא נמצא ציוד' : 'אין ציוד הרמה');
+
+  return filtered.map(e => {
+    const st = liftingStatus(e);
+    const inactive = !e.is_active;
+    const meta = [e.subcontractor?.name, e.project_name].filter(Boolean).join(' · ');
+    return `<div class="${cardClass(st)}${inactive ? ' opacity-50' : ''}">
+      <div class="card-avatar lifting">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11a2 2 0 012 2v3m-7 13H17m0 0a2 2 0 100-4 2 2 0 000 4zm0 0v-4m4-10H11a1 1 0 00-1 1v5"/>
+        </svg>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${escHtml(e.description)}${inactive ? ` <span class="badge-inactive">לא פעיל</span>` : ''}</div>
+        <div class="card-meta">${escHtml(meta || '—')}</div>
+      </div>
+      <div class="card-end">${inactive ? '' : badge(st)}${CHEVRON}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Dashboard ───────────────────────────────────
+function renderDashboard(snaps) {
+  const workers  = (snaps.workers?.data  || []).filter(w => w.is_active !== false);
+  const vehicles = (snaps.vehicles?.data || []).filter(v => v.is_active !== false);
+  const heavy    = (snaps.heavy?.data    || []).filter(e => e.is_active !== false);
+  const lifting  = (snaps.lifting?.data  || []).filter(e => e.is_active !== false);
+
+  const wStatuses = workers.map(workerStatus);
+  const vStatuses = vehicles.map(vehicleStatus);
+  const hStatuses = heavy.map(heavyStatus);
+  const lStatuses = lifting.map(liftingStatus);
+
+  const allStatuses = [...wStatuses, ...vStatuses, ...hStatuses, ...lStatuses];
+  const total   = workers.length;
+  const expired  = wStatuses.filter(s => s === 'expired' || s === 'missing').length;
+  const expiring = wStatuses.filter(s => s === 'expiring').length;
+  const ok       = total - expired - expiring;
+
+  const statsEl = document.getElementById('dash-stats');
+  statsEl.innerHTML = `
+    <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">עובדים פעילים</div></div>
+    <div class="stat-card red"><div class="stat-number">${expired}</div><div class="stat-label">לא תקינים</div></div>
+    <div class="stat-card yellow"><div class="stat-number">${expiring}</div><div class="stat-label">עומדים לפוג</div></div>
+    <div class="stat-card green"><div class="stat-number">${ok}</div><div class="stat-label">תקינים</div></div>
+  `;
+
+  const issuesEl = document.getElementById('dash-issues');
+  const allIssues = allStatuses.filter(s => s !== 'valid');
+
+  if (allIssues.length === 0 && total === 0) {
+    issuesEl.innerHTML = emptyHtml('אין נתונים שמורים');
+    return;
+  }
+
+  let issueHtml = '';
+  const urgentWorkers   = workers.filter(w => { const s = workerStatus(w); return s === 'expired' || s === 'missing'; });
+  const warningWorkers  = workers.filter(w => workerStatus(w) === 'expiring');
+  const urgentVehicles  = vehicles.filter(v => { const s = vehicleStatus(v); return s === 'expired'; });
+  const urgentHeavy     = heavy.filter(e => { const s = heavyStatus(e); return s === 'expired'; });
+
+  if (urgentWorkers.length) {
+    issueHtml += `<div style="font-size:13px;font-weight:600;color:#b91c1c;margin-bottom:6px;">עובדים לא תקינים (${urgentWorkers.length})</div>`;
+    issueHtml += `<div class="card-list" style="margin-bottom:14px;">` +
+      urgentWorkers.slice(0, 5).map(w =>
+        `<div class="card status-expired" style="padding:10px 14px;">
+          <div class="card-avatar" style="width:32px;height:32px;font-size:13px;">${w.full_name.charAt(0)}</div>
+          <div class="card-body"><div class="card-name" style="font-size:14px;">${escHtml(w.full_name)}</div></div>
+          <div class="card-end"><span class="badge badge-expired">לא תקין</span></div>
+        </div>`
+      ).join('') + `</div>`;
+  }
+
+  if (warningWorkers.length) {
+    issueHtml += `<div style="font-size:13px;font-weight:600;color:#92400e;margin-bottom:6px;">עובדים עם מסמכים עומדים לפוג (${warningWorkers.length})</div>`;
+    issueHtml += `<div class="card-list" style="margin-bottom:14px;">` +
+      warningWorkers.slice(0, 5).map(w =>
+        `<div class="card status-expiring" style="padding:10px 14px;">
+          <div class="card-avatar" style="width:32px;height:32px;font-size:13px;">${w.full_name.charAt(0)}</div>
+          <div class="card-body"><div class="card-name" style="font-size:14px;">${escHtml(w.full_name)}</div></div>
+          <div class="card-end"><span class="badge badge-expiring">עומד לפוג</span></div>
+        </div>`
+      ).join('') + `</div>`;
+  }
+
+  if (!issueHtml && total > 0) {
+    issueHtml = `<div class="empty" style="padding:30px 0;"><div class="empty-title" style="color:#16a34a;">כל הנתונים תקינים</div></div>`;
+  }
+
+  issuesEl.innerHTML = issueHtml;
+}
+
+// ─── Escape HTML ─────────────────────────────────
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ─── Tab switching ───────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.section === name));
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'section-' + name));
+  // scroll active tab into view
+  const activeTab = document.querySelector(`.tab[data-section="${name}"]`);
+  if (activeTab) activeTab.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
+}
+
+// ─── Wire search inputs ──────────────────────────
+function wireSearch(inputId, renderFn, listId, data) {
+  const inp = document.getElementById(inputId);
+  const lst = document.getElementById(listId);
+  if (!inp || !lst) return;
+  inp.addEventListener('input', () => { lst.innerHTML = renderFn(data, inp.value); });
+}
+
+// ─── Init ────────────────────────────────────────
+(function init() {
+  const snaps = {
+    workers:  loadSnap('workers'),
+    vehicles: loadSnap('vehicles'),
+    heavy:    loadSnap('heavy_equipment'),
+    lifting:  loadSnap('lifting_equipment'),
+  };
+
+  // Workers
+  const wData = snaps.workers?.data || [];
+  document.getElementById('workers-subtitle').textContent = wData.length
+    ? `${wData.filter(w => w.is_active !== false).length} עובדים פעילים`
+    : 'אין נתונים שמורים';
+  document.getElementById('workers-list').innerHTML = wData.length
+    ? renderWorkers(wData, '')
+    : emptyHtml('אין עובדים');
+  if (snaps.workers) document.getElementById('workers-saved').textContent = fmtSaved(snaps.workers.savedAt);
+  wireSearch('workers-search', renderWorkers, 'workers-list', wData);
+
+  // Vehicles
+  const vData = snaps.vehicles?.data || [];
+  document.getElementById('vehicles-subtitle').textContent = vData.length
+    ? `${vData.filter(v => v.is_active !== false).length} רכבים פעילים`
+    : 'אין נתונים שמורים';
+  document.getElementById('vehicles-list').innerHTML = vData.length
+    ? renderVehicles(vData, '')
+    : emptyHtml('אין רכבים');
+  if (snaps.vehicles) document.getElementById('vehicles-saved').textContent = fmtSaved(snaps.vehicles.savedAt);
+  wireSearch('vehicles-search', renderVehicles, 'vehicles-list', vData);
+
+  // Heavy equipment
+  const hData = snaps.heavy?.data || [];
+  document.getElementById('heavy-subtitle').textContent = hData.length
+    ? `${hData.filter(e => e.is_active).length} פעילים`
+    : 'אין נתונים שמורים';
+  document.getElementById('heavy-list').innerHTML = hData.length
+    ? renderHeavy(hData, '')
+    : emptyHtml('אין כלי צמ"ה');
+  if (snaps.heavy) document.getElementById('heavy-saved').textContent = fmtSaved(snaps.heavy.savedAt);
+  wireSearch('heavy-search', renderHeavy, 'heavy-list', hData);
+
+  // Lifting equipment
+  const lData = snaps.lifting?.data || [];
+  document.getElementById('lifting-subtitle').textContent = lData.length
+    ? `${lData.filter(e => e.is_active).length} פעילים`
+    : 'אין נתונים שמורים';
+  document.getElementById('lifting-list').innerHTML = lData.length
+    ? renderLifting(lData, '')
+    : emptyHtml('אין ציוד הרמה');
+  if (snaps.lifting) document.getElementById('lifting-saved').textContent = fmtSaved(snaps.lifting.savedAt);
+  wireSearch('lifting-search', renderLifting, 'lifting-list', lData);
+
+  // Dashboard
+  renderDashboard(snaps);
+
+  // Tab click handlers
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => showTab(t.dataset.section));
+  });
+
+  // Route-based initial tab
+  const path = window.location.pathname;
+  let initialTab = 'dashboard';
+  if (path.startsWith('/workers'))          initialTab = 'workers';
+  else if (path.startsWith('/vehicles'))    initialTab = 'vehicles';
+  else if (path.startsWith('/heavy-equipment')) initialTab = 'heavy';
+  else if (path.startsWith('/lifting-equipment')) initialTab = 'lifting';
+  showTab(initialTab);
+
+  // If connection comes back, reload the real app
+  window.addEventListener('online', () => window.location.reload());
+})();
+</script>
+</body>
+</html>
