@@ -93,7 +93,9 @@ export default function WorkerList() {
         (w.national_id ?? '').includes(search) ||
         (w.passport_number ?? '').includes(search);
       const status = getWorkerStatus(w);
-      const matchesFilter = filter === 'all' || status === filter;
+      const matchesFilter =
+        filter === 'all' ||
+        (filter === 'expired' ? (status === 'expired' || status === 'missing') : status === filter);
       // סינון קבלן: על בסיס קבלן אפקטיבי (ישיר או בירושה)
       const matchesSub = !subcontractorFilter || (() => {
         const eff = getEffectiveSubcontractor(w, workersById);

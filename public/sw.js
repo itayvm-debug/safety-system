@@ -1,11 +1,12 @@
-// SafeDoc Service Worker v4
+// SafeDoc Service Worker v5
 // Navigation + app pages: network-first (never serve stale HTML)
-// Static assets (icons, logo): cache-first (safe to cache indefinitely)
-// Supabase / API / Next.js chunks: always network (never intercepted)
+// Static assets (icons, logo, _next/static bundles): cache-first
+// Supabase / API / _next/data: always network (never intercepted)
 // Offline fallback: known app routes → offline-app.html (reads localStorage snapshots)
 //                   unknown routes   → offline.html
+// iOS fix: strip Cache-Control before caching so iOS Safari doesn't silently drop the response
 
-const CACHE_VERSION = 'safedoc-v4';
+const CACHE_VERSION = 'safedoc-v5';
 const OFFLINE_URL = '/offline.html';
 const OFFLINE_APP_URL = '/offline-app.html';
 
@@ -62,11 +63,12 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Never intercept: Supabase, API routes, Next.js chunks, briefing templates
+  // Never intercept: Supabase, API routes, Next.js data fetches, briefing templates
+  // Note: /_next/static/ IS intercepted so JS bundles get SW-cached for offline use
   const passThrough =
     url.hostname.includes('supabase.co') ||
     url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/_next/') ||
+    url.pathname.startsWith('/_next/data/') ||
     url.pathname.startsWith('/briefing-templates/') ||
     url.pathname.includes('__nextjs');
 
@@ -79,10 +81,18 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_VERSION)
-              .then((c) => c.put(request, clone))
-              .catch(() => {});
+            // iOS Safari silently drops caches.put() when Cache-Control contains
+            // "no-store" or "private". Create a stripped copy before caching.
+            response.text().then((body) => {
+              const cacheable = new Response(body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: new Headers({
+                  'Content-Type': response.headers.get('Content-Type') || 'text/html; charset=utf-8',
+                }),
+              });
+              return caches.open(CACHE_VERSION).then((c) => c.put(request, cacheable));
+            }).catch(() => {});
           }
           return response;
         })
