@@ -10,12 +10,9 @@ import { getEffectiveSubcontractor, EffectiveSubcontractor } from '@/lib/workers
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
 import { saveSnapshot, loadSnapshot } from '@/lib/offline/cache';
-import { createClient } from '@/lib/supabase/client';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 type FilterType = 'all' | DocumentStatus;
-
-const WORKERS_QUERY = '*, documents(*), safety_briefings(*), height_restrictions(id,expires_at,created_at), professional_licenses(id,file_url,expiry_date,license_type), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name), lifting_machine_appointments(id), manager_licenses(*), vehicles(*, vehicle_licenses(*), vehicle_insurances(*))';
 
 export default function WorkerList() {
   const [workers, setWorkers] = useState<WorkerWithDocuments[]>([]);
@@ -31,18 +28,19 @@ export default function WorkerList() {
   useEffect(() => {
     let active = true;
     async function load() {
-      // Show cached data immediately (stale-while-revalidate)
+      // Show cached snapshot immediately while fetching
       const cached = loadSnapshot<WorkerWithDocuments[]>('workers');
       if (cached && active) { setWorkers(cached); setLoading(false); }
 
       if (!navigator.onLine) { if (active) setLoading(false); return; }
 
       try {
-        const { data } = await createClient()
-          .from('workers').select(WORKERS_QUERY).order('full_name');
+        // Use API route (service client) to bypass RLS on nested tables
+        const res = await fetch('/api/workers');
+        if (!res.ok) throw new Error('fetch failed');
+        const data: WorkerWithDocuments[] = await res.json();
         if (active) {
-          const list = (data ?? []) as WorkerWithDocuments[];
-          setWorkers(list); setLoading(false); saveSnapshot('workers', list);
+          setWorkers(data); setLoading(false); saveSnapshot('workers', data);
         }
       } catch { if (active) setLoading(false); }
     }

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       ? 'id, full_name, subcontractor_id'
       : subcontractorId
         ? 'id, full_name'
-        : `*, documents(*), safety_briefings(*), height_restrictions(*), lifting_machine_appointments(id), manager_licenses(*), vehicles(*, vehicle_licenses(*), vehicle_insurances(*)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
+        : `*, documents(*), safety_briefings(*), height_restrictions(*), professional_licenses(*), lifting_machine_appointments(id), manager_licenses(*), vehicles(*, vehicle_licenses(*), vehicle_insurances(*)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
     .order('full_name');
 
   if (managersOnly) {
