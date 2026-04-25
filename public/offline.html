@@ -1,104 +1,188 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="he">
+<html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#ea580c" />
   <title>SafeDoc — אין חיבור</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: Arial, 'Helvetica Neue', sans-serif;
-      direction: rtl;
-      background: #f8fafc;
-      color: #1e293b;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f8f8f8;
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 24px 16px;
+      color: #1a1a1a;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      padding: 36px 28px;
+      max-width: 420px;
+      width: 100%;
       text-align: center;
     }
 
     .logo {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-      margin-bottom: 24px;
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 20px;
+      border-radius: 14px;
+      overflow: hidden;
     }
-
-    .icon {
-      width: 64px;
-      height: 64px;
-      background: #fff7ed;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .logo img { width: 100%; height: 100%; object-fit: contain; }
+    .logo-fallback {
+      width: 56px; height: 56px;
+      background: #f97316;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 22px;
       margin: 0 auto 20px;
     }
 
-    h1 {
-      font-size: 22px;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 10px;
-    }
+    .wifi-icon { color: #d1d5db; margin: 0 auto 16px; }
 
-    p {
-      font-size: 15px;
-      color: #64748b;
-      line-height: 1.6;
-      max-width: 320px;
-      margin-bottom: 32px;
-    }
+    h1 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 8px; }
+    p  { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 24px; }
 
-    button {
-      background: #ea580c;
-      color: white;
+    .retry-btn {
+      display: inline-block;
+      background: #f97316;
+      color: #fff;
       font-size: 15px;
       font-weight: 600;
-      padding: 12px 32px;
+      padding: 12px 28px;
+      border-radius: 12px;
       border: none;
-      border-radius: 10px;
       cursor: pointer;
       transition: background 0.15s;
     }
-    button:hover { background: #c2410c; }
-    button:active { background: #9a3412; }
+    .retry-btn:hover { background: #ea6c0a; }
 
-    .company {
-      margin-top: 40px;
-      font-size: 12px;
-      color: #94a3b8;
+    .snapshot {
+      margin-top: 28px;
+      border-top: 1px solid #f0f0f0;
+      padding-top: 20px;
     }
+    .snapshot-title {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .snap-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .snap-box {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 12px 8px;
+      text-align: center;
+    }
+    .snap-num        { font-size: 22px; font-weight: 700; }
+    .snap-lbl        { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    .snap-num.red    { color: #dc2626; }
+    .snap-num.orange { color: #ea580c; }
+    .snap-num.blue   { color: #2563eb; }
+    .saved-at        { font-size: 11px; color: #c4c4c4; margin-top: 12px; }
   </style>
 </head>
 <body>
-  <img src="/logo.png" alt="לוגו נתן ולדמן ובניו" class="logo" onerror="this.style.display='none'" />
+  <div class="card">
+    <div id="logo-wrap"></div>
 
-  <div class="icon">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <svg class="wifi-icon" width="48" height="48" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <line x1="1" y1="1" x2="23" y2="23"/>
-      <path d="M16.72 11.06A10.94 10.94 0 0118 12.5"/>
-      <path d="M5 12.55a11 11 0 015.13-8.4"/>
-      <path d="M10.71 5.05A16 16 0 0122.56 9"/>
-      <path d="M1.42 9a16 16 0 014.7-2.88"/>
-      <path d="M8.53 16.11a6 6 0 016.95 0"/>
+      <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+      <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+      <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+      <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+      <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
       <line x1="12" y1="20" x2="12.01" y2="20"/>
     </svg>
+
+    <h1>אין חיבור לאינטרנט</h1>
+    <p>SafeDoc דורשת חיבור לאינטרנט כדי לטעון נתונים עדכניים.<br>בדוק את החיבור ונסה שוב.</p>
+
+    <button class="retry-btn" onclick="location.reload()">נסה שוב</button>
+
+    <div id="snapshot-section"></div>
   </div>
 
-  <h1>אין חיבור לאינטרנט</h1>
-  <p>
-    SafeDoc זקוקה לחיבור אינטרנט כדי לטעון נתוני בטיחות עדכניים.<br />
-    בדוק שה-Wi-Fi או הדאטה שלך פעילים ונסה שוב.
-  </p>
+  <script>
+    // Logo
+    var logoWrap = document.getElementById('logo-wrap');
+    var img = new Image();
+    img.onload = function() {
+      var d = document.createElement('div');
+      d.className = 'logo';
+      var i = document.createElement('img');
+      i.src = '/logo.png';
+      i.alt = 'SafeDoc';
+      d.appendChild(i);
+      logoWrap.appendChild(d);
+    };
+    img.onerror = function() {
+      var d = document.createElement('div');
+      d.className = 'logo-fallback';
+      d.textContent = 'S';
+      logoWrap.appendChild(d);
+    };
+    img.src = '/logo.png';
 
-  <button onclick="window.location.reload()">נסה שוב</button>
+    // Dashboard snapshot
+    try {
+      var raw = localStorage.getItem('safedoc_snap_dashboard');
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        var data = parsed.data;
+        var ts = parsed.ts;
 
-  <p class="company">SafeDoc · נתן ולדמן ובניו בע"מ</p>
+        if (data && typeof data.workersCount === 'number') {
+          var savedAgo = '';
+          if (ts && typeof ts === 'number' && !isNaN(ts)) {
+            var mins = Math.round((Date.now() - ts) / 60000);
+            if (mins < 1)         savedAgo = 'נשמר זה עתה';
+            else if (mins < 60)   savedAgo = 'נשמר לפני ' + mins + ' דקות';
+            else if (mins < 1440) savedAgo = 'נשמר לפני ' + Math.round(mins / 60) + ' שעות';
+            else                  savedAgo = 'נשמר לפני ' + Math.round(mins / 1440) + ' ימים';
+          }
+
+          var sec = document.getElementById('snapshot-section');
+          sec.innerHTML =
+            '<div class="snapshot">' +
+              '<div class="snapshot-title">מידע אחרון שנשמר</div>' +
+              '<div class="snap-grid">' +
+                '<div class="snap-box">' +
+                  '<div class="snap-num blue">' + data.workersCount + '</div>' +
+                  '<div class="snap-lbl">עובדים</div>' +
+                '</div>' +
+                '<div class="snap-box">' +
+                  '<div class="snap-num red">' + (data.urgentTotal || 0) + '</div>' +
+                  '<div class="snap-lbl">לא תקין</div>' +
+                '</div>' +
+                '<div class="snap-box">' +
+                  '<div class="snap-num orange">' + (data.expiringTotal || 0) + '</div>' +
+                  '<div class="snap-lbl">עומד לפוג</div>' +
+                '</div>' +
+              '</div>' +
+              (savedAgo ? '<div class="saved-at">' + savedAgo + '</div>' : '') +
+            '</div>';
+        }
+      }
+    } catch (e) {}
+
+    window.addEventListener('online', function() { location.reload(); });
+  </script>
 </body>
 </html>

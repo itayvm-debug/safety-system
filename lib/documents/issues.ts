@@ -71,7 +71,9 @@ export function buildWorkerIssues(worker: WorkerWithDocuments): Issue[] {
     if (docType === 'height_permit') continue;
     const doc = docMap.get(docType);
     const requiresExpiry = docType !== 'id_document';
-    const s = toIssue(getDocumentStatus(doc?.file_url ?? null, doc?.expiry_date ?? null, true, requiresExpiry));
+    // Respect is_required=false so non-required docs without files don't show as missing
+    const isRequired = docType === 'id_document' ? true : (doc ? doc.is_required !== false : true);
+    const s = toIssue(getDocumentStatus(doc?.file_url ?? null, doc?.expiry_date ?? null, isRequired, requiresExpiry));
     if (s) issues.push({ ...base, id: `worker-${worker.id}-${docType}`, status: s, problem: DOC_LABELS[docType] ?? docType });
   }
 

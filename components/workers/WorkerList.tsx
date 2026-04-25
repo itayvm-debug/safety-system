@@ -15,7 +15,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 type FilterType = 'all' | DocumentStatus;
 
-const WORKERS_QUERY = '*, documents(*), safety_briefings(*), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name), lifting_machine_appointments(id), manager_licenses(*), vehicles(*, vehicle_licenses(*), vehicle_insurances(*))';
+const WORKERS_QUERY = '*, documents(*), safety_briefings(*), height_restrictions(id,expires_at,created_at), professional_licenses(id,file_url,expiry_date,license_type), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name), lifting_machine_appointments(id), manager_licenses(*), vehicles(*, vehicle_licenses(*), vehicle_insurances(*))';
 
 export default function WorkerList() {
   const [workers, setWorkers] = useState<WorkerWithDocuments[]>([]);
