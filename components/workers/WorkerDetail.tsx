@@ -968,16 +968,17 @@ function DocumentCard({
   const [togglingRequired, setTogglingRequired] = useState(false);
   const [error, setError] = useState('');
 
-  // תאריך תוקף — נשמר אוטומטית כשמשתמש עוזב את השדה
   const [localExpiry, setLocalExpiry] = useState(document?.expiry_date ?? '');
   const [savingDate, setSavingDate] = useState(false);
   const [dateSaved, setDateSaved] = useState(false);
   const [dateError, setDateError] = useState('');
 
-  // סנכרון כאשר document.expiry_date מתעדכן מבחוץ (אחרי שמירה)
+  // sync when document.expiry_date changes after a save
   useEffect(() => {
     setLocalExpiry(document?.expiry_date ?? '');
   }, [document?.expiry_date]);
+
+  const hasUnsavedDate = localExpiry !== (document?.expiry_date ?? '');
 
   const isRequired = document?.is_required !== false;
   const statusFileUrl = document?.file_url ?? null;
@@ -987,10 +988,7 @@ function DocumentCard({
   const hasFile = !!document?.file_url;
   const showExpiry = docType !== 'id_document';
 
-  // value מגיע ישירות מ-e.target.value ב-onBlur — לא מ-state (שעלול להיות stale)
-  async function saveExpiry(value: string) {
-    const original = document?.expiry_date ?? '';
-    if (value === original) return;
+  async function saveExpiry() {
     setSavingDate(true);
     setDateError('');
     setDateSaved(false);
@@ -1002,7 +1000,7 @@ function DocumentCard({
           worker_id: workerId,
           doc_type: docType,
           file_url: document?.file_url ?? null,
-          expiry_date: value || null,
+          expiry_date: localExpiry || null,
           is_required: isRequired,
         }),
       });
@@ -1010,7 +1008,7 @@ function DocumentCard({
       if (!res.ok) { setDateError(data.error ?? 'שגיאה בשמירה'); return; }
       onFileUploaded(data);
       setDateSaved(true);
-      setTimeout(() => setDateSaved(false), 2000);
+      setTimeout(() => setDateSaved(false), 2500);
     } catch {
       setDateError('שגיאה בשמירה');
     } finally {
@@ -1111,22 +1109,39 @@ function DocumentCard({
         <StatusBadge status={status} size="sm" />
       </div>
 
-      {/* תאריך תוקף — נשמר אוטומטית */}
+      {/* תאריך תוקף */}
       {showExpiry && isRequired && (
-        <div className="flex items-center gap-2 mb-3">
-          <label className="text-sm text-gray-500 whitespace-nowrap">תוקף:</label>
-          <input
-            type="date"
-            value={localExpiry}
-            onChange={(e) => { if (isOnline) setLocalExpiry(e.target.value); }}
-            onBlur={(e) => { if (isOnline) saveExpiry(e.target.value); }}
-            readOnly={!isOnline}
-            className={`flex-1 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none ${isOnline ? 'focus:ring-2 focus:ring-orange-400' : 'bg-gray-50 text-gray-500 cursor-default'}`}
-            dir="ltr"
-          />
-          {savingDate && <span className="text-xs text-gray-400 whitespace-nowrap">שומר...</span>}
-          {dateSaved && !savingDate && <span className="text-xs text-green-600 whitespace-nowrap">✓ נשמר</span>}
-          {dateError && <span className="text-xs text-red-500 whitespace-nowrap">{dateError}</span>}
+        <div className="mb-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500 whitespace-nowrap">תוקף:</label>
+            <input
+              type="date"
+              value={localExpiry}
+              onChange={(e) => setLocalExpiry(e.target.value)}
+              readOnly={!isOnline}
+              className={`flex-1 px-2 py-1 border rounded-lg text-sm focus:outline-none ${
+                hasUnsavedDate
+                  ? 'border-orange-300 focus:ring-2 focus:ring-orange-400'
+                  : isOnline
+                  ? 'border-gray-200 focus:ring-2 focus:ring-orange-400'
+                  : 'border-gray-200 bg-gray-50 text-gray-500 cursor-default'
+              }`}
+              dir="ltr"
+            />
+            {isOnline && hasUnsavedDate && (
+              <button
+                onClick={saveExpiry}
+                disabled={savingDate}
+                className="shrink-0 text-xs px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
+              >
+                {savingDate ? 'שומר...' : 'שמור'}
+              </button>
+            )}
+            {dateSaved && !hasUnsavedDate && (
+              <span className="text-xs text-green-600 whitespace-nowrap shrink-0">✓ נשמר</span>
+            )}
+          </div>
+          {dateError && <p className="text-xs text-red-500 mt-1">{dateError}</p>}
         </div>
       )}
 
