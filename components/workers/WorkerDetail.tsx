@@ -971,6 +971,7 @@ function DocumentCard({
   // תאריך תוקף — נשמר אוטומטית כשמשתמש עוזב את השדה
   const [localExpiry, setLocalExpiry] = useState(document?.expiry_date ?? '');
   const [savingDate, setSavingDate] = useState(false);
+  const [dateSaved, setDateSaved] = useState(false);
   const [dateError, setDateError] = useState('');
 
   // סנכרון כאשר document.expiry_date מתעדכן מבחוץ (אחרי שמירה)
@@ -986,11 +987,13 @@ function DocumentCard({
   const hasFile = !!document?.file_url;
   const showExpiry = docType !== 'id_document';
 
-  async function handleDateBlur() {
+  // value מגיע ישירות מ-e.target.value ב-onBlur — לא מ-state (שעלול להיות stale)
+  async function saveExpiry(value: string) {
     const original = document?.expiry_date ?? '';
-    if (localExpiry === original) return;
+    if (value === original) return;
     setSavingDate(true);
     setDateError('');
+    setDateSaved(false);
     try {
       const res = await fetch('/api/documents', {
         method: 'POST',
@@ -999,13 +1002,15 @@ function DocumentCard({
           worker_id: workerId,
           doc_type: docType,
           file_url: document?.file_url ?? null,
-          expiry_date: localExpiry || null,
+          expiry_date: value || null,
           is_required: isRequired,
         }),
       });
       const data = await res.json();
       if (!res.ok) { setDateError(data.error ?? 'שגיאה בשמירה'); return; }
       onFileUploaded(data);
+      setDateSaved(true);
+      setTimeout(() => setDateSaved(false), 2000);
     } catch {
       setDateError('שגיאה בשמירה');
     } finally {
@@ -1114,12 +1119,13 @@ function DocumentCard({
             type="date"
             value={localExpiry}
             onChange={(e) => { if (isOnline) setLocalExpiry(e.target.value); }}
-            onBlur={() => { if (isOnline) handleDateBlur(); }}
+            onBlur={(e) => { if (isOnline) saveExpiry(e.target.value); }}
             readOnly={!isOnline}
             className={`flex-1 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none ${isOnline ? 'focus:ring-2 focus:ring-orange-400' : 'bg-gray-50 text-gray-500 cursor-default'}`}
             dir="ltr"
           />
           {savingDate && <span className="text-xs text-gray-400 whitespace-nowrap">שומר...</span>}
+          {dateSaved && !savingDate && <span className="text-xs text-green-600 whitespace-nowrap">✓ נשמר</span>}
           {dateError && <span className="text-xs text-red-500 whitespace-nowrap">{dateError}</span>}
         </div>
       )}
