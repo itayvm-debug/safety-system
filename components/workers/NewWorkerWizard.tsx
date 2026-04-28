@@ -159,19 +159,23 @@ export default function NewWorkerWizard() {
 
       workerCreatedRef.current = true;
 
-      // קישור מסמך הזהות לעובד — best-effort, רק אם הועלה קובץ
+      // קישור מסמך הזהות לעובד — מחכים לסיום כדי שיופיע מיד בדף העובד
       if (uploadedPath) {
-        fetch('/api/documents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            worker_id: workerData.id,
-            doc_type: 'id_document',
-            file_url: uploadedPath,
-            expiry_date: null,
-            is_required: true,
-          }),
-        }).catch(() => {});
+        try {
+          await fetch('/api/documents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              worker_id: workerData.id,
+              doc_type: 'id_document',
+              file_url: uploadedPath,
+              expiry_date: null,
+              is_required: true,
+            }),
+          });
+        } catch {
+          // best-effort — לא חוסמים ניווט אם הקישור נכשל
+        }
       }
 
       router.push(`/workers/${workerData.id}`);
