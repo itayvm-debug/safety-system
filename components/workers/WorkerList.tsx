@@ -259,7 +259,6 @@ export default function WorkerList() {
         <ManagerFilterHeader
           manager={selectedManagerWorker}
           workerCount={managerWorkerCount}
-          photoUrl={undefined}
           onClear={() => setManagerFilter('')}
         />
       )}
@@ -294,7 +293,6 @@ export default function WorkerList() {
             <WorkerCard
               key={worker.id}
               worker={worker}
-              photoUrl={undefined}
               effectiveSub={getEffectiveSubcontractor(worker, workersById)}
             />
           ))}
@@ -308,15 +306,24 @@ export default function WorkerList() {
 function ManagerFilterHeader({
   manager,
   workerCount,
-  photoUrl,
   onClear,
 }: {
   manager: WorkerWithDocuments;
   workerCount: number;
-  photoUrl?: string;
   onClear: () => void;
 }) {
   const status = getWorkerStatus(manager);
+  const [photoSrc, setPhotoSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!manager.photo_url) return;
+    let cancelled = false;
+    fetch(`/api/signed-url?path=${encodeURIComponent(manager.photo_url)}`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d.url) setPhotoSrc(d.url); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [manager.photo_url]);
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
@@ -336,9 +343,9 @@ function ManagerFilterHeader({
       </div>
       <Link href={`/workers/${manager.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
         <div className="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center font-bold text-blue-800 text-lg overflow-hidden flex-shrink-0">
-          {photoUrl ? (
+          {photoSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt={manager.full_name} className="w-12 h-12 object-cover" />
+            <img src={photoSrc} alt={manager.full_name} className="w-12 h-12 object-cover" />
           ) : (
             manager.full_name.charAt(0)
           )}
@@ -411,18 +418,27 @@ function SubcontractorFilterHeader({
 
 function WorkerCard({
   worker,
-  photoUrl,
   effectiveSub,
 }: {
   worker: WorkerWithDocuments;
-  photoUrl?: string;
   effectiveSub?: EffectiveSubcontractor | null;
 }) {
   const router = useRouter();
   const [isActive, setIsActive] = useState(worker.is_active !== false);
   const [toggling, setToggling] = useState(false);
+  const [photoSrc, setPhotoSrc] = useState<string | null>(null);
   const status = getWorkerStatus(worker);
   const isInactive = !isActive;
+
+  useEffect(() => {
+    if (!worker.photo_url) return;
+    let cancelled = false;
+    fetch(`/api/signed-url?path=${encodeURIComponent(worker.photo_url)}`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d.url) setPhotoSrc(d.url); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [worker.photo_url]);
 
   const leftBorder: Record<string, string> = {
     valid: 'border-r-green-500',
@@ -456,9 +472,9 @@ function WorkerCard({
     >
       <div className="flex items-center gap-3 min-w-0">
         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0 overflow-hidden ${isInactive ? 'bg-gray-100 text-gray-400' : 'bg-orange-100 text-orange-700'}`}>
-          {photoUrl ? (
+          {photoSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt={worker.full_name} className="w-10 h-10 object-cover" />
+            <img src={photoSrc} alt={worker.full_name} className="w-10 h-10 object-cover" />
           ) : (
             worker.full_name.charAt(0)
           )}
