@@ -268,6 +268,16 @@ export default function NewWorkerWizard() {
           className="hidden"
           onChange={handleFileSelect}
         />
+
+        <div className="text-center">
+          <button
+            onClick={() => { setAiSkipped(true); setStep('review'); }}
+            disabled={uploading}
+            className="text-sm text-gray-400 hover:text-gray-600 disabled:opacity-50 transition-colors"
+          >
+            דלג/י על העלאת מסמך
+          </button>
+        </div>
       </div>
     );
   }
