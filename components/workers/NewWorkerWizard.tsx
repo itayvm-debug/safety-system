@@ -45,6 +45,10 @@ export default function NewWorkerWizard() {
 
   const [step, setStep] = useState<Step>('doc-type');
   const [docType, setDocType] = useState<DocType>('israeli_id');
+  const [skippedDocUpload, setSkippedDocUpload] = useState(false);
+  // כשדילגו על בחירת מסמך — המשתמש בוחר ישראלי/זר בטופס
+  const [workerTypeOverride, setWorkerTypeOverride] = useState<'israeli' | 'foreign'>('israeli');
+
   const [uploadedPath, setUploadedPath] = useState<string | null>(null);
   const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
   const [aiSkipped, setAiSkipped] = useState(false);
@@ -135,7 +139,6 @@ export default function NewWorkerWizard() {
     setSaving(true);
     setSaveError('');
     try {
-      const isForeign = docType === 'passport';
       const res = await fetch('/api/workers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -156,7 +159,7 @@ export default function NewWorkerWizard() {
 
       workerCreatedRef.current = true;
 
-      // קישור מסמך הזהות לעובד — best-effort
+      // קישור מסמך הזהות לעובד — best-effort, רק אם הועלה קובץ
       if (uploadedPath) {
         fetch('/api/documents', {
           method: 'POST',
@@ -179,7 +182,11 @@ export default function NewWorkerWizard() {
     }
   }
 
-  const isForeign = docType === 'passport';
+  // כאשר דילגו — המשתמש קובע ישראלי/זר בטופס; אחרת — לפי בחירת המסמך
+  const isForeign = skippedDocUpload
+    ? workerTypeOverride === 'foreign'
+    : docType === 'passport';
+
   const hasExtracted = !!extraction?.success && !!extraction?.extracted && !aiSkipped;
 
   // ── שלב 1: בחירת סוג מסמך ──────────────────────────────────────
@@ -212,7 +219,20 @@ export default function NewWorkerWizard() {
             </div>
           </button>
         </div>
-        <p className="text-xs text-gray-400 text-center">המערכת תנסה לזהות פרטים אוטומטית מהמסמך</p>
+
+        {/* כפתור דילוג — משני, מתחת לכרטיסים */}
+        <div className="text-center pt-1">
+          <button
+            onClick={() => {
+              setSkippedDocUpload(true);
+              setAiSkipped(true);
+              setStep('review');
+            }}
+            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            דלג/י על העלאת מסמך (ניתן להוסיף בהמשך)
+          </button>
+        </div>
       </div>
     );
   }
@@ -268,16 +288,6 @@ export default function NewWorkerWizard() {
           className="hidden"
           onChange={handleFileSelect}
         />
-
-        <div className="text-center">
-          <button
-            onClick={() => { setAiSkipped(true); setStep('review'); }}
-            disabled={uploading}
-            className="text-sm text-gray-400 hover:text-gray-600 disabled:opacity-50 transition-colors"
-          >
-            דלג/י על העלאת מסמך
-          </button>
-        </div>
       </div>
     );
   }
@@ -303,14 +313,7 @@ export default function NewWorkerWizard() {
         {hasExtracted ? (
           <p className="text-sm text-green-600 mt-0.5">✓ פרטים זוהו אוטומטית — אנא בדוק ואשר</p>
         ) : (
-          <p className="text-sm text-gray-500 mt-0.5">
-            {aiSkipped ? 'מלא את פרטי העובד ידנית' : 'מלא את פרטי העובד'}
-          </p>
-        )}
-        {aiSkipped && !extraction && (
-          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
-            זיהוי אוטומטי לא היה אפשרי — נא למלא ידנית
-          </p>
+          <p className="text-sm text-gray-500 mt-0.5">מלא את פרטי העובד</p>
         )}
       </div>
 
@@ -319,6 +322,32 @@ export default function NewWorkerWizard() {
           {extraction.warnings.map((w, i) => (
             <p key={i} className="text-xs text-amber-700">⚠ {w}</p>
           ))}
+        </div>
+      )}
+
+      {/* בחירת סוג עובד — מוצג רק כשדילגו על שלב המסמך */}
+      {skippedDocUpload && (
+        <div className="flex gap-2 bg-gray-50 border border-gray-200 rounded-xl p-1">
+          <button
+            onClick={() => { setWorkerTypeOverride('israeli'); setNationalId(''); setPassportNumber(''); }}
+            className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+              workerTypeOverride === 'israeli'
+                ? 'bg-white text-gray-900 font-medium shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            🇮🇱 עובד ישראלי
+          </button>
+          <button
+            onClick={() => { setWorkerTypeOverride('foreign'); setNationalId(''); setPassportNumber(''); }}
+            className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+              workerTypeOverride === 'foreign'
+                ? 'bg-white text-gray-900 font-medium shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            🌍 עובד זר
+          </button>
         </div>
       )}
 
@@ -400,13 +429,15 @@ export default function NewWorkerWizard() {
         />
       </div>
 
-      {/* סוג עובד (read-only) */}
-      <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-        <span>{isForeign ? '🌍' : '🇮🇱'}</span>
-        <span>
-          סוג עובד: <strong>{isForeign ? 'עובד זר' : 'עובד ישראלי'}</strong>
-        </span>
-      </div>
+      {/* סוג עובד — read-only כשהגיע מבחירת מסמך */}
+      {!skippedDocUpload && (
+        <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+          <span>{isForeign ? '🌍' : '🇮🇱'}</span>
+          <span>
+            סוג עובד: <strong>{isForeign ? 'עובד זר' : 'עובד ישראלי'}</strong>
+          </span>
+        </div>
+      )}
 
       {saveError && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
