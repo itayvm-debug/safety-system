@@ -1,4 +1,4 @@
-import WorkerForm from '@/components/workers/WorkerForm';
+import NewWorkerWizard from '@/components/workers/NewWorkerWizard';
 import Link from 'next/link';
 
 export default function NewWorkerPage() {
@@ -11,7 +11,7 @@ export default function NewWorkerPage() {
       </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">עובד חדש</h1>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <WorkerForm />
+        <NewWorkerWizard />
       </div>
     </div>
   );

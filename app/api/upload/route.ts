@@ -72,3 +72,16 @@ export async function POST(request: NextRequest) {
   console.log('[upload] success, path:', fileName);
   return NextResponse.json({ path: fileName });
 }
+
+export async function DELETE(request: NextRequest) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return authError;
+
+  const path = request.nextUrl.searchParams.get('path');
+  if (!path) return NextResponse.json({ error: 'path נדרש' }, { status: 400 });
+
+  const supabase = createServiceClient();
+  const { error } = await supabase.storage.from('worker-files').remove([path]);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
