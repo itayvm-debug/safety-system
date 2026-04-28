@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   HeightRestriction,
   BriefingLanguage,
@@ -9,24 +8,18 @@ import {
   WorkerWithDocuments,
 } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
-import { format, parseISO, differenceInDays, startOfDay, addYears } from 'date-fns';
+import { getHeightRestrictionStatus } from '@/lib/documents/status';
+import { format, parseISO, addYears } from 'date-fns';
 import { he } from 'date-fns/locale';
 
 interface Props {
   worker: WorkerWithDocuments;
   restrictions: HeightRestriction[];
+  onRestrictionAdded?: (r: HeightRestriction) => void;
+  onRestrictionDeleted?: (id: string) => void;
 }
 
-function getRestrictionStatus(r: HeightRestriction) {
-  const today = startOfDay(new Date());
-  const expiry = startOfDay(parseISO(r.expires_at));
-  const daysLeft = differenceInDays(expiry, today);
-  if (daysLeft < 0) return 'expired' as const;
-  if (daysLeft <= 14) return 'expiring_soon' as const;
-  return 'valid' as const;
-}
-
-export default function HeightBanCard({ worker, restrictions }: Props) {
+export default function HeightBanCard({ worker, restrictions, onRestrictionAdded, onRestrictionDeleted }: Props) {
   const [localRestrictions, setLocalRestrictions] = useState<HeightRestriction[]>(restrictions);
   const [formOpen, setFormOpen] = useState(false);
 
@@ -41,7 +34,10 @@ export default function HeightBanCard({ worker, restrictions }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ restriction_id: id }),
     });
-    if (res.ok) setLocalRestrictions((prev) => prev.filter((r) => r.id !== id));
+    if (res.ok) {
+      setLocalRestrictions((prev) => prev.filter((r) => r.id !== id));
+      onRestrictionDeleted?.(id);
+    }
   }
 
   function close() { setFormOpen(false); }
@@ -63,7 +59,7 @@ export default function HeightBanCard({ worker, restrictions }: Props) {
                 <p className="text-sm text-gray-500">מדריך: {latest.conducted_by}</p>
               )}
             </div>
-            <StatusBadge status={getRestrictionStatus(latest)} size="sm" />
+            <StatusBadge status={getHeightRestrictionStatus(latest)} size="sm" />
           </div>
           <div className="flex gap-2 mt-2">
             {latest.file_url && (
@@ -81,7 +77,7 @@ export default function HeightBanCard({ worker, restrictions }: Props) {
 
       {/* טופס הפקה */}
       {formOpen ? (
-        <HeightBanForm worker={worker} onDone={(r) => { setLocalRestrictions((prev) => [r, ...prev]); close(); }} onCancel={close} />
+        <HeightBanForm worker={worker} onDone={(r) => { setLocalRestrictions((prev) => [r, ...prev]); onRestrictionAdded?.(r); close(); }} onCancel={close} />
       ) : (
         <button
           onClick={() => setFormOpen(true)}

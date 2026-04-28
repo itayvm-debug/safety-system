@@ -7,6 +7,7 @@ import {
   WorkerWithDocuments,
   Document,
   DocumentType,
+  HeightRestriction,
   Subcontractor,
   ALL_DOCUMENT_TYPES,
   DOCUMENT_TYPE_LABELS,
@@ -130,6 +131,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   const [localManagerId, setLocalManagerId] = useState<string | null>(worker.responsible_manager_id ?? null);
   const [localAppointments, setLocalAppointments] = useState(worker.lifting_machine_appointments ?? []);
   const [localDocs, setLocalDocs] = useState<Document[]>(worker.documents);
+  const [localHeightRestrictions, setLocalHeightRestrictions] = useState<HeightRestriction[]>(worker.height_restrictions ?? []);
 
   // Save full per-worker snapshot so it's available offline
   useEffect(() => {
@@ -148,6 +150,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
     ...worker,
     documents: localDocs,
     lifting_machine_appointments: localAppointments,
+    height_restrictions: localHeightRestrictions,
     is_crane_operator: isCraneOperator,
     is_responsible_site_manager: isResponsibleManager,
   } as WorkerWithDocuments;
@@ -354,7 +357,9 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
             <h3 className="text-sm font-semibold text-gray-700 mb-2">איסור עבודה בגובה</h3>
             <HeightBanCard
               worker={worker}
-              restrictions={worker.height_restrictions ?? []}
+              restrictions={localHeightRestrictions}
+              onRestrictionAdded={(r) => setLocalHeightRestrictions((prev) => [r, ...prev])}
+              onRestrictionDeleted={(id) => setLocalHeightRestrictions((prev) => prev.filter((r) => r.id !== id))}
             />
           </div>
         </div>
