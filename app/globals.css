@@ -12,3 +12,11 @@ body {
 input, textarea, select {
   text-align: right;
 }
+
+@keyframes loginFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.login-card-anim {
+  animation: loginFadeIn 0.4s ease-out forwards;
+}
