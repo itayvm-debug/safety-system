@@ -1,3 +1,17 @@
+export type UserRole = 'admin' | 'user';
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  username: string | null;
+  email: string;
+  role: UserRole;
+  job_title: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Subcontractor {
   id: string;
   name: string;

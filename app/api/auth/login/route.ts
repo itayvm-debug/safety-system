@@ -1,57 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import {
   signSession,
   SESSION_COOKIE_NAME,
   ROLE_COOKIE_NAME,
   COOKIE_MAX_AGE,
 } from '@/lib/auth/session';
+import { createServiceClient } from '@/lib/supabase/server';
 
-function normalizePhone(phone: string): string {
-  return phone.replace(/[\s\-\(\)\.]/g, '');
-}
+const GENERIC_ERROR = 'שם משתמש או סיסמה שגויים';
+const INACTIVE_ERROR = 'המשתמש הושבת. פנה למנהל המערכת.';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const phone = String(body.phone ?? '').trim();
+    const identifier = String(body.identifier ?? '').trim().toLowerCase();
     const password = String(body.password ?? '');
 
-    if (!phone || !password) {
-      return NextResponse.json({ error: 'מספר טלפון וסיסמה נדרשים' }, { status: 400 });
+    if (!identifier || !password) {
+      return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
     }
 
-    const normalized = normalizePhone(phone);
-    const adminPhone = normalizePhone(process.env.ADMIN_PHONE ?? '');
-    const viewerPhone = normalizePhone(process.env.VIEWER_PHONE ?? '');
+    const service = createServiceClient();
 
-    console.log('[login] received phone:', normalized);
-    console.log('[login] ADMIN_PHONE env:', adminPhone || '(not set)');
-    console.log('[login] VIEWER_PHONE env:', viewerPhone || '(not set)');
-    console.log('[login] SESSION_SECRET set:', !!process.env.SESSION_SECRET);
+    // username → email: אם אין @ בקלט, חפש לפי username בטבלת profiles
+    let email = identifier;
+    if (!identifier.includes('@')) {
+      const { data: profileByUsername } = await service
+        .from('profiles')
+        .select('email')
+        .eq('username', identifier) // username מאוחסן lowercase
+        .single();
 
-    let role: 'admin' | 'viewer' | null = null;
-
-    if (normalized === adminPhone && password === process.env.ADMIN_PASSWORD) {
-      role = 'admin';
-    } else if (normalized === viewerPhone && password === process.env.VIEWER_PASSWORD) {
-      role = 'viewer';
+      if (!profileByUsername?.email) {
+        await new Promise(r => setTimeout(r, 500));
+        return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
+      }
+      email = profileByUsername.email;
     }
 
-    if (!role) {
-      console.log('[login] auth failed — no role match for phone:', normalized);
-      // עיכוב קצר — מניעת timing attacks
+    // אימות credentials מול Supabase Auth (anon key — לא service role)
+    const authClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (authError || !authData.user) {
       await new Promise(r => setTimeout(r, 500));
-      return NextResponse.json({ error: 'מספר טלפון או סיסמה שגויים' }, { status: 401 });
+      return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
     }
 
-    console.log('[login] auth success, role:', role);
+    // קריאת profile מהטבלה — role + is_active
+    const { data: profile } = await service
+      .from('profiles')
+      .select('id, full_name, username, email, role, is_active')
+      .eq('id', authData.user.id)
+      .single();
 
-    const token = await signSession({ role, phone: normalized, loginAt: Date.now() });
+    if (!profile) {
+      await new Promise(r => setTimeout(r, 500));
+      return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
+    }
+
+    if (!profile.is_active) {
+      return NextResponse.json({ error: INACTIVE_ERROR }, { status: 403 });
+    }
+
+    const token = await signSession({
+      userId: profile.id,
+      email: profile.email,
+      username: profile.username ?? '',
+      role: profile.role as 'admin' | 'user',
+      loginAt: Date.now(),
+    });
+
     const isProd = process.env.NODE_ENV === 'production';
+    const response = NextResponse.json({ role: profile.role });
 
-    const response = NextResponse.json({ role });
-
-    // session cookie — HttpOnly (server-side validation)
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
       value: token,
@@ -62,10 +91,9 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
-    // role cookie — לא HttpOnly (client-side UI decisions)
     response.cookies.set({
       name: ROLE_COOKIE_NAME,
-      value: role,
+      value: profile.role,
       httpOnly: false,
       secure: isProd,
       sameSite: 'lax',

@@ -11,8 +11,10 @@ export const ROLE_COOKIE_NAME = 'safedoc_role';
 export const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 ימים
 
 export interface SessionPayload {
-  role: 'admin' | 'viewer';
-  phone: string;
+  userId: string;
+  email: string;
+  username: string;
+  role: 'admin' | 'user';
   loginAt: number;
 }
 
