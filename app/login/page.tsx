@@ -31,35 +31,40 @@ export default function LoginPage() {
 
   return (
     /*
-     * wrapper: min-h-screen + relative — עמוד מינימום גובה המסך.
-     * bg-gray-50 מוצג במובייל. בדסקטופ מכוסה על-ידי תמונת הרקע.
+     * מבנה:
+     * 1. relative min-h-screen — container ראשי
+     * 2. absolute inset-0 hidden lg:block — שכבת רקע (דסקטופ בלבד)
+     *    משתמש ב-background-image CSS ולא ב-Next.js Image/fill
+     *    כדי לוודא כיסוי מלא ללא תלות ב-dimensions של parent
+     * 3. absolute inset-0 lg:hidden — רקע אפור למובייל
+     * 4. relative z-10 min-h-screen flex items-center — תוכן מרכזי
      */
-    <div className="relative min-h-screen bg-gray-50">
+    <div className="relative min-h-screen">
 
-      {/* ── תמונת רקע מלאה — דסקטופ בלבד ─────────────────────────
-          absolute inset-0 ממלא את ה-wrapper ללא fixed positioning.
-          hidden lg:block — לא נטען כלל ב-DOM במובייל (נגישות + ביצועים).
-      ──────────────────────────────────────────────────────────── */}
-      <div className="absolute inset-0 hidden lg:block overflow-hidden" aria-hidden="true">
-        <Image
-          src="/images/login-hero.png"
-          alt=""
-          fill
-          className="object-cover object-center"
-          priority
-          sizes="100vw"
-          quality={85}
-        />
-        {/* overlay: gradient כהה מלמטה + שכבת אחידה לקריאות */}
-        <div className="absolute inset-0 bg-black/45" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+      {/* ── רקע דסקטופ: תמונה מלאה על כל המסך ─────────────────
+          background-image CSS מובטח לכסות 100% width + height.
+          hidden lg:block — מוסתר לחלוטין במובייל.
+      ──────────────────────────────────────────────────────── */}
+      <div
+        className="absolute inset-0 hidden lg:block bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/images/login-hero.png')" }}
+        aria-hidden="true"
+      >
+        {/* Overlay כהה לקריאות */}
+        <div className="absolute inset-0 bg-black/50" />
       </div>
 
-      {/* ── שכבת תוכן — מרכז אנכי ואופקי ─────────────────────────
-          relative z-10 מגביה מעל שכבת התמונה.
-          min-h-screen + flex items-center — מרכז אנכי אמיתי.
-      ──────────────────────────────────────────────────────────── */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-10">
+      {/* ── רקע מובייל: אפור בהיר פשוט ─────────────────────────
+          lg:hidden — מוסתר בדסקטופ.
+      ──────────────────────────────────────────────────────── */}
+      <div className="absolute inset-0 bg-gray-50 lg:hidden" aria-hidden="true" />
+
+      {/* ── שכבת תוכן: מרכז אנכי ואופקי על כל המסך ─────────────
+          relative z-10 — מעל שכבות הרקע.
+          min-h-screen flex items-center justify-center — מרכז אמיתי.
+          אין columns / אין grid / אין flex-row.
+      ──────────────────────────────────────────────────────── */}
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
 
         {/* כרטיס התחברות */}
         <div className="login-card-anim w-full max-w-[460px] bg-white rounded-3xl shadow-2xl p-8 sm:p-10">
@@ -138,9 +143,9 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* טקסט זכויות יוצרים — גלוי בכל מסך, מותאם צבע לרקע */}
+        {/* זכויות יוצרים — גלוי בכל מסך, צבע מותאם לרקע */}
         <p className="mt-6 max-w-md text-center text-xs leading-relaxed px-4
-                      text-gray-400 lg:text-white/50">
+                      text-gray-400 lg:text-white/55">
           כל הזכויות במערכת SafeDoc, לרבות המסמכים, העיצוב, הקוד, הנתונים והפונקציונליות
           שמורות לחברת נתן ולדמן ובניו בע&quot;מ. אין להעתיק, לשכפל, להפיץ או לעשות שימוש
           במערכת או בחלק ממנה ללא אישור מראש ובכתב.
