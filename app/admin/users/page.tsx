@@ -11,9 +11,5 @@ export default async function UsersPage() {
     .select('id, full_name, username, email, role, job_title, is_active, created_at, updated_at')
     .order('created_at', { ascending: true });
 
-  return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      <UserManagementClient initialUsers={(data ?? []) as Profile[]} />
-    </div>
-  );
+  return <UserManagementClient initialUsers={(data ?? []) as Profile[]} />;
 }
