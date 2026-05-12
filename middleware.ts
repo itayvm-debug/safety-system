@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySession, SESSION_COOKIE_NAME, ROLE_COOKIE_NAME } from '@/lib/auth/session';
 
-/** paths שלא דורשים authentication */
 const PUBLIC = ['/login', '/api/auth/login', '/api/auth/logout'];
+const ADMIN_PATHS = ['/admin', '/api/admin'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // public paths — עובר ישירות
   if (PUBLIC.some(p => pathname.startsWith(p))) {
     return NextResponse.next();
   }
@@ -21,11 +20,19 @@ export async function middleware(request: NextRequest) {
   const session = await verifySession(token);
 
   if (!session) {
-    // token פג תוקף / פסול — מחק cookies ושלח ל-login
     const response = NextResponse.redirect(new URL('/login', request.url));
     response.cookies.set({ name: SESSION_COOKIE_NAME, value: '', maxAge: 0, path: '/', httpOnly: true, sameSite: 'lax' });
     response.cookies.set({ name: ROLE_COOKIE_NAME, value: '', maxAge: 0, path: '/', httpOnly: false, sameSite: 'lax' });
     return response;
+  }
+
+  // נתיבי admin — בדיקת role ברמת middleware לפני שמגיעים לקוד
+  const isAdminPath = ADMIN_PATHS.some(p => pathname.startsWith(p));
+  if (isAdminPath && session.role !== 'admin') {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'אין הרשאה' }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return NextResponse.next();
@@ -33,7 +40,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // כל הנתיבים חוץ מ-static assets ו-PDFs
     '/((?!_next/static|_next/image|favicon\\.ico|logo\\.png|.*\\.pdf|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg|.*\\.ico).*)',
   ],
 };

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     console.log('[upload] auth failed — not admin');
     return authError;
   }
-  console.log('[upload] auth ok, role:', session?.role, 'phone:', session?.phone);
+  console.log('[upload] auth ok, role:', session?.role, 'user:', session?.username);
 
   // --- formData ---
   let formData: FormData;

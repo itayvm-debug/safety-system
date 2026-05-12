@@ -2,11 +2,13 @@
  * client.ts — קריאת role ב-Client Components מ-cookie לא-httpOnly
  */
 
-export function getClientRole(): 'admin' | 'viewer' | null {
+export function getClientRole(): 'admin' | 'user' | null {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(/(?:^|; )safedoc_role=([^;]*)/);
   const val = match?.[1];
-  if (val === 'admin' || val === 'viewer') return val;
+  if (val === 'admin') return 'admin';
+  // 'user' + 'viewer' (תאימות לאחור — session ישן)
+  if (val === 'user' || val === 'viewer') return 'user';
   return null;
 }
 

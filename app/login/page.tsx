@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 
 export default function LoginPage() {
-  const [phone, setPhone] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +18,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.trim(), password }),
+        body: JSON.stringify({ identifier: identifier.trim(), password }),
       });
       const data = await res.json();
 
@@ -48,14 +48,17 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">מספר טלפון</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">שם משתמש או מייל</label>
             <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="050-0000000"
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="SHAI-ZENATI"
               required
               autoFocus
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
               dir="ltr"
             />
@@ -81,7 +84,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading || !phone || !password}
+            disabled={loading || !identifier || !password}
             className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'מתחבר...' : 'כניסה'}
