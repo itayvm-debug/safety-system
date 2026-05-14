@@ -13,7 +13,7 @@ import {
   DOCUMENT_TYPE_LABELS,
 } from '@/types';
 import { getWorkerIdentifierLabel, getWorkerIdentifierValue } from '@/lib/workers/identifier';
-import { getDocumentStatus, getWorkerStatus } from '@/lib/documents/status';
+import { getDocumentStatus, getWorkerStatus, isWorkVisaLocked } from '@/lib/documents/status';
 import { buildWorkerIssues, Issue } from '@/lib/documents/issues';
 import StatusBadge from '@/components/StatusBadge';
 import SafetyBriefingCard from '@/components/workers/SafetyBriefingCard';
@@ -314,6 +314,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
                 docType={docType}
                 document={doc}
                 isOnline={isOnline}
+                isForeignWorker={worker.is_foreign_worker}
                 onFileUploaded={handleDocUpdated}
                 onDeleted={handleDocDeleted}
               />
@@ -955,6 +956,7 @@ function DocumentCard({
   docType,
   document,
   isOnline,
+  isForeignWorker,
   onFileUploaded,
   onDeleted,
 }: {
@@ -962,6 +964,7 @@ function DocumentCard({
   docType: DocumentType;
   document: Document | undefined;
   isOnline: boolean;
+  isForeignWorker?: boolean;
   onFileUploaded: (doc: Document) => void;
   onDeleted: (docType: string) => void;
 }) {
@@ -1193,7 +1196,7 @@ function DocumentCard({
         {uploadSuccess && <span className="text-xs text-green-600">✓ הועלה</span>}
         {!hasFile && !uploading && <span className="text-sm text-gray-400">לא הועלה קובץ</span>}
 
-        {isOnline && docType !== 'id_document' && (
+        {isOnline && docType !== 'id_document' && !isWorkVisaLocked(docType, !!isForeignWorker) && (
           <button
             onClick={handleToggleRequired}
             disabled={togglingRequired}
