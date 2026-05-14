@@ -15,6 +15,14 @@ import {
 } from '@/types';
 
 /**
+ * חוק עסקי: אשרת עבודה לעובד זר — תמיד חובה, לא ניתן לשחרר.
+ * משמש גם ב-UI (להסתיר כפתור) וגם ב-API (לכפות is_required=true).
+ */
+export function isWorkVisaLocked(docType: DocumentType, isForeignWorker: boolean): boolean {
+  return docType === 'work_visa' && isForeignWorker;
+}
+
+/**
  * חוקי סטטוס מסמך — לוגיקה אחידה לכל הטבלאות:
  * - is_required=false + אין קובץ → 'not_required'
  * - אין קובץ → 'missing'

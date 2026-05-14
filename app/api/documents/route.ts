@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/api';
+import { isWorkVisaLocked } from '@/lib/documents/status';
 
 export async function POST(request: NextRequest) {
   const { error: authError } = await requireAdmin();
@@ -19,6 +20,19 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServiceClient();
+
+  // אכיפת חוק עסקי: אשרת עבודה לעובד זר — תמיד חובה
+  let effectiveIsRequired = is_required !== undefined ? is_required : true;
+  if (doc_type === 'work_visa') {
+    const { data: worker } = await supabase
+      .from('workers')
+      .select('is_foreign_worker')
+      .eq('id', worker_id)
+      .single();
+    if (isWorkVisaLocked('work_visa', !!worker?.is_foreign_worker)) {
+      effectiveIsRequired = true;
+    }
+  }
 
   if (doc_type === 'optional_license') {
     const { data, error } = await supabase
@@ -45,7 +59,7 @@ export async function POST(request: NextRequest) {
         doc_type,
         file_url: file_url !== undefined ? (file_url || null) : undefined,
         expiry_date: expiry_date !== undefined ? (expiry_date || null) : undefined,
-        is_required: is_required !== undefined ? is_required : true,
+        is_required: effectiveIsRequired,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'worker_id,doc_type' }
