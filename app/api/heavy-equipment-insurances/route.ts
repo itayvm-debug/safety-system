@@ -33,15 +33,18 @@ export async function POST(request: NextRequest) {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('heavy_equipment_insurances')
-    .insert({
-      heavy_equipment_id,
-      insurance_type: insurance_type.trim(),
-      file_url: file_url || null,
-      expiry_date: expiry_date || null,
-    })
+    .upsert(
+      {
+        heavy_equipment_id,
+        insurance_type: insurance_type.trim(),
+        file_url: file_url || null,
+        expiry_date: expiry_date || null,
+      },
+      { onConflict: 'heavy_equipment_id,insurance_type' }
+    )
     .select()
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
+  return NextResponse.json(data, { status: 200 });
 }
