@@ -102,7 +102,15 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
   }
 
   function addInsurance(ins: HeavyEquipmentInsurance) {
-    setInsurances((prev) => [...prev, ins]);
+    setInsurances((prev) => {
+      const exists = prev.some((i) => i.id === ins.id || i.insurance_type === ins.insurance_type);
+      if (exists) return prev.map((i) => (i.id === ins.id || i.insurance_type === ins.insurance_type) ? ins : i);
+      return [...prev, ins];
+    });
+  }
+
+  function deleteInsurance(id: string) {
+    setInsurances((prev) => prev.filter((i) => i.id !== id));
   }
 
   return (
@@ -202,6 +210,7 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
                 insurance={existing}
                 required={isRequired}
                 onUpdated={updateInsurance}
+                onDeleted={deleteInsurance}
               />
             ) : (
               <EmptyInsuranceRow
@@ -241,15 +250,17 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
 
 // ─── שורת ביטוח קיים ──────────────────────────────────────────────
 function InsuranceRow({
-  insurance, required, onUpdated,
+  insurance, required, onUpdated, onDeleted,
 }: {
   insurance: HeavyEquipmentInsurance;
   required: boolean;
   onUpdated: (updated: HeavyEquipmentInsurance) => void;
+  onDeleted: (id: string) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [opening, setOpening] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [editingExpiry, setEditingExpiry] = useState(false);
   const [newExpiry, setNewExpiry] = useState(insurance.expiry_date ?? '');
@@ -295,6 +306,16 @@ function InsuranceRow({
       if (res.ok) { onUpdated(data); setEditingExpiry(false); }
       else setError(data.error ?? 'שגיאה');
     } catch { setError('שגיאה'); } finally { setSavingExpiry(false); }
+  }
+
+  async function handleDelete() {
+    if (!confirm(`למחוק את "${insurance.insurance_type}"?`)) return;
+    setDeleting(true); setError('');
+    try {
+      const res = await fetch(`/api/heavy-equipment-insurances/${insurance.id}`, { method: 'DELETE' });
+      if (res.ok) onDeleted(insurance.id);
+      else { const d = await res.json(); setError(d.error ?? 'שגיאה במחיקה'); }
+    } catch { setError('שגיאה'); } finally { setDeleting(false); }
   }
 
   return (
@@ -347,6 +368,10 @@ function InsuranceRow({
         ) : (
           <span className="text-sm text-gray-400">לא הועלה קובץ</span>
         )}
+        <button onClick={handleDelete} disabled={deleting}
+          className="text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
+          {deleting ? 'מוחק...' : 'הסר'}
+        </button>
         <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
           className="mr-auto text-sm text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50 bg-white">
           {uploading ? 'מעלה...' : insurance.file_url ? 'החלף' : 'העלה'}
