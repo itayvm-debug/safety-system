@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { HeavyEquipment } from '@/types';
+import { HeavyEquipment, HeavyEquipmentInsurance } from '@/types';
 import { getDocumentStatus, getHeavyEquipmentStatus } from '@/lib/documents/status';
+import { formatDateSafe } from '@/lib/utils/date';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
 import { format, parseISO } from 'date-fns';
@@ -13,8 +14,8 @@ import CameraCapture from '@/components/CameraCapture';
 
 interface Props { equipment: HeavyEquipment; }
 
-type FileField = 'license_file_url' | 'insurance_file_url' | 'inspection_file_url';
-type ExpiryField = 'license_expiry' | 'insurance_expiry' | 'inspection_expiry';
+type FileField = 'license_file_url' | 'inspection_file_url';
+type ExpiryField = 'license_expiry' | 'inspection_expiry';
 
 interface FileSection {
   label: string;
@@ -25,20 +26,22 @@ interface FileSection {
 
 const SECTIONS: FileSection[] = [
   { label: 'רישיון / רישוי', fileField: 'license_file_url', expiryField: 'license_expiry', required: true },
-  { label: 'ביטוח', fileField: 'insurance_file_url', expiryField: 'insurance_expiry', required: true },
   { label: 'תסקיר', fileField: 'inspection_file_url', expiryField: 'inspection_expiry', required: false },
 ];
+
+const INSURANCE_TYPES = ['ביטוח חובה', 'ביטוח מקיף', 'ביטוח צד ג'] as const;
 
 export default function HeavyEquipmentDetail({ equipment }: Props) {
   const router = useRouter();
   const [eq, setEq] = useState<HeavyEquipment>(equipment);
+  const [insurances, setInsurances] = useState<HeavyEquipmentInsurance[]>(equipment.heavy_equipment_insurances ?? []);
   const [pendingExpiry, setPendingExpiry] = useState<Partial<Record<ExpiryField, string>>>({});
   const [savingExpiry, setSavingExpiry] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
 
-  const overallStatus = getHeavyEquipmentStatus(eq);
+  const overallStatus = getHeavyEquipmentStatus({ ...eq, heavy_equipment_insurances: insurances });
   const hasPending = Object.keys(pendingExpiry).length > 0;
 
   function handleExpiryChange(field: ExpiryField, value: string) {
@@ -62,6 +65,7 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
       const data = await res.json();
       if (res.ok) {
         setEq(data);
+        setInsurances(data.heavy_equipment_insurances ?? []);
         setPendingExpiry({});
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
@@ -78,7 +82,10 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
         body: JSON.stringify({ is_active: !eq.is_active }),
       });
       const data = await res.json();
-      if (res.ok) setEq(data);
+      if (res.ok) {
+        setEq(data);
+        setInsurances(data.heavy_equipment_insurances ?? []);
+      }
     } finally { setTogglingActive(false); }
   }
 
@@ -88,6 +95,14 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
     const res = await fetch(`/api/heavy-equipment/${eq.id}`, { method: 'DELETE' });
     if (res.ok) { router.push('/heavy-equipment'); router.refresh(); }
     else { alert('שגיאה במחיקה'); setDeleting(false); }
+  }
+
+  function updateInsurance(updated: HeavyEquipmentInsurance) {
+    setInsurances((prev) => prev.map((i) => i.id === updated.id ? updated : i));
+  }
+
+  function addInsurance(ins: HeavyEquipmentInsurance) {
+    setInsurances((prev) => [...prev, ins]);
   }
 
   return (
@@ -138,7 +153,7 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
         </div>
       </div>
 
-      {/* מסמכים */}
+      {/* מסמכים: רישיון + תסקיר */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">מסמכים</h2>
         <div className="space-y-3">
@@ -174,7 +189,34 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
         </div>
       </div>
 
-      {/* שמירת תאריכים */}
+      {/* ביטוחים */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <h2 className="text-base font-semibold text-gray-900 mb-3">ביטוחים</h2>
+        <div className="space-y-2">
+          {INSURANCE_TYPES.map((type) => {
+            const existing = insurances.find((i) => i.insurance_type === type);
+            const isRequired = type === 'ביטוח חובה';
+            return existing ? (
+              <InsuranceRow
+                key={existing.id}
+                insurance={existing}
+                required={isRequired}
+                onUpdated={updateInsurance}
+              />
+            ) : (
+              <EmptyInsuranceRow
+                key={type}
+                heavyEquipmentId={eq.id}
+                insuranceType={type}
+                required={isRequired}
+                onAdded={addInsurance}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* שמירת תאריכים (רישיון / תסקיר) */}
       {(hasPending || saveSuccess) && (
         <div className="fixed bottom-0 inset-x-0 z-20 bg-white border-t border-gray-200 shadow-lg px-4 py-3">
           <div className="max-w-2xl mx-auto flex items-center gap-3">
@@ -197,7 +239,188 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
   );
 }
 
-// ─── תמונת ציוד ───────────────────────────────────────────────
+// ─── שורת ביטוח קיים ──────────────────────────────────────────────
+function InsuranceRow({
+  insurance, required, onUpdated,
+}: {
+  insurance: HeavyEquipmentInsurance;
+  required: boolean;
+  onUpdated: (updated: HeavyEquipmentInsurance) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [opening, setOpening] = useState(false);
+  const [error, setError] = useState('');
+  const [editingExpiry, setEditingExpiry] = useState(false);
+  const [newExpiry, setNewExpiry] = useState(insurance.expiry_date ?? '');
+  const [savingExpiry, setSavingExpiry] = useState(false);
+
+  const status = getDocumentStatus(insurance.file_url, insurance.expiry_date, required, true);
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setUploading(true); setError('');
+    try {
+      const fd = new FormData(); fd.append('file', file); fd.append('folder', 'equipment');
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
+      const ud = await uploadRes.json();
+      if (!uploadRes.ok) { setError(ud.error ?? 'שגיאה'); return; }
+      const res = await fetch(`/api/heavy-equipment-insurances/${insurance.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_url: ud.path }),
+      });
+      const data = await res.json();
+      if (res.ok) onUpdated(data); else setError(data.error ?? 'שגיאה');
+    } catch { setError('שגיאה'); } finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
+  }
+
+  async function handleView() {
+    if (!insurance.file_url) return;
+    setOpening(true);
+    try {
+      const res = await fetch(`/api/signed-url?path=${encodeURIComponent(insurance.file_url)}`);
+      const d = await res.json();
+      if (d.url) window.open(d.url, '_blank');
+    } finally { setOpening(false); }
+  }
+
+  async function handleSaveExpiry() {
+    setSavingExpiry(true); setError('');
+    try {
+      const res = await fetch(`/api/heavy-equipment-insurances/${insurance.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expiry_date: newExpiry || null }),
+      });
+      const data = await res.json();
+      if (res.ok) { onUpdated(data); setEditingExpiry(false); }
+      else setError(data.error ?? 'שגיאה');
+    } catch { setError('שגיאה'); } finally { setSavingExpiry(false); }
+  }
+
+  return (
+    <div className="bg-gray-50 rounded-xl border border-gray-200 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-medium text-gray-900 text-sm">{insurance.insurance_type}</span>
+          {!required && <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">אופציונלי</span>}
+          {insurance.expiry_date && formatDateSafe(insurance.expiry_date) && !editingExpiry && (
+            <span className="text-xs text-gray-400">תוקף: {formatDateSafe(insurance.expiry_date)}</span>
+          )}
+        </div>
+        <StatusBadge status={status} size="sm" />
+      </div>
+
+      {editingExpiry ? (
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            type="date"
+            value={newExpiry}
+            onChange={(e) => setNewExpiry(e.target.value)}
+            className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            dir="ltr"
+            autoFocus
+          />
+          <button onClick={handleSaveExpiry} disabled={savingExpiry}
+            className="text-xs px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50">
+            {savingExpiry ? '...' : 'שמור'}
+          </button>
+          <button onClick={() => { setEditingExpiry(false); setNewExpiry(insurance.expiry_date ?? ''); }}
+            className="text-xs px-2 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
+            ביטול
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setEditingExpiry(true)}
+          className="text-xs text-gray-400 hover:text-orange-500 mb-2 block transition-colors"
+        >
+          {insurance.expiry_date ? `תאריך תוקף: ${formatDateSafe(insurance.expiry_date)} (עריכה)` : '+ הגדר תאריך תוקף'}
+        </button>
+      )}
+
+      {error && <p className="text-xs text-red-600 mb-1">{error}</p>}
+      <div className="flex items-center gap-2">
+        {insurance.file_url ? (
+          <button onClick={handleView} disabled={opening} className="text-sm text-orange-500 hover:text-orange-600 disabled:opacity-50">
+            {opening ? 'פותח...' : 'צפה'}
+          </button>
+        ) : (
+          <span className="text-sm text-gray-400">לא הועלה קובץ</span>
+        )}
+        <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
+          className="mr-auto text-sm text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50 bg-white">
+          {uploading ? 'מעלה...' : insurance.file_url ? 'החלף' : 'העלה'}
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleUpload} />
+      </div>
+    </div>
+  );
+}
+
+// ─── שורת ביטוח ריק (עדיין לא נוצר) ────────────────────────────────
+function EmptyInsuranceRow({
+  heavyEquipmentId, insuranceType, required, onAdded,
+}: {
+  heavyEquipmentId: string;
+  insuranceType: string;
+  required: boolean;
+  onAdded: (ins: HeavyEquipmentInsurance) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [expiryDate, setExpiryDate] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const status = getDocumentStatus(null, null, required, true);
+
+  async function handleCreate() {
+    setSaving(true); setError('');
+    try {
+      const res = await fetch('/api/heavy-equipment-insurances', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ heavy_equipment_id: heavyEquipmentId, insurance_type: insuranceType, expiry_date: expiryDate || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? 'שגיאה'); return; }
+      onAdded(data); setOpen(false);
+    } catch { setError('שגיאת תקשורת'); } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="bg-gray-50 rounded-xl border border-gray-200 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-gray-900 text-sm">{insuranceType}</span>
+          {!required && <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">אופציונלי</span>}
+        </div>
+        <StatusBadge status={status} size="sm" />
+      </div>
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="text-sm text-orange-500 hover:text-orange-600">
+          + הוסף
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 whitespace-nowrap">תאריך תוקף:</label>
+            <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} dir="ltr"
+              className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+          </div>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex gap-2">
+            <button onClick={() => setOpen(false)} className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">ביטול</button>
+            <button onClick={handleCreate} disabled={saving}
+              className="px-5 py-1.5 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50">
+              {saving ? 'שומר...' : 'הוסף'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── תמונת ציוד ───────────────────────────────────────────────────
 function EquipmentImageUploader({
   equipmentId,
   imageUrl,
@@ -337,7 +560,7 @@ function EquipmentImageUploader({
   );
 }
 
-// ─── כרטיס קובץ ציוד ──────────────────────────────────────────
+// ─── כרטיס קובץ ציוד (רישיון / תסקיר) ────────────────────────────
 function EquipmentFileCard({
   equipmentId,
   label,
@@ -375,11 +598,9 @@ function EquipmentFileCard({
     try {
       const fd = new FormData();
       fd.append('file', file); fd.append('folder', 'equipment');
-      console.log('[upload:heavy] starting', file.name, file.size, file.type);
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
-      console.log('[upload:heavy] status:', uploadRes.status, uploadRes.ok);
-      const ud = await uploadRes.json().catch(e => { console.error('[upload:heavy] json parse error:', e, 'content-type:', uploadRes.headers.get('content-type')); return {}; });
-      if (!uploadRes.ok) { console.error('[upload:heavy] server error:', uploadRes.status, ud); setError(ud.error ?? 'שגיאה'); return; }
+      const ud = await uploadRes.json().catch(() => ({}));
+      if (!uploadRes.ok) { setError(ud.error ?? 'שגיאה'); return; }
 
       const res = await fetch(`/api/heavy-equipment/${equipmentId}`, {
         method: 'PATCH',
@@ -387,7 +608,7 @@ function EquipmentFileCard({
         body: JSON.stringify({ [fileField]: ud.path }),
       });
       if (res.ok) onFileUploaded(ud.path);
-    } catch (err) { console.error('[upload:heavy] fetch error:', err); setError('שגיאה'); } finally { setUploading(false); }
+    } catch { setError('שגיאה'); } finally { setUploading(false); }
   }
 
   async function handleDelete() {

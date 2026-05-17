@@ -12,7 +12,7 @@ export default async function HeavyEquipmentDetailPage({ params }: { params: Pro
 
   const { data, error } = await supabase
     .from('heavy_equipment')
-    .select('*, subcontractor:subcontractors(id, name)')
+    .select('*, subcontractor:subcontractors(id, name), heavy_equipment_insurances(*)')
     .eq('id', id)
     .single();
 
