@@ -214,13 +214,18 @@ export function getProfessionalLicenseStatus(license: ProfessionalLicense): Docu
 export function getHeavyEquipmentStatus(eq: HeavyEquipment): DocumentStatus {
   let worst: DocumentStatus = 'valid';
 
-  // רישיון וביטוח — נדרשים תמיד (קובץ + תאריך חובה)
-  const requiredFields: Array<{ file: string | null; expiry: string | null }> = [
-    { file: eq.license_file_url, expiry: eq.license_expiry },
-    { file: eq.insurance_file_url, expiry: eq.insurance_expiry },
-  ];
-  for (const { file, expiry } of requiredFields) {
-    const s = getDocumentStatus(file, expiry, true, true);
+  // רישיון — נדרש תמיד (קובץ + תאריך חובה)
+  const licStatus = getDocumentStatus(eq.license_file_url, eq.license_expiry, true, true);
+  if (STATUS_SEVERITY[licStatus] > STATUS_SEVERITY[worst]) worst = licStatus;
+
+  // ביטוחים: חובה — נדרש תמיד; מקיף/צד ג — אופציונלי (רק אם יש נתונים)
+  const insurances = eq.heavy_equipment_insurances ?? [];
+  const mandatory = insurances.find((i) => i.insurance_type === 'ביטוח חובה');
+  const mandatoryStatus = getDocumentStatus(mandatory?.file_url ?? null, mandatory?.expiry_date ?? null, true, true);
+  if (STATUS_SEVERITY[mandatoryStatus] > STATUS_SEVERITY[worst]) worst = mandatoryStatus;
+
+  for (const ins of insurances.filter((i) => i.insurance_type !== 'ביטוח חובה' && (i.file_url || i.expiry_date))) {
+    const s = getDocumentStatus(ins.file_url, ins.expiry_date, false, true);
     if (STATUS_SEVERITY[s] > STATUS_SEVERITY[worst]) worst = s;
   }
 

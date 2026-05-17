@@ -157,6 +157,16 @@ export interface VehicleInsurance {
   updated_at: string;
 }
 
+export interface HeavyEquipmentInsurance {
+  id: string;
+  heavy_equipment_id: string;
+  insurance_type: string;
+  file_url: string | null;
+  expiry_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SiteFeedback {
   id: string;
   full_name: string;
@@ -207,6 +217,7 @@ export interface HeavyEquipment {
   machine_identifier: string | null;
   safe_working_load: string | null;
   power_type: PowerType | null;
+  heavy_equipment_insurances?: HeavyEquipmentInsurance[];
   created_at: string;
   updated_at: string;
 }

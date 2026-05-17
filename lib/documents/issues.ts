@@ -167,8 +167,15 @@ export function buildHeavyEquipmentIssues(eq: HeavyEquipment): Issue[] {
   const ls = toIssue(getDocumentStatus(eq.license_file_url, eq.license_expiry, true, true));
   if (ls) issues.push({ ...base, id: `heavy-${eq.id}-license`, status: ls, problem: 'רישיון' });
 
-  const ins = toIssue(getDocumentStatus(eq.insurance_file_url, eq.insurance_expiry, true, true));
-  if (ins) issues.push({ ...base, id: `heavy-${eq.id}-insurance`, status: ins, problem: 'ביטוח' });
+  const insurances = eq.heavy_equipment_insurances ?? [];
+  const mandatory = insurances.find((i) => i.insurance_type === 'ביטוח חובה');
+  const ins = toIssue(getDocumentStatus(mandatory?.file_url ?? null, mandatory?.expiry_date ?? null, true, true));
+  if (ins) issues.push({ ...base, id: `heavy-${eq.id}-ins`, status: ins, problem: 'ביטוח חובה' });
+
+  for (const optI of insurances.filter((i) => i.insurance_type !== 'ביטוח חובה' && (i.file_url || i.expiry_date))) {
+    const os = toIssue(getDocumentStatus(optI.file_url, optI.expiry_date, false, true));
+    if (os) issues.push({ ...base, id: `heavy-${eq.id}-ins-${optI.id}`, status: os, problem: optI.insurance_type });
+  }
 
   if (eq.inspection_file_url || eq.inspection_expiry) {
     const is = toIssue(getDocumentStatus(eq.inspection_file_url, eq.inspection_expiry, false, true));

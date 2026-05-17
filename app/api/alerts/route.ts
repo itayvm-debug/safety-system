@@ -29,7 +29,7 @@ export async function GET() {
       .order('vehicle_number'),
     supabase
       .from('heavy_equipment')
-      .select('*, subcontractor:subcontractors(id, name)')
+      .select('*, subcontractor:subcontractors(id, name), heavy_equipment_insurances(*)')
       .eq('is_active', true)
       .order('description'),
     supabase
