@@ -7,6 +7,7 @@ import { HeavyEquipment } from '@/types';
 import { getHeavyEquipmentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
+import StatusFilterTabs, { StatusFilter, computeStatusCounts, matchesStatusFilter } from '@/components/StatusFilterTabs';
 import { saveSnapshot, loadSnapshot } from '@/lib/offline/cache';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
@@ -76,6 +77,7 @@ export default function HeavyEquipmentList() {
 
   const [showInactive, setShowInactive] = useState(false);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<StatusFilter>('all');
 
   useEffect(() => {
     let active = true;
@@ -98,19 +100,26 @@ export default function HeavyEquipmentList() {
     return () => { active = false; };
   }, []);
 
+  const activeEquipment = equipment.filter((e) => e.is_active);
+  const activeCount = activeEquipment.length;
+  const inactiveCount = equipment.length - activeCount;
+
+  const counts = useMemo(
+    () => computeStatusCounts(showInactive ? equipment : activeEquipment, getHeavyEquipmentStatus),
+    [equipment, activeEquipment, showInactive]
+  );
+
   const filtered = useMemo(() => {
     return equipment.filter((e) => {
       if (!showInactive && !e.is_active) return false;
+      if (!matchesStatusFilter(e, filter, getHeavyEquipmentStatus)) return false;
       return !search ||
         e.description.includes(search) ||
         (e.license_number ?? '').includes(search) ||
         (e.machine_identifier ?? '').includes(search) ||
         (e.project_name ?? '').includes(search);
     });
-  }, [equipment, showInactive, search]);
-
-  const activeCount = equipment.filter((e) => e.is_active).length;
-  const inactiveCount = equipment.length - activeCount;
+  }, [equipment, showInactive, search, filter]);
 
   if (loading && equipment.length === 0) return (
     <div className="space-y-3 animate-pulse">
@@ -159,11 +168,19 @@ export default function HeavyEquipmentList() {
         />
       </div>
 
-      <div className="space-y-2">
-        {filtered.map((eq) => (
-          <HeavyEquipmentRow key={eq.id} eq={eq} />
-        ))}
-      </div>
+      <StatusFilterTabs filter={filter} counts={counts} onChange={setFilter} />
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 text-gray-400 text-sm">
+          {search || filter !== 'all' ? 'לא נמצאו תוצאות התואמות את הסינון' : 'אין כלי צמ"ה פעילים'}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((eq) => (
+            <HeavyEquipmentRow key={eq.id} eq={eq} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
