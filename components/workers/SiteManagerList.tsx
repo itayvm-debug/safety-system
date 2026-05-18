@@ -1,24 +1,67 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Worker } from '@/types';
+import { WorkerWithDocuments } from '@/types';
+import { getWorkerStatus } from '@/lib/documents/status';
 import { getWorkerIdentifierValue } from '@/lib/workers/identifier';
+import StatusBadge from '@/components/StatusBadge';
+import StatusFilterTabs, { StatusFilter, computeStatusCounts, matchesStatusFilter } from '@/components/StatusFilterTabs';
+import { saveSnapshot, loadSnapshot } from '@/lib/offline/cache';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
-interface Props {
-  managers: Worker[];
-  photoUrls: Record<string, string>;
-}
+export default function SiteManagerList() {
+  const [allWorkers, setAllWorkers] = useState<WorkerWithDocuments[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isOnline = useOnlineStatus();
 
-export default function SiteManagerList({ managers, photoUrls }: Props) {
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<StatusFilter>('all');
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      const cached = loadSnapshot<WorkerWithDocuments[]>('workers');
+      if (cached && active) { setAllWorkers(cached); setLoading(false); }
+
+      if (!navigator.onLine) { if (active) setLoading(false); return; }
+
+      try {
+        const res = await fetch('/api/workers');
+        if (!res.ok) throw new Error('fetch failed');
+        const data: WorkerWithDocuments[] = await res.json();
+        if (active) { setAllWorkers(data); setLoading(false); saveSnapshot('workers', data); }
+      } catch { if (active) setLoading(false); }
+    }
+    load();
+    return () => { active = false; };
+  }, []);
+
+  // מנהלי עבודה: פעילים, ללא שיוך לקבלן משנה
+  const managers = useMemo(
+    () => allWorkers.filter((w) => w.is_responsible_site_manager && w.is_active !== false && !w.subcontractor_id),
+    [allWorkers]
+  );
+
+  const counts = useMemo(() => computeStatusCounts(managers, getWorkerStatus), [managers]);
 
   const filtered = useMemo(() => {
     return managers.filter((m) => {
+      if (!matchesStatusFilter(m, filter, getWorkerStatus)) return false;
       if (!search) return true;
       return m.full_name.includes(search) || getWorkerIdentifierValue(m).includes(search);
     });
-  }, [managers, search]);
+  }, [managers, search, filter]);
+
+  if (loading && allWorkers.length === 0) return (
+    <div className="space-y-3 animate-pulse">
+      {[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded-xl" />)}
+    </div>
+  );
+
+  if (!isOnline && allWorkers.length === 0) return (
+    <div className="text-center py-16 text-gray-400 text-sm">אין נתונים שמורים להצגה במצב לא מקוון</div>
+  );
 
   return (
     <div className="space-y-5">
@@ -40,24 +83,24 @@ export default function SiteManagerList({ managers, photoUrls }: Props) {
         />
       </div>
 
+      <StatusFilterTabs filter={filter} counts={counts} onChange={setFilter} />
+
       {filtered.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <svg className="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
           <p className="text-base font-medium">
-            {search ? 'לא נמצאו מנהלי עבודה התואמים את החיפוש' : 'אין מנהלי עבודה מוגדרים עדיין'}
+            {search || filter !== 'all' ? 'לא נמצאו מנהלי עבודה התואמים את הסינון' : 'אין מנהלי עבודה מוגדרים עדיין'}
           </p>
-          {!search && (
-            <p className="text-sm mt-1">
-              ניתן לסמן עובד כמנהל עבודה בעמוד פרטי העובד
-            </p>
+          {!search && filter === 'all' && (
+            <p className="text-sm mt-1">ניתן לסמן עובד כמנהל עבודה בעמוד פרטי העובד</p>
           )}
         </div>
       ) : (
         <div className="space-y-2">
           {filtered.map((manager) => (
-            <ManagerCard key={manager.id} manager={manager} photoUrl={photoUrls[manager.id]} />
+            <ManagerCard key={manager.id} manager={manager} />
           ))}
         </div>
       )}
@@ -65,20 +108,25 @@ export default function SiteManagerList({ managers, photoUrls }: Props) {
   );
 }
 
-function ManagerCard({ manager, photoUrl }: { manager: Worker; photoUrl?: string }) {
+function ManagerCard({ manager }: { manager: WorkerWithDocuments }) {
+  const status = getWorkerStatus(manager);
+
+  const borderColor: Record<string, string> = {
+    valid: 'border-r-green-500',
+    expiring_soon: 'border-r-yellow-500',
+    expired: 'border-r-red-500',
+    missing: 'border-r-red-500',
+    not_required: 'border-r-gray-300',
+  };
+
   return (
     <Link
       href={`/workers/${manager.id}`}
-      className="flex items-center justify-between bg-white rounded-xl border border-gray-100 border-r-4 border-r-blue-500 px-4 py-3.5 hover:shadow-md transition-all"
+      className={`flex items-center justify-between bg-white rounded-xl border border-gray-100 border-r-4 ${borderColor[status]} px-4 py-3.5 hover:shadow-md transition-all`}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0 overflow-hidden bg-blue-100 text-blue-700">
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt={manager.full_name} className="w-10 h-10 object-cover" />
-          ) : (
-            manager.full_name.charAt(0)
-          )}
+        <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0 bg-blue-100 text-blue-700">
+          {manager.full_name.charAt(0)}
         </div>
         <div className="min-w-0">
           <p className="font-semibold text-gray-900 truncate">{manager.full_name}</p>
@@ -90,7 +138,7 @@ function ManagerCard({ manager, photoUrl }: { manager: Worker; photoUrl?: string
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0 mr-2">
-        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">מנהל עבודה</span>
+        <StatusBadge status={status} size="sm" />
         <svg className="w-4 h-4 text-gray-300 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>

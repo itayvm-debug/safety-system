@@ -7,6 +7,7 @@ import { LiftingEquipment } from '@/types';
 import { getLiftingEquipmentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import ToggleSwitch from '@/components/ToggleSwitch';
+import StatusFilterTabs, { StatusFilter, computeStatusCounts, matchesStatusFilter } from '@/components/StatusFilterTabs';
 import { saveSnapshot, loadSnapshot } from '@/lib/offline/cache';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
@@ -73,6 +74,7 @@ export default function LiftingEquipmentList() {
 
   const [showInactive, setShowInactive] = useState(false);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<StatusFilter>('all');
 
   useEffect(() => {
     let active = true;
@@ -95,15 +97,22 @@ export default function LiftingEquipmentList() {
     return () => { active = false; };
   }, []);
 
+  const activeEquipment = equipment.filter((e) => e.is_active);
+  const activeCount = activeEquipment.length;
+  const inactiveCount = equipment.length - activeCount;
+
+  const counts = useMemo(
+    () => computeStatusCounts(showInactive ? equipment : activeEquipment, getLiftingEquipmentStatus),
+    [equipment, activeEquipment, showInactive]
+  );
+
   const filtered = useMemo(() => {
     return equipment.filter((e) => {
       if (!showInactive && !e.is_active) return false;
+      if (!matchesStatusFilter(e, filter, getLiftingEquipmentStatus)) return false;
       return !search || e.description.includes(search);
     });
-  }, [equipment, showInactive, search]);
-
-  const activeCount = equipment.filter((e) => e.is_active).length;
-  const inactiveCount = equipment.length - activeCount;
+  }, [equipment, showInactive, search, filter]);
 
   if (loading && equipment.length === 0) return (
     <div className="space-y-3 animate-pulse">
@@ -146,11 +155,19 @@ export default function LiftingEquipmentList() {
           className="w-full pr-10 pl-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm" />
       </div>
 
-      <div className="space-y-2">
-        {filtered.map((eq) => (
-          <LiftingEquipmentRow key={eq.id} eq={eq} />
-        ))}
-      </div>
+      <StatusFilterTabs filter={filter} counts={counts} onChange={setFilter} />
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 text-gray-400 text-sm">
+          {search || filter !== 'all' ? 'לא נמצאו תוצאות התואמות את הסינון' : 'אין ציוד הרמה פעיל'}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((eq) => (
+            <LiftingEquipmentRow key={eq.id} eq={eq} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

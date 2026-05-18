@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Vehicle } from '@/types';
 import { getVehicleStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
+import StatusFilterTabs, { StatusFilter, computeStatusCounts, matchesStatusFilter } from '@/components/StatusFilterTabs';
 import { saveSnapshot, loadSnapshot } from '@/lib/offline/cache';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
@@ -15,6 +16,7 @@ export default function VehicleList() {
 
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  const [filter, setFilter] = useState<StatusFilter>('all');
 
   useEffect(() => {
     let active = true;
@@ -41,9 +43,15 @@ export default function VehicleList() {
   const active = vehicles.filter((v) => v.is_active !== false);
   const inactiveCount = vehicles.length - active.length;
 
+  const counts = useMemo(
+    () => computeStatusCounts(showInactive ? vehicles : active, getVehicleStatus),
+    [vehicles, active, showInactive]
+  );
+
   const filtered = useMemo(() => {
     return vehicles.filter((v) => {
       if (!showInactive && v.is_active === false) return false;
+      if (!matchesStatusFilter(v, filter, getVehicleStatus)) return false;
       if (!search) return true;
       const q = search.toLowerCase();
       return (
@@ -54,7 +62,7 @@ export default function VehicleList() {
         (v.assigned_manager?.full_name ?? '').includes(search)
       );
     });
-  }, [vehicles, search, showInactive]);
+  }, [vehicles, search, showInactive, filter]);
 
   if (loading && vehicles.length === 0) return (
     <div className="space-y-3 animate-pulse">
@@ -111,6 +119,8 @@ export default function VehicleList() {
         />
       </div>
 
+      <StatusFilterTabs filter={filter} counts={counts} onChange={setFilter} />
+
       {filtered.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <svg className="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,7 +128,7 @@ export default function VehicleList() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h8l2-2zm0 0l2-5 3 1v4h-5z" />
           </svg>
           <p className="text-base font-medium">
-            {search ? 'לא נמצאו רכבים התואמים את החיפוש' : 'אין רכבים במערכת עדיין'}
+            {search || filter !== 'all' ? 'לא נמצאו רכבים התואמים את הסינון' : 'אין רכבים במערכת עדיין'}
           </p>
           {!search && (
             <Link href="/vehicles/new" className="mt-3 inline-block text-sm text-orange-500 hover:text-orange-600">
