@@ -5,6 +5,7 @@ export interface Profile {
   full_name: string;
   username: string | null;
   email: string;
+  report_email: string | null;
   role: UserRole;
   job_title: string | null;
   is_active: boolean;

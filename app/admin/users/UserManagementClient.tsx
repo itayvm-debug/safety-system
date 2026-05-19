@@ -11,6 +11,10 @@ interface Props {
 
 type Modal = 'create' | 'edit' | 'reset-password' | null;
 
+function receivesReports(user: Profile): boolean {
+  return user.role === 'admin' && user.is_active && !!user.report_email;
+}
+
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'מנהל',
   user: 'משתמש',
@@ -26,6 +30,8 @@ export default function UserManagementClient({ initialUsers }: Props) {
   const [users, setUsers] = useState<Profile[]>(initialUsers);
   const [modal, setModal] = useState<Modal>(null);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+  const [sendingReport, setSendingReport] = useState(false);
+  const [reportMsg, setReportMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   function openEdit(user: Profile) { setSelectedUser(user); setModal('edit'); }
   function openReset(user: Profile) { setSelectedUser(user); setModal('reset-password'); }
@@ -34,22 +40,66 @@ export default function UserManagementClient({ initialUsers }: Props) {
   function handleCreated(p: Profile) { setUsers(prev => [...prev, p]); closeModal(); }
   function handleUpdated(p: Profile) { setUsers(prev => prev.map(u => u.id === p.id ? p : u)); closeModal(); }
 
+  const reportRecipients = users.filter(receivesReports).length;
+
+  async function sendTestReport() {
+    if (!confirm('לשלוח דוח בדיקה לכל האדמינים עם מייל לדוחות?')) return;
+    setSendingReport(true);
+    setReportMsg(null);
+    try {
+      const res = await fetch('/api/reports/weekly-status', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setReportMsg({ ok: true, text: `הדוח נשלח בהצלחה ל-${data.sent} נמענים` });
+      } else {
+        setReportMsg({ ok: false, text: data.error ?? 'שגיאה בשליחת הדוח' });
+      }
+    } catch {
+      setReportMsg({ ok: false, text: 'שגיאת תקשורת' });
+    } finally {
+      setSendingReport(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* כותרת */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">ניהול משתמשים</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{users.length} משתמשים במערכת</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {users.length} משתמשים
+            {reportRecipients > 0 && (
+              <span className="text-green-600"> · {reportRecipients} מקבלים דוחות שבועיים</span>
+            )}
+          </p>
         </div>
-        <button
-          onClick={() => setModal('create')}
-          className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors"
-        >
-          <span className="text-lg leading-none">+</span>
-          צור משתמש
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={sendTestReport}
+            disabled={sendingReport || reportRecipients === 0}
+            title={reportRecipients === 0 ? 'אין אדמינים עם מייל לדוחות' : 'שלח דוח בדיקה לכל האדמינים עם מייל לדוחות'}
+            className="flex items-center gap-1.5 border border-gray-200 bg-white text-gray-600 px-3 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 disabled:opacity-40 transition-colors"
+          >
+            <span className="text-base leading-none">📧</span>
+            {sendingReport ? 'שולח...' : 'שלח דוח בדיקה'}
+          </button>
+          <button
+            onClick={() => setModal('create')}
+            className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors"
+          >
+            <span className="text-lg leading-none">+</span>
+            צור משתמש
+          </button>
+        </div>
       </div>
+
+      {reportMsg && (
+        <div className={`rounded-xl px-4 py-3 text-sm font-medium ${reportMsg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+          {reportMsg.text}
+          <button onClick={() => setReportMsg(null)} className="float-left text-xs opacity-50 hover:opacity-100">✕</button>
+        </div>
+      )}
 
       {/* טבלת משתמשים */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -70,6 +120,7 @@ export default function UserManagementClient({ initialUsers }: Props) {
                   <th className="text-right px-4 py-3 font-semibold text-gray-700 whitespace-nowrap hidden sm:table-cell">תפקיד</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">הרשאה</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">סטטוס</th>
+                  <th className="text-right px-4 py-3 font-semibold text-gray-700 whitespace-nowrap hidden xl:table-cell">מייל לדוחות</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-700 whitespace-nowrap hidden lg:table-cell">נוצר</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -158,6 +209,21 @@ function UserRow({
           <span className={`w-1.5 h-1.5 rounded-full ${user.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
           {user.is_active ? 'פעיל' : 'מושבת'}
         </span>
+      </td>
+      <td className="px-4 py-3 hidden xl:table-cell">
+        {user.report_email ? (
+          <div>
+            <span className="text-xs text-gray-500 font-mono">{user.report_email}</span>
+            {receivesReports(user) && (
+              <span className="ml-1.5 inline-flex items-center gap-0.5 text-xs text-green-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                מקבל דוחות
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="text-xs text-gray-300">—</span>
+        )}
       </td>
       <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap hidden lg:table-cell">
         {format(parseISO(user.created_at), 'dd/MM/yyyy', { locale: he })}
@@ -312,6 +378,7 @@ function EditUserModal({
     full_name: user.full_name,
     role: user.role,
     job_title: user.job_title ?? '',
+    report_email: user.report_email ?? '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -362,9 +429,21 @@ function EditUserModal({
           </Field>
         </div>
 
+        <Field label="מייל לדוחות שבועיים">
+          <input type="email" value={form.report_email} onChange={e => set('report_email', e.target.value)}
+            placeholder="admin@yourcompany.com"
+            dir="ltr"
+            className={inputCls} />
+          <p className="text-xs text-gray-400 mt-1">
+            {form.role === 'admin'
+              ? 'אדמין פעיל עם מייל זה יקבל דוחות שבועיים'
+              : 'רק אדמינים מקבלים דוחות שבועיים'}
+          </p>
+        </Field>
+
         <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500 space-y-1">
           <p><span className="font-medium">שם משתמש:</span> {user.username ?? '—'}</p>
-          <p><span className="font-medium">מייל:</span> {user.email}</p>
+          <p><span className="font-medium">מייל התחברות:</span> {user.email}</p>
         </div>
 
         {error && <ErrorBox>{error}</ErrorBox>}

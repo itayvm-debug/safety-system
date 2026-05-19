@@ -9,7 +9,7 @@ export async function GET() {
   const supabase = createServiceClient();
   const { data, error: dbError } = await supabase
     .from('profiles')
-    .select('id, full_name, username, email, role, job_title, is_active, created_at')
+    .select('id, full_name, username, email, report_email, role, job_title, is_active, created_at')
     .order('created_at', { ascending: true });
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });

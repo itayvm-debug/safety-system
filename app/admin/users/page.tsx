@@ -8,7 +8,7 @@ export default async function UsersPage() {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from('profiles')
-    .select('id, full_name, username, email, role, job_title, is_active, created_at, updated_at')
+    .select('id, full_name, username, email, report_email, role, job_title, is_active, created_at, updated_at')
     .order('created_at', { ascending: true });
 
   return <UserManagementClient initialUsers={(data ?? []) as Profile[]} />;
