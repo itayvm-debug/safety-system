@@ -31,7 +31,7 @@ export default function UserManagementClient({ initialUsers }: Props) {
   const [modal, setModal] = useState<Modal>(null);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [sendingReport, setSendingReport] = useState(false);
-  const [reportMsg, setReportMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [reportMsg, setReportMsg] = useState<{ ok: boolean; lines: string[] } | null>(null);
 
   function openEdit(user: Profile) { setSelectedUser(user); setModal('edit'); }
   function openReset(user: Profile) { setSelectedUser(user); setModal('reset-password'); }
@@ -49,13 +49,35 @@ export default function UserManagementClient({ initialUsers }: Props) {
     try {
       const res = await fetch('/api/reports/weekly-status', { method: 'POST' });
       const data = await res.json();
-      if (res.ok) {
-        setReportMsg({ ok: true, text: `הדוח נשלח בהצלחה ל-${data.sent} נמענים` });
-      } else {
-        setReportMsg({ ok: false, text: data.error ?? 'שגיאה בשליחת הדוח' });
+
+      // fatal error (exception before Resend was called)
+      if (!res.ok && data.error && !data.recipients) {
+        setReportMsg({ ok: false, lines: [data.error] });
+        return;
       }
+
+      const lines: string[] = [];
+
+      if (data.sent_count > 0) {
+        lines.push(`נשלח בהצלחה ל-${data.sent_count} נמענים: ${(data.recipients as string[]).join(', ')}`);
+      }
+      if (data.resend_id) {
+        lines.push(`Resend message ID: ${data.resend_id}`);
+      }
+      if (data.failed_count > 0) {
+        lines.push(`נכשל עבור ${data.failed_count} נמענים`);
+      }
+      if (data.errors?.length) {
+        lines.push(...(data.errors as string[]).map((e: string) => `שגיאת Resend: ${e}`));
+      }
+      if (data.sent_count === 0 && !data.errors?.length) {
+        lines.push('לא נמצאו נמענים לשליחה');
+      }
+
+      const ok = data.sent_count > 0 && data.failed_count === 0 && !data.errors?.length;
+      setReportMsg({ ok, lines });
     } catch {
-      setReportMsg({ ok: false, text: 'שגיאת תקשורת' });
+      setReportMsg({ ok: false, lines: ['שגיאת תקשורת עם השרת'] });
     } finally {
       setSendingReport(false);
     }
@@ -95,9 +117,15 @@ export default function UserManagementClient({ initialUsers }: Props) {
       </div>
 
       {reportMsg && (
-        <div className={`rounded-xl px-4 py-3 text-sm font-medium ${reportMsg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-          {reportMsg.text}
-          <button onClick={() => setReportMsg(null)} className="float-left text-xs opacity-50 hover:opacity-100">✕</button>
+        <div className={`rounded-xl px-4 py-3 text-sm ${reportMsg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-0.5">
+              {reportMsg.lines.map((line, i) => (
+                <p key={i} className={i === 0 ? 'font-medium' : 'text-xs opacity-80 font-mono'}>{line}</p>
+              ))}
+            </div>
+            <button onClick={() => setReportMsg(null)} className="text-xs opacity-40 hover:opacity-70 shrink-0 mt-0.5">✕</button>
+          </div>
         </div>
       )}
 
