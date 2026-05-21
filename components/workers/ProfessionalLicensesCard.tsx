@@ -123,24 +123,25 @@ function LicenseRow({
       </div>
       {license.notes && <p className="text-xs text-gray-400 mb-2">{license.notes}</p>}
       {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
-      <div className="flex items-center gap-2 flex-wrap">
-        {license.file_url ? (
-          <button onClick={handleView} disabled={opening} className="text-sm text-orange-500 hover:text-orange-600 disabled:opacity-50">
-            {opening ? 'פותח...' : 'צפה במסמך'}
-          </button>
-        ) : (
-          <span className="text-sm text-amber-600 font-medium">⚠ חסר מסמך</span>
-        )}
-        <button onClick={handleDelete} disabled={deleting} className="text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
-          {deleting ? 'מוחק...' : 'מחק'}
-        </button>
+      <div className="space-y-2">
         <FileUploadZone
-          variant="button"
           folder="documents"
           onUploaded={(path) => handleFileUploaded(path)}
           currentFileName={license.file_url ? 'קובץ קיים' : undefined}
           disabled={uploading}
         />
+        <div className="flex items-center gap-2 flex-wrap">
+          {license.file_url ? (
+            <button onClick={handleView} disabled={opening} className="text-sm text-orange-500 hover:text-orange-600 disabled:opacity-50">
+              {opening ? 'פותח...' : 'צפה במסמך'}
+            </button>
+          ) : (
+            <span className="text-sm text-amber-600 font-medium">⚠ חסר מסמך</span>
+          )}
+          <button onClick={handleDelete} disabled={deleting} className="text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
+            {deleting ? 'מוחק...' : 'מחק'}
+          </button>
+        </div>
       </div>
     </div>
   );

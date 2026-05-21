@@ -975,7 +975,6 @@ function DocumentCard({
   onFileUploaded: (doc: Document) => void;
   onDeleted: (docType: string) => void;
 }) {
-  const [uploadSuccess, setUploadSuccess] = useState(false);
   const [opening, setOpening] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [togglingRequired, setTogglingRequired] = useState(false);
@@ -1030,7 +1029,7 @@ function DocumentCard({
   }
 
   async function handleFileUploaded(path: string) {
-    setError(''); setUploadSuccess(false);
+    setError('');
     try {
       const res = await fetch('/api/documents', {
         method: 'POST',
@@ -1045,8 +1044,6 @@ function DocumentCard({
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? 'שגיאה בשמירה'); return; }
-      setUploadSuccess(true);
-      setTimeout(() => setUploadSuccess(false), 3000);
       onFileUploaded(data);
     } catch { setError('שגיאה'); }
   }
@@ -1152,59 +1149,55 @@ function DocumentCard({
 
       {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
 
-      {/* פעולות קובץ — סדר: צפה → העלה/החלף → מחק → לא נדרש */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {hasFile && (
-          <button
-            onClick={isOnline ? handleViewDocument : () => alert('הקובץ עצמו דורש חיבור לאינטרנט.\nבמצב לא מקוון ניתן לצפות בפרטי המסמך בלבד.')}
-            disabled={opening}
-            className="flex items-center gap-1.5 text-sm text-orange-500 hover:text-orange-600 disabled:opacity-50">
-            {opening ? <span className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" /> :
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>}
-            {opening ? 'פותח...' : 'צפה'}
-          </button>
-        )}
-
+      {/* העלאת קובץ */}
+      <div className="space-y-2">
         {isOnline && (
           <FileUploadZone
-            variant="button"
             folder="documents"
             onUploaded={handleFileUploaded}
             currentFileName={hasFile ? 'קובץ קיים' : undefined}
           />
         )}
+        {!isOnline && !hasFile && <span className="text-sm text-gray-400">לא הועלה קובץ</span>}
 
-        {isOnline && hasFile && (
-          <button onClick={handleDeleteDocument} disabled={deleting}
-            className="flex items-center gap-1 text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
-            {deleting ? <span className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" /> :
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>}
-            {deleting ? 'מוחק...' : 'מחק'}
-          </button>
-        )}
-
-        {uploadSuccess && <span className="text-xs text-green-600">✓ הועלה</span>}
-        {!hasFile && <span className="text-sm text-gray-400">לא הועלה קובץ</span>}
-
-        {isOnline && docType !== 'id_document' && !isWorkVisaLocked(docType, !!isForeignWorker) && (
-          <button
-            onClick={handleToggleRequired}
-            disabled={togglingRequired}
-            className={`text-xs px-2 py-1 rounded-full border transition-colors disabled:opacity-50 mr-auto ${
-              !isRequired
-                ? 'bg-gray-100 text-gray-500 border-gray-200'
-                : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            {togglingRequired ? '...' : isRequired ? 'סמן כ"לא נדרש"' : '✓ לא נדרש'}
-          </button>
-        )}
-
+        <div className="flex items-center gap-2 flex-wrap">
+          {hasFile && (
+            <button
+              onClick={isOnline ? handleViewDocument : () => alert('הקובץ עצמו דורש חיבור לאינטרנט.\nבמצב לא מקוון ניתן לצפות בפרטי המסמך בלבד.')}
+              disabled={opening}
+              className="flex items-center gap-1.5 text-sm text-orange-500 hover:text-orange-600 disabled:opacity-50">
+              {opening ? <span className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" /> :
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>}
+              {opening ? 'פותח...' : 'צפה'}
+            </button>
+          )}
+          {isOnline && hasFile && (
+            <button onClick={handleDeleteDocument} disabled={deleting}
+              className="flex items-center gap-1 text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
+              {deleting ? <span className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" /> :
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>}
+              {deleting ? 'מוחק...' : 'מחק'}
+            </button>
+          )}
+          {isOnline && docType !== 'id_document' && !isWorkVisaLocked(docType, !!isForeignWorker) && (
+            <button
+              onClick={handleToggleRequired}
+              disabled={togglingRequired}
+              className={`text-xs px-2 py-1 rounded-full border transition-colors disabled:opacity-50 mr-auto ${
+                !isRequired
+                  ? 'bg-gray-100 text-gray-500 border-gray-200'
+                  : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              {togglingRequired ? '...' : isRequired ? 'סמן כ"לא נדרש"' : '✓ לא נדרש'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

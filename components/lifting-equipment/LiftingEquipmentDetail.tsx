@@ -256,21 +256,18 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
 
           {fileError && <p className="text-xs text-red-600 mb-2">{fileError}</p>}
 
-          <div className="flex items-center gap-2">
-            {eq.inspection_file_url ? (
-              <>
-                <button onClick={handleView} className="text-sm text-orange-500 hover:text-orange-600">צפה</button>
-                <button onClick={handleDeleteFile} className="text-sm text-red-400 hover:text-red-600">מחק</button>
-              </>
-            ) : (
-              <span className="text-sm text-gray-400">לא הועלה קובץ</span>
-            )}
+          <div className="space-y-2">
             <FileUploadZone
-              variant="button"
               folder="equipment"
               onUploaded={handleFileUploaded}
               currentFileName={eq.inspection_file_url ? 'קובץ קיים' : undefined}
             />
+            {eq.inspection_file_url && (
+              <div className="flex items-center gap-2">
+                <button onClick={handleView} className="text-sm text-orange-500 hover:text-orange-600">צפה</button>
+                <button onClick={handleDeleteFile} className="text-sm text-red-400 hover:text-red-600">מחק</button>
+              </div>
+            )}
           </div>
         </div>
       </div>
