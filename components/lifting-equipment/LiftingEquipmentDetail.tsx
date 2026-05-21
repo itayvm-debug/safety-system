@@ -10,6 +10,7 @@ import ToggleSwitch from '@/components/ToggleSwitch';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import CameraCapture from '@/components/CameraCapture';
+import EntityNotesButton from '@/components/EntityNotesButton';
 
 function LiftingImageUploader({ equipmentId, imageUrl, onUploaded }: { equipmentId: string; imageUrl: string | null; onUploaded: (url: string) => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,9 +154,13 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
   }
 
   async function handleDelete() {
-    if (!confirm(`למחוק את "${eq.description}"?`)) return;
+    if (!confirm(`להעביר את "${eq.description}" לארכיון?`)) return;
     setDeleting(true);
-    const res = await fetch(`/api/lifting-equipment/${eq.id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/lifting-equipment/${eq.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_archived: true }),
+    });
     if (res.ok) { router.push('/lifting-equipment'); router.refresh(); }
     else { alert('שגיאה'); setDeleting(false); }
   }
@@ -232,9 +237,10 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
               {togglingActive ? '...' : eq.is_active ? 'סמן כלא פעיל' : 'סמן כפעיל'}
             </span>
           </div>
+          <EntityNotesButton entityType="lifting_equipment" entityId={eq.id} />
           <button onClick={handleDelete} disabled={deleting}
-            className="px-4 py-2 text-sm border border-red-200 rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-50">
-            {deleting ? 'מוחק...' : 'מחיקה'}
+            className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+            {deleting ? 'מעביר לארכיון...' : 'העבר לארכיון'}
           </button>
         </div>
       </div>

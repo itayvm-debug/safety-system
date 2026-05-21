@@ -10,6 +10,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('heavy_equipment')
     .select('*, subcontractor:subcontractors(id, name), heavy_equipment_insurances(*)')
+    .eq('is_archived', false)
     .order('description');
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

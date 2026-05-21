@@ -21,21 +21,25 @@ export async function GET() {
       .from('workers')
       .select(`*, documents(*), safety_briefings(*), height_restrictions(*), lifting_machine_appointments(id), professional_licenses(*), manager_licenses(*), vehicles(*, vehicle_licenses(*), vehicle_insurances(*)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
       .eq('is_active', true)
+      .eq('is_archived', false)
       .order('full_name'),
     supabase
       .from('vehicles')
       .select(`*, assigned_manager:workers!vehicles_assigned_manager_id_fkey(id, full_name), vehicle_licenses(*), vehicle_insurances(*)`)
       .eq('is_active', true)
+      .eq('is_archived', false)
       .order('vehicle_number'),
     supabase
       .from('heavy_equipment')
       .select('*, subcontractor:subcontractors(id, name), heavy_equipment_insurances(*)')
       .eq('is_active', true)
+      .eq('is_archived', false)
       .order('description'),
     supabase
       .from('lifting_equipment')
       .select('*, subcontractor:subcontractors(id, name)')
       .eq('is_active', true)
+      .eq('is_archived', false)
       .order('description'),
   ]);
 

@@ -9,6 +9,7 @@ const ENTITY_LABELS: Record<Issue['entityType'], string> = {
   vehicle: 'רכב',
   heavy_equipment: 'כלי צמ"ה',
   lifting_equipment: 'ציוד הרמה',
+  subcontractor: 'קבלן משנה',
 };
 
 const STATUS_LABELS: Record<Issue['status'], string> = {

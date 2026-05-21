@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth/session';
 import Link from 'next/link';
 import { WorkerWithDocuments, Vehicle, HeavyEquipment, LiftingEquipment } from '@/types';
 import { buildAllIssues, countByEntity, EntityCounts } from '@/lib/documents/issues';
+import { buildNoteIssues, buildEntityMap } from '@/lib/documents/notes';
 import { DashboardOfflineCapture } from '@/components/pwa/DashboardOfflineCapture';
 
 export const dynamic = 'force-dynamic';
@@ -170,27 +171,41 @@ export default async function DashboardPage() {
     { data: heavyRaw },
     { data: liftingRaw },
     { count: feedbackCount },
+    { data: notesRaw },
+    { data: subcontractorsRaw },
   ] = await Promise.all([
     supabase
       .from('workers')
       .select(`*, documents(id,doc_type,file_url,expiry_date,is_required), safety_briefings(id,expires_at,created_at), height_restrictions(id,expires_at,created_at), lifting_machine_appointments(id), professional_licenses(id,file_url,expiry_date,license_type), manager_licenses(id,file_url,expiry_date,license_type), vehicles(id,vehicle_number,vehicle_licenses(id,file_url,expiry_date),vehicle_insurances(id,insurance_type,file_url,expiry_date)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id,name)`)
-      .eq('is_active', true),
+      .eq('is_active', true)
+      .eq('is_archived', false),
     supabase
       .from('vehicles')
       .select(`*, vehicle_licenses(id,file_url,expiry_date), vehicle_insurances(id,insurance_type,file_url,expiry_date), assigned_manager:workers!vehicles_assigned_manager_id_fkey(id,full_name)`)
-      .eq('is_active', true),
+      .eq('is_active', true)
+      .eq('is_archived', false),
     supabase
       .from('heavy_equipment')
       .select('*, subcontractor:subcontractors(id,name)')
-      .eq('is_active', true),
+      .eq('is_active', true)
+      .eq('is_archived', false),
     supabase
       .from('lifting_equipment')
       .select('*, subcontractor:subcontractors(id,name)')
-      .eq('is_active', true),
+      .eq('is_active', true)
+      .eq('is_archived', false),
     supabase
       .from('site_feedback')
       .select('*', { count: 'exact', head: true })
       .eq('is_handled', false),
+    supabase
+      .from('entity_notes')
+      .select('*')
+      .eq('status', 'needs_attention'),
+    supabase
+      .from('subcontractors')
+      .select('id, name')
+      .eq('is_archived', false),
   ]);
 
   const workers = (workersRaw ?? []) as WorkerWithDocuments[];
@@ -198,7 +213,10 @@ export default async function DashboardPage() {
   const heavy = (heavyRaw ?? []) as HeavyEquipment[];
   const lifting = (liftingRaw ?? []) as LiftingEquipment[];
 
-  const allIssues = buildAllIssues(workers, vehicles, heavy, lifting);
+  const docIssues = buildAllIssues(workers, vehicles, heavy, lifting);
+  const entityMap = buildEntityMap(workers, vehicles, heavy, lifting, subcontractorsRaw ?? []);
+  const noteIssues = buildNoteIssues(notesRaw ?? [], entityMap);
+  const allIssues = [...docIssues, ...noteIssues];
 
   const urgentTotal = allIssues.filter((i) => i.status === 'expired' || i.status === 'missing').length;
   const expiringTotal = allIssues.filter((i) => i.status === 'expiring_soon').length;

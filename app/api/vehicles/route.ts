@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase
     .from('vehicles')
     .select(`*, assigned_manager:workers!vehicles_assigned_manager_id_fkey(id, full_name), vehicle_licenses(*), vehicle_insurances(*)`)
+    .eq('is_archived', false)
     .order('vehicle_number');
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

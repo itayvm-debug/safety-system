@@ -19,7 +19,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { error: authError } = await requireAdmin();
+  const { error: authError, session } = await requireAdmin();
   if (authError) return authError;
 
   const { id } = await params;
@@ -29,6 +29,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (key in body) updates[key] = body[key] ?? null;
+  }
+
+  if ('is_archived' in body) {
+    updates.is_archived = !!body.is_archived;
+    updates.archived_at = body.is_archived ? new Date().toISOString() : null;
+    updates.archived_by = body.is_archived ? (session?.username ?? null) : null;
   }
 
   if (Object.keys(updates).length === 0) return NextResponse.json({ error: 'אין שדות לעדכון' }, { status: 400 });
