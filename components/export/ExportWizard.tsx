@@ -146,8 +146,8 @@ export default function ExportWizard({ onClose }: Props) {
     if (format === 'excel') {
       generateWorkersExcel(filtered, title);
     } else {
-      const html = buildWorkersHtml(filtered, title);
-      await generatePdf(html, `${title}_${today()}.pdf`);
+      const pages = buildWorkersHtml(filtered, title);
+      await generatePdf(pages, `${title}_${today()}.pdf`);
     }
   }
 
@@ -176,8 +176,8 @@ export default function ExportWizard({ onClose }: Props) {
     if (format === 'excel') {
       generateVehiclesExcel(filtered);
     } else {
-      const html = buildVehiclesHtml(filtered, 'רכבים');
-      await generatePdf(html, `רכבים_${today()}.pdf`);
+      const pages = buildVehiclesHtml(filtered, 'רכבים');
+      await generatePdf(pages, `רכבים_${today()}.pdf`);
     }
   }
 
@@ -201,8 +201,8 @@ export default function ExportWizard({ onClose }: Props) {
     if (format === 'excel') {
       generateEquipmentExcel(filtered);
     } else {
-      const html = buildEquipmentHtml(filtered, 'כלי צמ"ה');
-      await generatePdf(html, `כלי_צמה_${today()}.pdf`);
+      const pages = buildEquipmentHtml(filtered, 'כלי צמ"ה');
+      await generatePdf(pages, `כלי_צמה_${today()}.pdf`);
     }
   }
 
@@ -252,8 +252,8 @@ export default function ExportWizard({ onClose }: Props) {
     if (format === 'excel') {
       generateIssuesExcel(issues, statusTitle);
     } else {
-      const html = buildIssuesHtml(issues, statusTitle);
-      await generatePdf(html, `${statusTitle}_${today()}.pdf`);
+      const pages = buildIssuesHtml(issues, statusTitle);
+      await generatePdf(pages, `${statusTitle}_${today()}.pdf`);
     }
   }
 
