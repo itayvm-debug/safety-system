@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import FileUploadZone from '@/components/FileUploadZone';
 import { ManagerLicense } from '@/types';
 import { getDocumentStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
@@ -123,29 +124,22 @@ function ManagerFileRow({
   onDeleted: (id: string) => void;
   onUpdated: (item: ManagerLicense) => void;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
   const [opening, setOpening] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
 
   const status = getDocumentStatus(fileUrl, expiryDate, required, true);
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
-    setUploading(true); setError('');
+  async function handleFileUploaded(path: string) {
+    setError('');
     try {
-      const fd = new FormData(); fd.append('file', file); fd.append('folder', 'documents');
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
-      const ud = await uploadRes.json();
-      if (!uploadRes.ok) { setError(ud.error ?? 'שגיאה'); return; }
       const res = await fetch(`/api/${apiPath}/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_url: ud.path }),
+        body: JSON.stringify({ file_url: path }),
       });
       const data = await res.json();
       if (res.ok) onUpdated(data); else setError(data.error ?? 'שגיאה');
-    } catch { setError('שגיאה'); } finally { setUploading(false); }
+    } catch { setError('שגיאה'); }
   }
 
   async function handleView() {
@@ -191,11 +185,12 @@ function ManagerFileRow({
         <button onClick={handleDelete} disabled={deleting} className="text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
           {deleting ? '...' : 'מחק'}
         </button>
-        <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-          className="mr-auto text-sm text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50">
-          {uploading ? 'מעלה...' : fileUrl ? 'החלף' : 'העלה'}
-        </button>
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleUpload} />
+        <FileUploadZone
+          variant="button"
+          folder="documents"
+          onUploaded={handleFileUploaded}
+          currentFileName={fileUrl ? 'קובץ קיים' : undefined}
+        />
       </div>
     </div>
   );

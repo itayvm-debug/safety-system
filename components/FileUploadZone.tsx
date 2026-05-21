@@ -112,14 +112,18 @@ export default function FileUploadZone({
 
   if (variant === 'button') {
     return (
-      <span>
+      <span
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files?.[0]; if (f) processFile(f); }}
+      >
         <button
           type="button"
           onClick={() => !disabled && !uploading && inputRef.current?.click()}
           disabled={disabled || uploading}
-          className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          className={`text-sm px-3 py-1.5 border rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition-colors ${dragOver ? 'border-orange-400 bg-orange-50 text-orange-600' : 'border-gray-200'}`}
         >
-          {uploading ? progress : uploaded ? 'החלף מסמך' : 'העלה מסמך'}
+          {uploading ? progress : dragOver ? 'שחרר כאן' : uploaded ? 'החלף מסמך' : 'העלה מסמך'}
         </button>
         <input
           ref={inputRef}

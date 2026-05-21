@@ -24,6 +24,7 @@ import ManagerDocumentsCard from '@/components/workers/ManagerDocumentsCard';
 import WorkerVehicleCard from '@/components/workers/WorkerVehicleCard';
 import ToggleSwitch from '@/components/ToggleSwitch';
 import EntityNotesButton from '@/components/EntityNotesButton';
+import FileUploadZone from '@/components/FileUploadZone';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { saveSnapshot } from '@/lib/offline/cache';
@@ -974,8 +975,6 @@ function DocumentCard({
   onFileUploaded: (doc: Document) => void;
   onDeleted: (docType: string) => void;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [opening, setOpening] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1030,34 +1029,26 @@ function DocumentCard({
     }
   }
 
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
-    setUploading(true); setError(''); setUploadSuccess(false);
+  async function handleFileUploaded(path: string) {
+    setError(''); setUploadSuccess(false);
     try {
-      const formData = new FormData();
-      formData.append('file', file); formData.append('folder', 'documents');
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) { setError(uploadData.error ?? 'שגיאה בהעלאה'); return; }
-
-      const docRes = await fetch('/api/documents', {
+      const res = await fetch('/api/documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           worker_id: workerId,
           doc_type: docType,
-          file_url: uploadData.path,
+          file_url: path,
           expiry_date: localExpiry || null,
           is_required: isRequired,
         }),
       });
-      const docData = await docRes.json();
-      if (!docRes.ok) { setError(docData.error ?? 'שגיאה בשמירה'); return; }
-
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? 'שגיאה בשמירה'); return; }
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000);
-      onFileUploaded(docData);
-    } catch { setError('שגיאה בהעלאה'); } finally { setUploading(false); }
+      onFileUploaded(data);
+    } catch { setError('שגיאה'); }
   }
 
   async function handleDeleteDocument() {
@@ -1178,14 +1169,12 @@ function DocumentCard({
         )}
 
         {isOnline && (
-          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50">
-            {uploading ? <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" /> :
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>}
-            {uploading ? 'מעלה...' : hasFile ? 'החלף' : 'העלה'}
-          </button>
+          <FileUploadZone
+            variant="button"
+            folder="documents"
+            onUploaded={handleFileUploaded}
+            currentFileName={hasFile ? 'קובץ קיים' : undefined}
+          />
         )}
 
         {isOnline && hasFile && (
@@ -1200,7 +1189,7 @@ function DocumentCard({
         )}
 
         {uploadSuccess && <span className="text-xs text-green-600">✓ הועלה</span>}
-        {!hasFile && !uploading && <span className="text-sm text-gray-400">לא הועלה קובץ</span>}
+        {!hasFile && <span className="text-sm text-gray-400">לא הועלה קובץ</span>}
 
         {isOnline && docType !== 'id_document' && !isWorkVisaLocked(docType, !!isForeignWorker) && (
           <button
@@ -1216,7 +1205,6 @@ function DocumentCard({
           </button>
         )}
 
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleFileUpload} />
       </div>
     </div>
   );

@@ -71,7 +71,7 @@ function LicenseRow({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
-  const status = getDocumentStatus(license.file_url, license.expiry_date, true, !!license.expiry_date);
+  const status = getDocumentStatus(license.file_url, license.expiry_date, true, true);
 
   async function handleView() {
     if (!license.file_url) return;
@@ -227,6 +227,7 @@ function AddLicenseForm({
 
   async function handleSave() {
     if (!licenseType.trim()) { setError('יש לבחור סוג רישיון'); return; }
+    if (!expiryDate) { setError('תאריך תוקף חובה לרישיון מקצועי'); return; }
     setSaving(true); setError('');
     try {
       const res = await fetch('/api/professional-licenses', {
@@ -269,7 +270,7 @@ function AddLicenseForm({
           />
         </div>
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">תאריך תוקף</label>
+          <label className="text-xs text-gray-500 mb-1 block">תאריך תוקף <span className="text-red-500">*</span></label>
           <input
             type="date"
             value={expiryDate}
@@ -305,7 +306,7 @@ function AddLicenseForm({
         </button>
         <button
           onClick={handleSave}
-          disabled={!licenseType.trim() || saving}
+          disabled={!licenseType.trim() || !expiryDate || saving}
           className="px-6 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? 'שומר...' : 'הוסף רישיון'}
