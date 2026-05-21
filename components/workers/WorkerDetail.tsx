@@ -23,6 +23,7 @@ import ProfessionalLicensesCard from '@/components/workers/ProfessionalLicensesC
 import ManagerDocumentsCard from '@/components/workers/ManagerDocumentsCard';
 import WorkerVehicleCard from '@/components/workers/WorkerVehicleCard';
 import ToggleSwitch from '@/components/ToggleSwitch';
+import EntityNotesButton from '@/components/EntityNotesButton';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { saveSnapshot } from '@/lib/offline/cache';
@@ -122,7 +123,7 @@ function WorkerSummaryBanner({ issues }: { issues: Issue[] }) {
 export default function WorkerDetail({ worker }: WorkerDetailProps) {
   const router = useRouter();
   const isOnline = useOnlineStatus();
-  const [deletingWorker, setDeletingWorker] = useState(false);
+  const [archivingWorker, setArchivingWorker] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
   const [togglingCraneOp, setTogglingCraneOp] = useState(false);
   const [togglingManager, setTogglingManager] = useState(false);
@@ -182,17 +183,21 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
     setLocalDocs((prev) => prev.filter((d) => d.doc_type !== docType));
   }
 
-  async function handleDeleteWorker() {
-    if (!confirm(`למחוק את ${worker.full_name}? פעולה זו בלתי הפיכה.`)) return;
-    setDeletingWorker(true);
-    const res = await fetch(`/api/workers/${worker.id}`, { method: 'DELETE' });
+  async function handleArchiveWorker() {
+    if (!confirm(`להעביר את ${worker.full_name} לארכיון?`)) return;
+    setArchivingWorker(true);
+    const res = await fetch(`/api/workers/${worker.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_archived: true }),
+    });
     if (res.ok) {
       router.push('/workers');
       router.refresh();
     } else {
       const body = await res.json().catch(() => ({}));
-      alert(body?.error || 'שגיאה במחיקה');
-      setDeletingWorker(false);
+      alert(body?.error || 'שגיאה בארכיון');
+      setArchivingWorker(false);
     }
   }
 
@@ -472,12 +477,13 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
               {togglingActive ? '...' : worker.is_active ? 'סמן כלא פעיל' : 'סמן כפעיל'}
             </span>
           </div>
+          <EntityNotesButton entityType="worker" entityId={worker.id} />
           <button
-            onClick={handleDeleteWorker}
-            disabled={deletingWorker}
-            className="px-4 py-2 text-sm border border-red-200 rounded-lg text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+            onClick={handleArchiveWorker}
+            disabled={archivingWorker}
+            className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
-            {deletingWorker ? 'מוחק...' : 'מחיקת עובד'}
+            {archivingWorker ? 'מעביר לארכיון...' : 'העבר לארכיון'}
           </button>
         </div>
         )}

@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
         : `*, documents(*), safety_briefings(*), height_restrictions(*), professional_licenses(*), lifting_machine_appointments(id), manager_licenses(*), vehicles(*, vehicle_licenses(*), vehicle_insurances(*)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
     .order('full_name');
 
+  query = query.eq('is_archived', false);
+
   if (managersOnly) {
     query = query.eq('is_responsible_site_manager', true).eq('is_active', true);
   }

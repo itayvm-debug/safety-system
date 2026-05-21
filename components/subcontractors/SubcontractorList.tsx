@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Subcontractor } from '@/types';
+import EntityNotesButton from '@/components/EntityNotesButton';
 
 interface Props {
   initialSubcontractors: Subcontractor[];
@@ -93,11 +94,15 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`למחוק את "${name}"? עובדים המשויכים לקבלן זה לא יימחקו, אך הקישור יוסר.`)) return;
+    if (!confirm(`להעביר את "${name}" לארכיון?`)) return;
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/subcontractors/${id}`, { method: 'DELETE' });
-      if (!res.ok) { alert('שגיאה במחיקה'); return; }
+      const res = await fetch(`/api/subcontractors/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_archived: true }),
+      });
+      if (!res.ok) { alert('שגיאה'); return; }
       setList((prev) => prev.filter((s) => s.id !== id));
       router.refresh();
     } finally {
@@ -186,19 +191,20 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
                   />
                 </div>
               </div>
-              <div className="flex gap-2 shrink-0 mr-3">
+              <div className="flex gap-2 shrink-0 mr-3 flex-wrap justify-end">
                 <button
                   onClick={() => startEdit(sub)}
                   className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
                 >
                   עריכה
                 </button>
+                <EntityNotesButton entityType="subcontractor" entityId={sub.id} />
                 <button
                   onClick={() => handleDelete(sub.id, sub.name)}
                   disabled={deletingId === sub.id}
-                  className="px-3 py-1.5 text-xs border border-red-200 rounded-lg text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                  className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
-                  {deletingId === sub.id ? 'מוחק...' : 'מחיקה'}
+                  {deletingId === sub.id ? 'מעביר...' : 'ארכיון'}
                 </button>
               </div>
             </div>

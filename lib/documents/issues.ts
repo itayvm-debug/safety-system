@@ -19,7 +19,7 @@ export type IssueStatus = 'expired' | 'expiring_soon' | 'missing';
 
 export interface Issue {
   id: string;
-  entityType: 'worker' | 'vehicle' | 'heavy_equipment' | 'lifting_equipment';
+  entityType: 'worker' | 'vehicle' | 'heavy_equipment' | 'lifting_equipment' | 'subcontractor';
   entityId: string;
   entityName: string;
   isManager: boolean;

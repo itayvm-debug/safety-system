@@ -21,6 +21,23 @@ export interface Subcontractor {
   notes: string | null;
   responsible_worker_id: string | null;
   responsible_worker?: { id: string; full_name: string } | null;
+  is_archived: boolean;
+  archived_at: string | null;
+  archived_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type EntityNoteStatus = 'ok' | 'needs_attention';
+export type EntityType = 'worker' | 'vehicle' | 'heavy_equipment' | 'lifting_equipment' | 'subcontractor';
+
+export interface EntityNote {
+  id: string;
+  entity_type: EntityType;
+  entity_id: string;
+  content: string;
+  status: EntityNoteStatus;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -57,6 +74,9 @@ export interface Worker {
   birth_year: number | null;
   profession: string | null;
   address: string | null;
+  is_archived: boolean;
+  archived_at: string | null;
+  archived_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -133,6 +153,9 @@ export interface Vehicle {
   project_name: string | null;
   is_active: boolean;
   notes: string | null;
+  is_archived: boolean;
+  archived_at: string | null;
+  archived_by: string | null;
   vehicle_licenses?: VehicleLicense[];
   vehicle_insurances?: VehicleInsurance[];
   created_at: string;
@@ -213,6 +236,9 @@ export interface HeavyEquipment {
   subcontractor?: Pick<Subcontractor, 'id' | 'name'> | null;
   project_name: string | null;
   is_active: boolean;
+  is_archived: boolean;
+  archived_at: string | null;
+  archived_by: string | null;
   // שדות לטופס מינוי מפעיל
   manufacturer: string | null;
   machine_identifier: string | null;
@@ -265,6 +291,9 @@ export interface LiftingEquipment {
   subcontractor?: Pick<Subcontractor, 'id' | 'name'> | null;
   project_name: string | null;
   is_active: boolean;
+  is_archived: boolean;
+  archived_at: string | null;
+  archived_by: string | null;
   created_at: string;
   updated_at: string;
 }

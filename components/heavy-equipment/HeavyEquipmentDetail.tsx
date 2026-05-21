@@ -11,6 +11,7 @@ import ToggleSwitch from '@/components/ToggleSwitch';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import CameraCapture from '@/components/CameraCapture';
+import EntityNotesButton from '@/components/EntityNotesButton';
 
 interface Props { equipment: HeavyEquipment; }
 
@@ -90,11 +91,15 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
   }
 
   async function handleDelete() {
-    if (!confirm(`למחוק את "${eq.description}"? פעולה זו בלתי הפיכה.`)) return;
+    if (!confirm(`להעביר את "${eq.description}" לארכיון?`)) return;
     setDeleting(true);
-    const res = await fetch(`/api/heavy-equipment/${eq.id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/heavy-equipment/${eq.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_archived: true }),
+    });
     if (res.ok) { router.push('/heavy-equipment'); router.refresh(); }
-    else { alert('שגיאה במחיקה'); setDeleting(false); }
+    else { alert('שגיאה'); setDeleting(false); }
   }
 
   function updateInsurance(updated: HeavyEquipmentInsurance) {
@@ -151,12 +156,13 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
               {togglingActive ? '...' : eq.is_active ? 'סמן כלא פעיל' : 'סמן כפעיל'}
             </span>
           </div>
+          <EntityNotesButton entityType="heavy_equipment" entityId={eq.id} />
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="px-4 py-2 text-sm border border-red-200 rounded-lg text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
-            {deleting ? 'מוחק...' : 'מחיקה'}
+            {deleting ? 'מעביר לארכיון...' : 'העבר לארכיון'}
           </button>
         </div>
       </div>

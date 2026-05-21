@@ -8,6 +8,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { formatDateSafe } from '@/lib/utils/date';
 import VehicleForm from './VehicleForm';
 import CameraCapture from '@/components/CameraCapture';
+import EntityNotesButton from '@/components/EntityNotesButton';
 
 interface Props {
   vehicle: Vehicle;
@@ -49,10 +50,14 @@ export default function VehicleDetail({ vehicle: initial, imageUrl: initialImage
   }
 
   async function handleDelete() {
-    if (!confirm(`למחוק את הרכב ${vehicle.vehicle_number}?`)) return;
+    if (!confirm(`להעביר את הרכב ${vehicle.vehicle_number} לארכיון?`)) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/vehicles/${vehicle.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/vehicles/${vehicle.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_archived: true }),
+      });
       if (res.ok) { router.push('/vehicles'); router.refresh(); }
     } finally { setDeleting(false); }
   }
@@ -114,19 +119,20 @@ export default function VehicleDetail({ vehicle: initial, imageUrl: initialImage
             )}
           </div>
         </div>
-        <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
           <button
             onClick={() => setEditing(true)}
             className="text-sm px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
           >
             עריכה
           </button>
+          <EntityNotesButton entityType="vehicle" entityId={vehicle.id} />
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="text-sm px-4 py-2 border border-red-200 rounded-lg text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="text-sm px-4 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
-            {deleting ? 'מוחק...' : 'מחק רכב'}
+            {deleting ? 'מעביר לארכיון...' : 'העבר לארכיון'}
           </button>
         </div>
       </div>
