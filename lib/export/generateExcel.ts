@@ -190,6 +190,7 @@ export function generateIssuesExcel(issues: Issue[], reportTitle = 'דורש ט�
     vehicle: 'רכב',
     heavy_equipment: 'כלי צמ"ה',
     lifting_equipment: 'ציוד הרמה',
+    subcontractor: 'קבלן משנה',
   };
   const STATUS_LABEL: Record<Issue['status'], string> = {
     expired: 'פג תוקף',
