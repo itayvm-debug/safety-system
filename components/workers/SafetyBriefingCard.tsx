@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import FileUploadZone from '@/components/FileUploadZone';
 import { useRouter } from 'next/navigation';
 import {
   SafetyBriefing,
@@ -329,27 +330,11 @@ function PdfViewer({
 // ─── מצב ב: תדריך קיים ─────────────────────────────────────────
 function ExternalModeForm({ workerId, onClose, onSaved }: { workerId: string; onClose: () => void; onSaved: (briefing: SafetyBriefing) => void }) {
   const today = new Date().toISOString().split('T')[0];
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [briefedAt, setBriefedAt] = useState(today);
   const [conductedBy, setConductedBy] = useState('');
   const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [fileUploading, setFileUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
-    setFileUploading(true);
-    try {
-      const fd = new FormData(); fd.append('file', file); fd.append('folder', 'documents');
-      console.log('[upload:briefing-ext] starting', file.name, file.size, file.type);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      console.log('[upload:briefing-ext] status:', res.status, res.ok);
-      const d = await res.json().catch(e => { console.error('[upload:briefing-ext] json parse error:', e, 'content-type:', res.headers.get('content-type')); return {}; });
-      if (!res.ok) { console.error('[upload:briefing-ext] server error:', res.status, d); setError(d.error ?? 'שגיאה'); return; }
-      setFileUrl(d.path);
-    } catch (err) { console.error('[upload:briefing-ext] fetch error:', err); setError('שגיאה בהעלאה'); } finally { setFileUploading(false); }
-  }
 
   async function handleSave() {
     if (!fileUrl) { setError('יש להעלות קובץ תדריך'); return; }
@@ -381,16 +366,12 @@ function ExternalModeForm({ workerId, onClose, onSaved }: { workerId: string; on
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">קובץ/תמונה של התדריך</label>
-        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={fileUploading}
-          className="flex items-center gap-2 text-sm border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 disabled:opacity-50">
-          {fileUploading ? <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" /> :
-            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>}
-          {fileUploading ? 'מעלה...' : fileUrl ? 'החלף קובץ' : 'העלה קובץ'}
-        </button>
-        {fileUrl && <p className="text-xs text-green-600 mt-1">✓ קובץ הועלה</p>}
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleFileChange} />
+        <FileUploadZone
+          variant="button"
+          folder="documents"
+          onUploaded={(path) => setFileUrl(path)}
+          currentFileName={fileUrl ? 'קובץ הועלה' : undefined}
+        />
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">

@@ -12,6 +12,7 @@ import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import CameraCapture from '@/components/CameraCapture';
 import EntityNotesButton from '@/components/EntityNotesButton';
+import FileUploadZone from '@/components/FileUploadZone';
 
 interface Props { equipment: HeavyEquipment; }
 
@@ -263,8 +264,6 @@ function InsuranceRow({
   onUpdated: (updated: HeavyEquipmentInsurance) => void;
   onDeleted: (id: string) => void;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
   const [opening, setOpening] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
@@ -274,21 +273,16 @@ function InsuranceRow({
 
   const status = getDocumentStatus(insurance.file_url, insurance.expiry_date, required, true);
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
-    setUploading(true); setError('');
+  async function handleFileUploaded(path: string) {
+    setError('');
     try {
-      const fd = new FormData(); fd.append('file', file); fd.append('folder', 'equipment');
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
-      const ud = await uploadRes.json();
-      if (!uploadRes.ok) { setError(ud.error ?? 'שגיאה'); return; }
       const res = await fetch(`/api/heavy-equipment-insurances/${insurance.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_url: ud.path }),
+        body: JSON.stringify({ file_url: path }),
       });
       const data = await res.json();
       if (res.ok) onUpdated(data); else setError(data.error ?? 'שגיאה');
-    } catch { setError('שגיאה'); } finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
+    } catch { setError('שגיאה'); }
   }
 
   async function handleView() {
@@ -378,11 +372,12 @@ function InsuranceRow({
           className="text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
           {deleting ? 'מוחק...' : 'הסר'}
         </button>
-        <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-          className="mr-auto text-sm text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50 bg-white">
-          {uploading ? 'מעלה...' : insurance.file_url ? 'החלף' : 'העלה'}
-        </button>
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleUpload} />
+        <FileUploadZone
+          variant="button"
+          folder="equipment"
+          onUploaded={handleFileUploaded}
+          currentFileName={insurance.file_url ? 'קובץ קיים' : undefined}
+        />
       </div>
     </div>
   );
@@ -617,29 +612,21 @@ function EquipmentFileCard({
   onFileUploaded: (url: string) => void;
   onFileDeleted: () => void;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
   const [opening, setOpening] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
-    setUploading(true); setError('');
+  async function handleFileUploaded(path: string) {
+    setError('');
     try {
-      const fd = new FormData();
-      fd.append('file', file); fd.append('folder', 'equipment');
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
-      const ud = await uploadRes.json().catch(() => ({}));
-      if (!uploadRes.ok) { setError(ud.error ?? 'שגיאה'); return; }
-
       const res = await fetch(`/api/heavy-equipment/${equipmentId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [fileField]: ud.path }),
+        body: JSON.stringify({ [fileField]: path }),
       });
-      if (res.ok) onFileUploaded(ud.path);
-    } catch { setError('שגיאה'); } finally { setUploading(false); }
+      if (res.ok) onFileUploaded(path);
+      else { const d = await res.json().catch(() => ({})); setError(d.error ?? 'שגיאה'); }
+    } catch { setError('שגיאה'); }
   }
 
   async function handleDelete() {
@@ -699,11 +686,12 @@ function EquipmentFileCard({
         ) : (
           <span className="text-sm text-gray-400">לא הועלה קובץ</span>
         )}
-        <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-          className="mr-auto text-sm text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50">
-          {uploading ? 'מעלה...' : fileUrl ? 'החלף' : 'העלה'}
-        </button>
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,application/pdf" className="hidden" onChange={handleUpload} />
+        <FileUploadZone
+          variant="button"
+          folder="equipment"
+          onUploaded={handleFileUploaded}
+          currentFileName={fileUrl ? 'קובץ קיים' : undefined}
+        />
       </div>
     </div>
   );

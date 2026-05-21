@@ -11,6 +11,7 @@ import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import CameraCapture from '@/components/CameraCapture';
 import EntityNotesButton from '@/components/EntityNotesButton';
+import FileUploadZone from '@/components/FileUploadZone';
 
 function LiftingImageUploader({ equipmentId, imageUrl, onUploaded }: { equipmentId: string; imageUrl: string | null; onUploaded: (url: string) => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -116,8 +117,6 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
   const [fileError, setFileError] = useState('');
 
   const overallStatus = getLiftingEquipmentStatus(eq);
@@ -165,23 +164,17 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
     else { alert('שגיאה'); setDeleting(false); }
   }
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
-    setUploading(true); setFileError('');
+  async function handleFileUploaded(path: string) {
+    setFileError('');
     try {
-      const fd = new FormData(); fd.append('file', file); fd.append('folder', 'equipment');
-      console.log('[upload:lifting] starting', file.name, file.size, file.type);
-      const ur = await fetch('/api/upload', { method: 'POST', body: fd });
-      console.log('[upload:lifting] status:', ur.status, ur.ok);
-      const ud = await ur.json().catch(e => { console.error('[upload:lifting] json parse error:', e, 'content-type:', ur.headers.get('content-type')); return {}; });
-      if (!ur.ok) { console.error('[upload:lifting] server error:', ur.status, ud); setFileError(ud.error ?? 'שגיאה'); return; }
       const res = await fetch(`/api/lifting-equipment/${eq.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inspection_file_url: ud.path }),
+        body: JSON.stringify({ inspection_file_url: path }),
       });
       const data = await res.json();
       if (res.ok) setEq(data);
-    } catch (err) { console.error('[upload:lifting] fetch error:', err); setFileError('שגיאה'); } finally { setUploading(false); }
+      else setFileError(data.error ?? 'שגיאה');
+    } catch { setFileError('שגיאה'); }
   }
 
   async function handleDeleteFile() {
@@ -272,11 +265,12 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
             ) : (
               <span className="text-sm text-gray-400">לא הועלה קובץ</span>
             )}
-            <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-              className="mr-auto text-sm text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50">
-              {uploading ? 'מעלה...' : eq.inspection_file_url ? 'החלף' : 'העלה'}
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,application/pdf" className="hidden" onChange={handleUpload} />
+            <FileUploadZone
+              variant="button"
+              folder="equipment"
+              onUploaded={handleFileUploaded}
+              currentFileName={eq.inspection_file_url ? 'קובץ קיים' : undefined}
+            />
           </div>
         </div>
       </div>
