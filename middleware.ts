@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySession, SESSION_COOKIE_NAME, ROLE_COOKIE_NAME } from '@/lib/auth/session';
 
-const PUBLIC = ['/login', '/api/auth/login', '/api/auth/logout'];
+const PUBLIC = ['/login', '/api/auth/login', '/api/auth/logout', '/api/reports/weekly-status'];
 const ADMIN_PATHS = ['/admin', '/api/admin'];
 
 export async function middleware(request: NextRequest) {
