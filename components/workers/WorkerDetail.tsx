@@ -749,6 +749,7 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
   const [cameraError, setCameraError] = useState('');
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
 
   useEffect(() => {
     if (!worker.photo_url) return;
@@ -793,29 +794,47 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
     ctx.fillText('מקם את פניך במסגרת', cx, cy + ry + 28);
   }, []);
 
+  async function startStream(mode: 'user' | 'environment') {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 960 } },
+    });
+    streamRef.current = stream;
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.onloadedmetadata = () => {
+        videoRef.current?.play();
+        requestAnimationFrame(function loop() {
+          if (!streamRef.current) return;
+          drawOverlay();
+          requestAnimationFrame(loop);
+        });
+      };
+    }
+  }
+
   async function openCamera() {
     setCameraError('');
     setCapturedBlob(null);
     setCapturedPreview(null);
     setCameraOpen(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
-          requestAnimationFrame(function loop() {
-            if (!streamRef.current) return;
-            drawOverlay();
-            requestAnimationFrame(loop);
-          });
-        };
-      }
+      await startStream(facingMode);
     } catch {
       setCameraError('לא ניתן לגשת למצלמה. אנא בדוק הרשאות או השתמש בהעלאת קובץ.');
+    }
+  }
+
+  async function flipCamera() {
+    if (capturedPreview) return;
+    const newMode = facingMode === 'user' ? 'environment' : 'user';
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setFacingMode(newMode);
+    setCameraError('');
+    try {
+      await startStream(newMode);
+    } catch {
+      setCameraError('לא ניתן להחליף מצלמה.');
     }
   }
 
@@ -927,7 +946,7 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
               <img src={capturedPreview} alt="preview" className="absolute inset-0 w-full h-full object-contain" />
             ) : (
               <>
-                <video ref={videoRef} playsInline muted className="absolute inset-0 w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+                <video ref={videoRef} playsInline muted className="absolute inset-0 w-full h-full object-cover" style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }} />
                 <canvas ref={overlayCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
               </>
             )}
@@ -940,7 +959,18 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
                 <button onClick={uploadCapturedPhoto} disabled={uploading} className="px-7 py-2.5 rounded-full bg-orange-500 text-white font-medium text-sm hover:bg-orange-600 disabled:opacity-50">{uploading ? 'שומר...' : 'שמור תמונה'}</button>
               </>
             ) : (
-              <button onClick={capturePhoto} className="w-16 h-16 rounded-full bg-white border-4 border-orange-400 hover:bg-orange-50 transition-colors shadow-lg" aria-label="צלם" />
+              <>
+                {/* כפתור החלפת מצלמה */}
+                <button onClick={flipCamera} className="w-10 h-10 rounded-full border border-white/40 text-white flex items-center justify-center hover:bg-white/10" title={facingMode === 'user' ? 'עבור למצלמה אחורית' : 'עבור למצלמה קדמית'}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+                {/* כפתור צילום */}
+                <button onClick={capturePhoto} className="w-16 h-16 rounded-full bg-white border-4 border-orange-400 hover:bg-orange-50 transition-colors shadow-lg" aria-label="צלם" />
+                {/* placeholder לסימטריה */}
+                <div className="w-10 h-10" />
+              </>
             )}
           </div>
         </div>
