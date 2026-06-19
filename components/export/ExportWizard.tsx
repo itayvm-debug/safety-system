@@ -55,7 +55,7 @@ export default function ExportWizard({ onClose }: Props) {
     subcontractor_id: '',
     manager_id: '',
     search: '',
-    show_inactive: true,
+    show_inactive: false,
     entity_type: 'all',
   });
   const [loading, setLoading] = useState(false);
@@ -218,9 +218,11 @@ export default function ExportWizard({ onClose }: Props) {
       throw new Error('שגיאה בטעינת נתונים');
     }
 
-    const [workers, vehicles, heavy, lifting]: [WorkerWithDocuments[], Vehicle[], HeavyEquipment[], LiftingEquipment[]] =
+    const [workersAll, vehicles, heavy, lifting]: [WorkerWithDocuments[], Vehicle[], HeavyEquipment[], LiftingEquipment[]] =
       await Promise.all([workersRes.json(), vehiclesRes.json(), heavyRes.json(), liftingRes.json()]);
 
+    // עובדים לא פעילים אינם חלק מבקרת התקינות השוטפת
+    const workers = workersAll.filter((w) => w.is_active);
     let issues: Issue[] = buildAllIssues(workers, vehicles, heavy, lifting);
 
     // פילטור

@@ -16,8 +16,19 @@ function LiftingEquipmentRow({ eq: initialEq }: { eq: LiftingEquipment }) {
   const isOnline = useOnlineStatus();
   const [eq, setEq] = useState(initialEq);
   const [toggling, setToggling] = useState(false);
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
   const status = getLiftingEquipmentStatus(eq);
   const isInactive = !eq.is_active;
+
+  useEffect(() => {
+    if (!eq.image_url) return;
+    let cancelled = false;
+    fetch(`/api/signed-url?path=${encodeURIComponent(eq.image_url)}`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d.url) setImgSrc(d.url); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [eq.image_url]);
   const leftBorder: Record<string, string> = {
     valid: 'border-r-green-500', expiring_soon: 'border-r-yellow-500',
     expired: 'border-r-red-500', missing: 'border-r-red-500', not_required: 'border-r-gray-300',
@@ -45,16 +56,28 @@ function LiftingEquipmentRow({ eq: initialEq }: { eq: LiftingEquipment }) {
   return (
     <Link href={`/lifting-equipment/${eq.id}`}
       className={`flex items-center justify-between bg-white rounded-xl border border-gray-100 border-r-4 ${leftBorder[status]} px-4 py-3.5 hover:shadow-md transition-all ${isInactive ? 'opacity-50' : ''}`}>
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="font-semibold text-gray-900 truncate">{eq.description}</p>
-          {isInactive && <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded shrink-0">לא פעיל</span>}
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`w-10 h-10 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center ${isInactive ? 'bg-gray-100' : 'bg-blue-50'}`}>
+          {imgSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imgSrc} alt={eq.description} className="w-10 h-10 object-cover" />
+          ) : (
+            <svg className={`w-5 h-5 ${isInactive ? 'text-gray-300' : 'text-blue-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+          )}
         </div>
-        <p className="text-sm text-gray-400">
-          {eq.subcontractor?.name}
-          {eq.subcontractor?.name && eq.project_name && ' · '}
-          {eq.project_name}
-        </p>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-gray-900 truncate">{eq.description}</p>
+            {isInactive && <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded shrink-0">לא פעיל</span>}
+          </div>
+          <p className="text-sm text-gray-400">
+            {eq.subcontractor?.name}
+            {eq.subcontractor?.name && eq.project_name && ' · '}
+            {eq.project_name}
+          </p>
+        </div>
       </div>
       <div className="flex items-center gap-2 shrink-0 mr-2">
         {!isInactive && <StatusBadge status={status} size="sm" />}
