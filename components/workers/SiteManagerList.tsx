@@ -109,7 +109,18 @@ export default function SiteManagerList() {
 }
 
 function ManagerCard({ manager }: { manager: WorkerWithDocuments }) {
+  const [photoSrc, setPhotoSrc] = useState<string | null>(null);
   const status = getWorkerStatus(manager);
+
+  useEffect(() => {
+    if (!manager.photo_url) return;
+    let cancelled = false;
+    fetch(`/api/signed-url?path=${encodeURIComponent(manager.photo_url)}`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d.url) setPhotoSrc(d.url); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [manager.photo_url]);
 
   const borderColor: Record<string, string> = {
     valid: 'border-r-green-500',
@@ -125,8 +136,13 @@ function ManagerCard({ manager }: { manager: WorkerWithDocuments }) {
       className={`flex items-center justify-between bg-white rounded-xl border border-gray-100 border-r-4 ${borderColor[status]} px-4 py-3.5 hover:shadow-md transition-all`}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0 bg-blue-100 text-blue-700">
-          {manager.full_name.charAt(0)}
+        <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0 overflow-hidden bg-blue-100 text-blue-700">
+          {photoSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoSrc} alt={manager.full_name} className="w-10 h-10 object-cover" />
+          ) : (
+            manager.full_name.charAt(0)
+          )}
         </div>
         <div className="min-w-0">
           <p className="font-semibold text-gray-900 truncate">{manager.full_name}</p>
