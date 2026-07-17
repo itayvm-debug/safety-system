@@ -1,6 +1,3 @@
-/**
- * ⚠️ DRAFT — טיוטה לסקירת עורך דין בלבד. תקופות שמירה לא אושרו.
- */
 import { Metadata } from 'next';
 import LegalPageLayout from '@/components/legal/LegalPageLayout';
 import { LEGAL } from '@/lib/legal/config';
@@ -12,71 +9,67 @@ const rows = [
     category: 'נתוני עובדים (פרטים אישיים, זהות)',
     table: 'workers',
     retention: `תקופת ההעסקה + ${LEGAL.retentionWorkerDataYears} שנים`,
-    basis: 'חובה חוקית (פקודת הבטיחות בעבודה)',
-    note: 'TODO: לאמת עם עורך דין',
+    basis: 'חובה חוקית — פקודת הבטיחות בעבודה',
   },
   {
     category: 'מסמכי עובדים (קבצים בענן)',
     table: 'documents + Storage',
     retention: `${LEGAL.retentionDocumentFilesYears} שנים מתאריך העלאה`,
     basis: 'חובה חוקית + אינטרס לגיטימי',
-    note: 'TODO: לאמת',
   },
   {
     category: 'תדריכי בטיחות',
     table: 'safety_briefings',
     retention: 'שנה מתאריך תפוגה',
     basis: 'חובה חוקית',
-    note: 'TODO: לאמת',
   },
   {
     category: 'מינויי מפעיל מכונה',
     table: 'lifting_machine_appointments',
     retention: '7 שנים (מסמך משפטי)',
     basis: 'חובה חוקית',
-    note: 'TODO: לאמת עם ממשרד העבודה',
   },
   {
-    category: 'נתוני רכבים וציוד',
+    category: 'נתוני רכבים, ציוד כבד וציוד הרמה',
     table: 'vehicles, heavy_equipment, lifting_equipment',
     retention: 'לאורך תקופת הפעילות + 3 שנים',
     basis: 'אינטרס לגיטימי',
-    note: 'TODO: לאמת',
   },
   {
     category: 'הערות ישויות',
     table: 'entity_notes',
-    retention: 'עד מחיקה ידנית',
+    retention: 'עד מחיקה ידנית (בהמשך: יוגדר retention אוטומטי)',
     basis: 'אינטרס לגיטימי',
-    note: 'יש לשקול retention policy אוטומטי',
   },
   {
-    category: 'פרופילי משתמשים',
+    category: 'פרופילי משתמשי מערכת',
     table: 'profiles',
-    retention: 'תקופת ההרשאה + 1 שנה',
+    retention: 'תקופת ההרשאה + שנה',
     basis: 'אינטרס לגיטימי',
-    note: '',
+  },
+  {
+    category: 'רשומות הסכמה משפטית',
+    table: 'legal_acceptances',
+    retention: '7 שנים מיום ההסכמה',
+    basis: 'חובה חוקית — תיעוד הסכמה',
   },
   {
     category: 'לוגי audit',
-    table: 'audit_logs (עתידי)',
+    table: 'audit_logs',
     retention: `${LEGAL.retentionAuditLogsYears} שנים`,
     basis: 'חובה חוקית + הגנה משפטית',
-    note: '',
   },
   {
     category: 'Session cookies',
     table: 'Cookie דפדפן',
     retention: `${LEGAL.retentionSessionDays} ימים`,
     basis: 'הכרחי לפעילות המערכת',
-    note: '',
   },
   {
-    category: 'Vercel & Supabase logs',
+    category: 'לוגי תשתית (Vercel & Supabase)',
     table: 'לוגי ספק תשתית',
-    retention: 'לפי מדיניות הספק (בדרך כלל 30–90 יום)',
+    retention: 'לפי מדיניות הספק — בדרך כלל 30–90 יום',
     basis: 'אינטרס לגיטימי / חוזה ספק',
-    note: 'TODO: לאמת מול תנאי Vercel ו-Supabase',
   },
 ];
 
@@ -86,27 +79,27 @@ export default function DataRetentionPage() {
       title="מדיניות שמירת מידע"
       version={LEGAL.termsVersion}
       effectiveDate={LEGAL.termsEffectiveDate}
+      summary={`${LEGAL.companyName} שומרת מידע לפרקי זמן המתחייבים מהדין ומצרכים תפעוליים לגיטימיים. תקופות השמירה מפורטות להלן. מסמך זה הוא טיוטה — יש לאמת מול עורך דין לפני הסחרה.`}
+      prevPage={{ href: '/subprocessors', label: 'ספקי משנה' }}
+      nextPage={{ href: '/accessibility', label: 'הצהרת נגישות' }}
     >
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800 text-sm mb-8">
-        ⚠️ <strong>טיוטה — לסקירת עורך דין בלבד.</strong>
-        תקופות השמירה מפורטות כהצעה ראשונית ויש לאמת אותן מול עורך דין המתמחה בדיני עבודה ופרטיות.
-      </div>
 
       <section>
         <p className="text-gray-700 leading-relaxed">
-          {LEGAL.companyName} שומרת מידע לפרקי זמן המתחייבים מהדין ומצרכים תפעוליים לגיטימיים.
-          להלן טבלת השמירה לפי קטגוריות:
+          {LEGAL.companyName} שומרת מידע לפרקי זמן המתחייבים מדרישות חוק הבטיחות בעבודה,
+          חוק הגנת הפרטיות, וצרכים תפעוליים לגיטימיים. בתום תקופת השמירה, מידע יימחק או יאנונמז.
         </p>
       </section>
 
       <section>
-        <div className="overflow-x-auto mt-4">
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">טבלת שמירה לפי קטגוריות</h2>
+        <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b-2 border-gray-200 text-right">
                 <th className="py-2 px-3 font-semibold text-gray-900">קטגוריה</th>
                 <th className="py-2 px-3 font-semibold text-gray-900">תקופת שמירה</th>
-                <th className="py-2 px-3 font-semibold text-gray-900">בסיס</th>
+                <th className="py-2 px-3 font-semibold text-gray-900 hidden sm:table-cell">בסיס</th>
               </tr>
             </thead>
             <tbody>
@@ -115,35 +108,44 @@ export default function DataRetentionPage() {
                   <td className="py-2.5 px-3">
                     <p className="font-medium text-gray-900">{r.category}</p>
                     <p className="text-xs text-gray-400">{r.table}</p>
-                    {r.note && <p className="text-xs text-amber-600 mt-0.5">⚠️ {r.note}</p>}
                   </td>
                   <td className="py-2.5 px-3 text-gray-700">{r.retention}</td>
-                  <td className="py-2.5 px-3 text-gray-500 text-xs">{r.basis}</td>
+                  <td className="py-2.5 px-3 text-gray-500 text-xs hidden sm:table-cell">{r.basis}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <p className="text-xs text-gray-500 mt-3">
+          * תקופות שמירה אלו הן טיוטה ראשונית ויש לאמת אותן עם עורך דין המתמחה בדיני עבודה ופרטיות לפני מסחור.
+        </p>
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">מחיקה</h2>
-        <p className="text-gray-700 leading-relaxed">
-          בתום תקופת השמירה, מידע יימחק או יאנונמז.
-          כיום מחיקה מבוצעת ידנית על ידי מנהלי המערכת.
-          בפיתוח עתידי: מחיקה אוטומטית לפי מדיניות זו.
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">מחיקה ואנונימיזציה</h2>
+        <p className="text-gray-700 leading-relaxed mb-3">
+          בתום תקופת השמירה, מידע יטופל באחת מהדרכים הבאות:
+        </p>
+        <ul className="list-disc list-inside text-gray-700 space-y-1.5 leading-relaxed">
+          <li><strong>מחיקה</strong> — הסרת הנתונים מהמסד לצמיתות</li>
+          <li><strong>אנונימיזציה</strong> — הסרת מזהים אישיים תוך שמירת נתונים מצטברים לצורכי סטטיסטיקה</li>
+        </ul>
+        <p className="text-gray-700 leading-relaxed mt-3">
+          כיום, מחיקה מבוצעת ידנית על ידי מנהלי המערכת. בפיתוח עתידי יוטמע מנגנון מחיקה אוטומטית.
         </p>
       </section>
 
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">בקשת מחיקה</h2>
         <p className="text-gray-700 leading-relaxed">
-          לבקשת מחיקת מידע אישי (בכפוף לחובות שמירה חוקיות):{' '}
+          לבקשת מחיקת מידע אישי (בכפוף לחובות שמירה חוקיות), ניתן לפנות אל:{' '}
           <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-600 hover:underline">
             {LEGAL.privacyContactEmail}
-          </a>
+          </a>.
+          החברה תשיב תוך 30 יום ותפרט אילו נתונים ניתן למחוק ואילו חייבים להישמר על פי דין.
         </p>
       </section>
+
     </LegalPageLayout>
   );
 }

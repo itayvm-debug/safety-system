@@ -171,3 +171,34 @@ onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
 ---
 
 *מסמך זה הוא נקודת פתיחה. בדיקה מלאה עם NVDA + VoiceOver + axe-core נדרשת לפני הצהרת עמידה בתקן.*
+
+---
+
+## 8. עדכון Session 1 — 2026-07-17
+
+### תיקונים שבוצעו בסשן 1
+
+| # | רכיב | תיקון | קריטריון WCAG |
+|---|------|--------|---------------|
+| FIX-01 | דף legal-consent | הוצאת קישורים מתוך `<label>` → `htmlFor` נפרד | 4.1.2 |
+| FIX-02 | דף legal-consent | `role="alert" aria-live="assertive"` על div שגיאה | 4.1.3 |
+| FIX-03 | SiteFooter | הוספת גרסת מערכת לטקסט copyright (ניטרלי לנגישות) | — |
+
+### בדיקות ידניות נדרשות
+
+| בדיקה | מסך | עדיפות |
+|-------|------|--------|
+| בדיקת Tab order בדף legal-consent אחרי שינוי | /legal-consent | גבוהה |
+| בדיקת screen reader — announcements של שגיאה | /legal-consent | גבוהה |
+| בדיקת ניגודיות orange-500 vs white | כפתורים ראשיים | בינונית |
+| Skip link לדפים ציבוריים | /terms, /privacy, /accessibility | בינונית |
+| Focus trap ב-modals | עמודי עובדים/ציוד | גבוהה |
+
+### מגבלות ידועות שנותרו (לטיפול בהמשך)
+
+- ACC-01, ACC-02, ACC-04: focus management ו-focus trap ב-modals — לא תוקן ב-Session 1
+- ACC-10: ניגודיות orange-500 על לבן — ב-3:1, מתחת ל-WCAG AA לטקסט רגיל
+- ACC-11: skip link חסר
+- בדיקת VoiceOver / NVDA לא בוצעה
+
+**⚠️ אין להצהיר על עמידה בתקן WCAG AA או ת"י 5568 עד לאחר בדיקה מקצועית מלאה.**

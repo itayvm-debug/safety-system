@@ -1,5 +1,5 @@
 # סקר אבטחה — SafeDoc
-> נוצר: 2026-07-15 | ממצאי ראשוני מקריאת קוד
+> נוצר: 2026-07-15 | עדכון אחרון: 2026-07-17 (Session 1)
 > **לא תחליף ל-penetration test מקצועי**
 
 ---
@@ -8,28 +8,45 @@
 
 | אזור | ציון | הערה |
 |------|------|-------|
-| אימות וגישה | ✅ טוב | HMAC session, middleware |
+| אימות וגישה | ✅ טוב | HMAC-SHA256 session cookies, middleware |
 | הרשאות API | ✅ טוב | requireAuth/requireAdmin |
-| Storage | ✅ טוב | private bucket, signed URLs |
-| Rate limiting | ❌ חסר | אין כלל |
-| Audit trail | ⚠️ בפיתוח | lib/audit/log.ts נוצר |
+| Storage | ✅ טוב | bucket `worker-files` (private), signed URLs תוקף 1 שעה |
+| Rate limiting | ✅ מיושם | login: 10/15min per IP; upload: 30/10min per user; export: 5/5min; signed-url: 200/1min |
+| Audit trail | ✅ מיושם | `lib/audit/log.ts`, כותב ל-`audit_logs` |
 | Input validation | ✅ בינוני | MIME + size בהעלאה; אחרים חלקי |
 | Secrets management | ✅ טוב | Vercel ENV |
 | HTTPS | ✅ Vercel אוכף | |
-| CSP headers | ❌ חסר | |
-| Cookie security | ✅ HttpOnly, Secure (prod), SameSite=Lax | |
+| CSP headers | ❌ חסר | לשקול הוספה ב-next.config.ts |
+| Cookie security | ✅ HttpOnly, Secure (prod), SameSite=Lax | שלושה cookies: session, role, consent |
 
 ---
 
 ## 2. מיפוי מלא של API Routes
 
+### 2.0 מנגנוני אימות (עדכון 2026-07-17)
+
+המערכת מכילה **שני מנגנוני כניסה מקבילים:**
+
+| מנגנון | Route | תיאור | סטטוס |
+|--------|-------|--------|--------|
+| Username/Password | `/api/auth/login` | כניסה עם שם משתמש/אימייל + סיסמה → HMAC session cookie | **פעיל — ראשי** |
+| Phone-based (legacy) | `/api/auth/phone-login` + `/api/auth/check-phone` | בדיקת טלפון מול `authorized_phones` → credentials נגזרים | **פעיל — ירושה** |
+
+> ⚠️ `authorized_phones` עדיין בשימוש פעיל ב-`check-phone` ו-`phone-login`.
+> שני המנגנונים ייצרו HMAC session cookies תקינים בסיום הזרימה.
+> [החלטה נדרשת: האם להסיר/לאמן את ה-legacy flow לפני מסחור]
+
+---
+
 ### 2.1 נתיבים ציבוריים (ללא session)
 
 | נתיב | מתודה | auth | הערה |
 |------|--------|------|-------|
-| `/api/auth/login` | POST | ❌ ציבורי | login endpoint — תקין |
-| `/api/auth/logout` | POST | ❌ ציבורי | logout — תקין; אמור להיות מוגן |
-| `/api/reports/weekly-status` | GET | CRON_SECRET | ✅ CRON_SECRET; במידה ואין secret חשוף |
+| `/api/auth/login` | POST | ❌ ציבורי | כניסה username/password — rate limited |
+| `/api/auth/check-phone` | POST | ❌ ציבורי | בדיקת authorized_phones — legacy |
+| `/api/auth/phone-login` | POST | ❌ ציבורי | כניסה phone-based — legacy |
+| `/api/auth/logout` | POST | ❌ ציבורי | logout — תקין |
+| `/api/reports/weekly-status` | GET | CRON_SECRET | ✅ CRON_SECRET |
 
 ### 2.2 נתיבים מוגנים — requireAuth (admin + user)
 
@@ -94,10 +111,10 @@
 
 ### 3.2 גבוה
 
-| # | ממצא | קובץ | המלצה |
+| # | ממצא | קובץ | סטטוס |
 |---|------|------|--------|
-| S-01 | **אין rate limiting** — ניסיונות login ללא הגבלה | `app/api/auth/login/route.ts` | יוטפל שלב יא׳ |
-| S-02 | **אין rate limiting** — העלאת קבצים ללא הגבלה | `app/api/upload/route.ts` | יוטפל שלב יא׳ |
+| S-01 | ~~**אין rate limiting** — ניסיונות login ללא הגבלה~~ | `app/api/auth/login/route.ts` | ✅ **תוקן Session 1** — `rateLimitLogin`: 10 ניסיונות / 15 דקות per IP (`lib/rate-limit/index.ts`) |
+| S-02 | ~~**אין rate limiting** — העלאת קבצים ללא הגבלה~~ | `app/api/upload/route.ts` | ✅ **תוקן Session 1** — `rateLimitUpload`: 30 קבצים / 10 דקות per user |
 
 ### 3.3 בינוני
 
