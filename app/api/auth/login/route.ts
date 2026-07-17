@@ -9,6 +9,8 @@ import {
 import { createServiceClient } from '@/lib/supabase/server';
 import { rateLimitLogin, getClientIp } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit/log';
+import { CONSENT_COOKIE_NAME, CONSENT_COOKIE_MAX_AGE } from '@/lib/auth/consent';
+import { LEGAL } from '@/lib/legal/config';
 
 const GENERIC_ERROR = 'שם משתמש או סיסמה שגויים';
 const INACTIVE_ERROR = 'המשתמש הושבת. פנה למנהל המערכת.';
@@ -95,6 +97,17 @@ export async function POST(request: NextRequest) {
       loginAt: Date.now(),
     });
 
+    // ה-DB הוא מקור האמת — בדוק אם המשתמש כבר אישר את הגרסה הנוכחית
+    const { data: existingConsent } = await service
+      .from('legal_acceptances')
+      .select('id')
+      .eq('user_id', profile.id)
+      .eq('terms_version', LEGAL.termsVersion)
+      .eq('accepted_terms', true)
+      .eq('accepted_privacy', true)
+      .limit(1)
+      .maybeSingle();
+
     const isProd = process.env.NODE_ENV === 'production';
     const response = NextResponse.json({ role: profile.role });
 
@@ -117,6 +130,19 @@ export async function POST(request: NextRequest) {
       maxAge: COOKIE_MAX_AGE,
       path: '/',
     });
+
+    // שחזר את consent cookie רק אם קיימת הסכמה תקפה ב-DB
+    if (existingConsent) {
+      response.cookies.set({
+        name: CONSENT_COOKIE_NAME,
+        value: LEGAL.termsVersion,
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'lax',
+        maxAge: CONSENT_COOKIE_MAX_AGE,
+        path: '/',
+      });
+    }
 
     void auditLog({
       user_id: profile.id,
