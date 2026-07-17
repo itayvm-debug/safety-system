@@ -23,6 +23,10 @@ CREATE TABLE IF NOT EXISTS legal_acceptances (
   -- אין updated_at — append-only
 );
 
+-- UNIQUE: רשומה אחת בלבד לכל משתמש+גרסה (NULL בuser_id לא נחסם — PostgreSQL לא משווה NULL=NULL)
+CREATE UNIQUE INDEX IF NOT EXISTS legal_acceptances_user_version_uidx
+  ON legal_acceptances(user_id, terms_version);
+
 CREATE INDEX IF NOT EXISTS legal_acceptances_user_idx
   ON legal_acceptances(user_id, created_at DESC);
 

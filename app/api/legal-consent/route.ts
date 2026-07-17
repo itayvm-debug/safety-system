@@ -20,15 +20,18 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServiceClient();
-  const { error: dbError } = await supabase.from('legal_acceptances').insert({
-    user_id: session!.userId,
-    user_email: session!.email,
-    terms_version: LEGAL.termsVersion,
-    accepted_terms: true,
-    accepted_privacy: true,
-    ip_address: request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? null,
-    user_agent: request.headers.get('user-agent') ?? null,
-  });
+  const { error: dbError } = await supabase.from('legal_acceptances').upsert(
+    {
+      user_id: session!.userId,
+      user_email: session!.email,
+      terms_version: LEGAL.termsVersion,
+      accepted_terms: true,
+      accepted_privacy: true,
+      ip_address: request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? null,
+      user_agent: request.headers.get('user-agent') ?? null,
+    },
+    { onConflict: 'user_id,terms_version', ignoreDuplicates: true }
+  );
 
   if (dbError) {
     console.error('[legal-consent] db error:', dbError.message);
