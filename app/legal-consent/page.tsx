@@ -1,0 +1,121 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { LEGAL } from '@/lib/legal/config';
+
+export default function LegalConsentPage() {
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!acceptedTerms || !acceptedPrivacy) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/legal-consent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accepted_terms: true, accepted_privacy: true }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'שגיאה בשמירת ההסכמה');
+        return;
+      }
+
+      router.push('/dashboard');
+    } catch {
+      setError('שגיאת תקשורת — נסה שנית');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-8" dir="rtl">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-8">
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <Image src="/logo.png" alt="SafeDoc" width={48} height={48} className="object-contain" priority />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">{LEGAL.productName}</h1>
+          <p className="text-sm text-gray-500 mt-1">לפני שתמשיך, יש לאשר את התנאים הבאים</p>
+        </div>
+
+        {LEGAL.legallyReviewed === false && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-700 text-xs mb-6">
+            ⚠️ מסמכים אלה הם טיוטות לסקירת עורך דין. טרם אושרו סופית.
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <label className="flex gap-3 items-start cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5 w-5 h-5 accent-orange-500 shrink-0"
+              aria-required="true"
+            />
+            <span className="text-sm text-gray-700 leading-relaxed">
+              קראתי ואני מסכים/ה ל
+              <Link href="/terms" target="_blank" className="text-orange-600 hover:underline mx-1">
+                תנאי השימוש
+              </Link>
+              של מערכת SafeDoc (גרסה {LEGAL.termsVersion})
+            </span>
+          </label>
+
+          <label className="flex gap-3 items-start cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={acceptedPrivacy}
+              onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+              className="mt-0.5 w-5 h-5 accent-orange-500 shrink-0"
+              aria-required="true"
+            />
+            <span className="text-sm text-gray-700 leading-relaxed">
+              קראתי ואני מסכים/ה ל
+              <Link href="/privacy" target="_blank" className="text-orange-600 hover:underline mx-1">
+                מדיניות הפרטיות
+              </Link>
+              ומאשר/ת את עיבוד המידע האישי כמתואר בה
+            </span>
+          </label>
+
+          {error && (
+            <div role="alert" aria-live="assertive" className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={!acceptedTerms || !acceptedPrivacy || loading}
+            className="w-full bg-orange-500 text-white py-3 rounded-xl font-semibold text-base
+                       hover:bg-orange-600 active:bg-orange-700
+                       disabled:opacity-40 disabled:cursor-not-allowed
+                       transition-colors mt-2"
+          >
+            {loading ? 'שומר...' : 'אישור והמשך'}
+          </button>
+        </form>
+
+        <p className="text-xs text-gray-400 text-center mt-6 leading-relaxed">
+          אישור זה נדרש פעם אחת בלבד לכל גרסת תנאים.
+          הסכמתך נשמרת ב-log מאובטח.
+        </p>
+      </div>
+    </div>
+  );
+}

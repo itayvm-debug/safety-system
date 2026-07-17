@@ -10,13 +10,15 @@ export default function ToggleSwitch({ checked, onChange, disabled }: Props) {
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={checked}
       dir="ltr"
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange(); }}
       disabled={disabled}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-1 disabled:opacity-50 ${
         checked ? 'bg-green-500' : 'bg-gray-300'
       }`}
-      aria-label={checked ? 'פעיל' : 'לא פעיל'}
+      aria-label={checked ? 'פעיל — לחץ לכיבוי' : 'לא פעיל — לחץ להפעלה'}
     >
       <span
         className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${

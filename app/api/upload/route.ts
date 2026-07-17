@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/api';
+import { rateLimitUpload } from '@/lib/rate-limit';
 
 // מאלץ Node.js runtime — חשוב לפרסינג FormData ו-body גדולים
 export const runtime = 'nodejs';
@@ -16,6 +18,15 @@ export async function POST(request: NextRequest) {
   }
   console.log('[upload] auth ok, role:', session?.role, 'user:', session?.username);
 
+  // --- rate limit ---
+  const rl = rateLimitUpload(session!.userId);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'יותר מדי העלאות. נסה שנית בעוד מספר דקות.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    );
+  }
+
   // --- formData ---
   let formData: FormData;
   try {
@@ -27,7 +38,16 @@ export async function POST(request: NextRequest) {
   }
 
   const file = formData.get('file') as File | null;
-  const folder = (formData.get('folder') as string) || 'documents';
+  const folderRaw = (formData.get('folder') as string) || 'documents';
+
+  const ALLOWED_FOLDERS = [
+    'documents', 'photos', 'briefings', 'signatures',
+    'appointments', 'heavy-equipment', 'lifting-equipment', 'vehicles',
+  ];
+  if (!ALLOWED_FOLDERS.includes(folderRaw)) {
+    return NextResponse.json({ error: 'תיקייה לא מורשית' }, { status: 400 });
+  }
+  const folder = folderRaw;
 
   console.log('[upload] folder:', folder);
   console.log('[upload] file present:', !!file);
@@ -47,15 +67,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'הקובץ גדול מדי (מקסימום 10MB)' }, { status: 400 });
   }
 
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-  if (!allowedTypes.includes(file.type)) {
+  const MIME_TO_EXT: Record<string, string[]> = {
+    'image/jpeg': ['jpg', 'jpeg'],
+    'image/png':  ['png'],
+    'image/webp': ['webp'],
+    'application/pdf': ['pdf'],
+  };
+  if (!Object.keys(MIME_TO_EXT).includes(file.type)) {
     console.log('[upload] invalid mime type:', file.type);
-    return NextResponse.json({ error: 'סוג קובץ לא מורשה (JPG, PNG, PDF בלבד)' }, { status: 400 });
+    return NextResponse.json({ error: 'סוג קובץ לא מורשה (JPG, PNG, WebP, PDF בלבד)' }, { status: 400 });
+  }
+
+  const rawExt = (file.name.split('.').pop() ?? '').toLowerCase();
+  const validExts = MIME_TO_EXT[file.type];
+  if (!validExts.includes(rawExt)) {
+    console.log('[upload] ext/mime mismatch:', rawExt, file.type);
+    return NextResponse.json({ error: 'אי-התאמה בין סוג הקובץ לסיומת' }, { status: 400 });
   }
 
   // --- storage upload ---
-  const ext = file.name.split('.').pop();
-  const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const ext = rawExt;
+  const fileName = `${folder}/${Date.now()}-${randomBytes(8).toString('hex')}.${ext}`;
   console.log('[upload] uploading to storage path:', fileName);
 
   const supabase = createServiceClient();
