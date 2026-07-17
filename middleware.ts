@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySession, SESSION_COOKIE_NAME, ROLE_COOKIE_NAME } from '@/lib/auth/session';
-import { CONSENT_COOKIE_NAME } from '@/lib/auth/consent';
-import { LEGAL } from '@/lib/legal/config';
+import { CONSENT_COOKIE_NAME, CURRENT_CONSENT_VERSION } from '@/lib/auth/consent';
 
 const PUBLIC = [
   '/login',
@@ -44,7 +43,7 @@ export async function middleware(request: NextRequest) {
   // בדיקת הסכמה לתנאים — רק לדפים (לא API) ולא לנתיבי admin שכבר בודקים
   if (!pathname.startsWith('/api/')) {
     const consentVersion = request.cookies.get(CONSENT_COOKIE_NAME)?.value;
-    if (consentVersion !== LEGAL.termsVersion) {
+    if (consentVersion !== CURRENT_CONSENT_VERSION) {
       return NextResponse.redirect(new URL('/legal-consent', request.url));
     }
   }

@@ -1,4 +1,11 @@
-# נספח אבטחת מידע — SafeDoc
+# נספח אבטחת מידע — SafeDoc [SUPERSEDED]
+
+> ⚠️ **SUPERSEDED — אין להשתמש במסמך זה.**
+> **הגרסה העדכנית והמלאה נמצאת ב: `docs/legal-drafts/INFORMATION_SECURITY_APPENDIX_DRAFT_HE.md`**
+> מסמך זה הוא גרסה ישנה ומוחזק לצורכי הפניה בלבד.
+
+---
+
 **⚠️ DRAFT — לסקירת עורך דין / מומחה אבטחה בלבד**
 
 ---
