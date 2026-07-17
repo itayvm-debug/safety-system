@@ -7,12 +7,29 @@ import {
   COOKIE_MAX_AGE,
 } from '@/lib/auth/session';
 import { createServiceClient } from '@/lib/supabase/server';
+import { rateLimitLogin, getClientIp } from '@/lib/rate-limit';
+import { auditLog } from '@/lib/audit/log';
 
 const GENERIC_ERROR = 'שם משתמש או סיסמה שגויים';
 const INACTIVE_ERROR = 'המשתמש הושבת. פנה למנהל המערכת.';
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const rl = rateLimitLogin(ip);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'יותר מדי ניסיונות כניסה. נסה שנית בעוד מספר דקות.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      );
+    }
+
     const body = await request.json();
     const identifier = String(body.identifier ?? '').trim().toLowerCase();
     const password = String(body.password ?? '');
@@ -99,6 +116,13 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax',
       maxAge: COOKIE_MAX_AGE,
       path: '/',
+    });
+
+    void auditLog({
+      user_id: profile.id,
+      user_email: profile.email,
+      action: 'login',
+      ip_address: request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? null,
     });
 
     return response;

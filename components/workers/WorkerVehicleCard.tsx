@@ -221,22 +221,26 @@ function VehiclePickerModal({
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={onClose}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="vehicle-picker-title"
         className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 shrink-0">
           <div>
-            <h3 className="font-bold text-gray-900">שייך רכב קיים</h3>
+            <h3 id="vehicle-picker-title" className="font-bold text-gray-900">שייך רכב קיים</h3>
             {replaceTarget && (
               <p className="text-xs text-gray-400 mt-0.5">
                 מחליף: <span dir="ltr">{replaceTarget.vehicle_number}</span>
               </p>
             )}
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+          <button onClick={onClose} aria-label="סגור חלון" className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
         </div>
 
         {/* Search */}
