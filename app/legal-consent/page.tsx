@@ -59,39 +59,57 @@ export default function LegalConsentPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <label className="flex gap-3 items-start cursor-pointer group">
+
+          {/* שורה 1 — תנאי שימוש */}
+          <div className="flex gap-3 items-start">
             <input
+              id="accept-terms"
               type="checkbox"
               checked={acceptedTerms}
               onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-0.5 w-5 h-5 accent-orange-500 shrink-0"
+              className="mt-0.5 w-5 h-5 accent-orange-500 shrink-0 cursor-pointer"
               aria-required="true"
             />
-            <span className="text-sm text-gray-700 leading-relaxed">
-              קראתי ואני מסכים/ה ל
-              <Link href="/terms" target="_blank" className="text-orange-600 hover:underline mx-1">
-                תנאי השימוש
+            <div className="text-sm text-gray-700">
+              <label htmlFor="accept-terms" className="cursor-pointer leading-relaxed block select-none">
+                קראתי ואני מסכים/ה לתנאי השימוש של מערכת SafeDoc
+                {' '}(גרסה {LEGAL.termsVersion})
+              </label>
+              <Link
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-orange-600 hover:underline text-xs mt-0.5 inline-block"
+              >
+                קרא/י את תנאי השימוש ↗
               </Link>
-              של מערכת SafeDoc (גרסה {LEGAL.termsVersion})
-            </span>
-          </label>
+            </div>
+          </div>
 
-          <label className="flex gap-3 items-start cursor-pointer group">
+          {/* שורה 2 — מדיניות פרטיות */}
+          <div className="flex gap-3 items-start">
             <input
+              id="accept-privacy"
               type="checkbox"
               checked={acceptedPrivacy}
               onChange={(e) => setAcceptedPrivacy(e.target.checked)}
-              className="mt-0.5 w-5 h-5 accent-orange-500 shrink-0"
+              className="mt-0.5 w-5 h-5 accent-orange-500 shrink-0 cursor-pointer"
               aria-required="true"
             />
-            <span className="text-sm text-gray-700 leading-relaxed">
-              קראתי ואני מסכים/ה ל
-              <Link href="/privacy" target="_blank" className="text-orange-600 hover:underline mx-1">
-                מדיניות הפרטיות
+            <div className="text-sm text-gray-700">
+              <label htmlFor="accept-privacy" className="cursor-pointer leading-relaxed block select-none">
+                קראתי ואני מסכים/ה למדיניות הפרטיות ומאשר/ת את עיבוד המידע האישי כמתואר בה
+              </label>
+              <Link
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-orange-600 hover:underline text-xs mt-0.5 inline-block"
+              >
+                קרא/י את מדיניות הפרטיות ↗
               </Link>
-              ומאשר/ת את עיבוד המידע האישי כמתואר בה
-            </span>
-          </label>
+            </div>
+          </div>
 
           {error && (
             <div role="alert" aria-live="assertive" className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
