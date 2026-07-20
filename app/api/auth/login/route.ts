@@ -7,7 +7,8 @@ import {
   COOKIE_MAX_AGE,
 } from '@/lib/auth/session';
 import { createServiceClient } from '@/lib/supabase/server';
-import { rateLimitLogin, getClientIp } from '@/lib/rate-limit';
+import { rateLimitLoginDb } from '@/lib/rate-limit/db';
+import { getClientIp } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit/log';
 import { CONSENT_COOKIE_NAME, CONSENT_COOKIE_MAX_AGE, CURRENT_CONSENT_VERSION } from '@/lib/auth/consent';
 import { LEGAL } from '@/lib/legal/config';
@@ -18,7 +19,7 @@ const INACTIVE_ERROR = 'המשתמש הושבת. פנה למנהל המערכת.
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const rl = rateLimitLogin(ip);
+    const rl = await rateLimitLoginDb(ip);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: 'יותר מדי ניסיונות כניסה. נסה שנית בעוד מספר דקות.' },

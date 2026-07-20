@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/api';
-import { rateLimitUpload } from '@/lib/rate-limit';
+import { rateLimitUploadDb } from '@/lib/rate-limit/db';
 
 // מאלץ Node.js runtime — חשוב לפרסינג FormData ו-body גדולים
 export const runtime = 'nodejs';
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   console.log('[upload] auth ok, role:', session?.role, 'user:', session?.username);
 
   // --- rate limit ---
-  const rl = rateLimitUpload(session!.userId);
+  const rl = await rateLimitUploadDb(session!.userId);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'יותר מדי העלאות. נסה שנית בעוד מספר דקות.' },

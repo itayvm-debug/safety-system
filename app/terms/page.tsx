@@ -117,9 +117,9 @@ export default function TermsPage() {
         </ul>
         <p className="text-gray-700 leading-relaxed">
           עיבוד מידע אישי במערכת מתבצע בהתאם ל
-          <a href="/privacy" className="text-orange-600 hover:underline">מדיניות הפרטיות</a>{' '}
+          <a href="/privacy" className="text-orange-700 underline">מדיניות הפרטיות</a>{' '}
           המלאה. לפרטים נוספים על מידע הנאסף, ראה
-          {' '}<a href="/data-retention" className="text-orange-600 hover:underline">מדיניות שמירת מידע</a>.
+          {' '}<a href="/data-retention" className="text-orange-700 underline">מדיניות שמירת מידע</a>.
         </p>
       </section>
 
@@ -223,13 +223,13 @@ export default function TermsPage() {
           <p>{LEGAL.companyAddress}</p>
           <p>
             אימייל:{' '}
-            <a href={`mailto:${LEGAL.companyEmail}`} className="text-orange-600 hover:underline">
+            <a href={`mailto:${LEGAL.companyEmail}`} className="text-orange-700 underline">
               {LEGAL.companyEmail}
             </a>
           </p>
           <p>
             טלפון:{' '}
-            <a href={`tel:${LEGAL.companyPhone}`} className="text-orange-600 hover:underline">
+            <a href={`tel:${LEGAL.companyPhone}`} className="text-orange-700 underline">
               {LEGAL.companyPhone}
             </a>
           </p>

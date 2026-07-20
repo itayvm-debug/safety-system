@@ -78,13 +78,13 @@ export default function AccessibilityPage() {
         <address className="not-italic text-gray-700 space-y-1">
           <p>
             <strong>אימייל:</strong>{' '}
-            <a href={`mailto:${LEGAL.accessibilityContactEmail}`} className="text-orange-600 hover:underline">
+            <a href={`mailto:${LEGAL.accessibilityContactEmail}`} className="text-orange-700 underline">
               {LEGAL.accessibilityContactEmail}
             </a>
           </p>
           <p>
             <strong>טלפון:</strong>{' '}
-            <a href={`tel:${LEGAL.companyPhone}`} className="text-orange-600 hover:underline">
+            <a href={`tel:${LEGAL.companyPhone}`} className="text-orange-700 underline">
               {LEGAL.companyPhone}
             </a>
           </p>

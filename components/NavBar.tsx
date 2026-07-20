@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -20,18 +20,16 @@ const NAV_LINKS = [
 
 export default function NavBar() {
   const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin] = useState(() => getClientRole() === 'admin');
   const [showExport, setShowExport] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [prevPath, setPrevPath] = useState(pathname);
 
-  useEffect(() => {
-    setIsAdmin(getClientRole() === 'admin');
-  }, []);
-
-  // סגור תפריט מובייל בכל ניווט
-  useEffect(() => {
+  // סגור תפריט מובייל בכל ניווט — derived-state pattern (no effect)
+  if (prevPath !== pathname) {
+    setPrevPath(pathname);
     setMobileOpen(false);
-  }, [pathname]);
+  }
 
   async function handleSignOut() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -49,7 +47,7 @@ export default function NavBar() {
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
             <Image src="/logo.png" alt="לוגו חברה" width={36} height={36} className="object-contain" priority />
             <div className="leading-tight hidden xl:block">
-              <p className="font-bold text-gray-900 text-sm">נתן ולדמן ובניו בע"מ</p>
+              <p className="font-bold text-gray-900 text-sm">נתן ולדמן ובניו בע&quot;מ</p>
               <p className="text-xs text-gray-500">ניהול בטיחות</p>
             </div>
           </Link>
@@ -134,7 +132,7 @@ export default function NavBar() {
           {/* לוגו (ימין ב-RTL — DOM ראשון) */}
           <Link href="/dashboard" className="flex items-center gap-2">
             <Image src="/logo.png" alt="לוגו חברה" width={32} height={32} className="object-contain" priority />
-            <p className="font-bold text-gray-900 text-sm">נתן ולדמן ובניו בע"מ</p>
+            <p className="font-bold text-gray-900 text-sm">נתן ולדמן ובניו בע&quot;מ</p>
           </Link>
 
           {/* כפתורים (שמאל ב-RTL — DOM אחרון) */}

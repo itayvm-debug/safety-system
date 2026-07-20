@@ -107,7 +107,7 @@ export default function DataRetentionPage() {
                 <tr key={r.category} className="border-b border-gray-100">
                   <td className="py-2.5 px-3">
                     <p className="font-medium text-gray-900">{r.category}</p>
-                    <p className="text-xs text-gray-400">{r.table}</p>
+                    <p className="text-xs text-gray-600">{r.table}</p>
                   </td>
                   <td className="py-2.5 px-3 text-gray-700">{r.retention}</td>
                   <td className="py-2.5 px-3 text-gray-500 text-xs hidden sm:table-cell">{r.basis}</td>
@@ -139,7 +139,7 @@ export default function DataRetentionPage() {
         <h2 className="text-lg font-semibold text-gray-900 mb-3">בקשת מחיקה</h2>
         <p className="text-gray-700 leading-relaxed">
           לבקשת מחיקת מידע אישי (בכפוף לחובות שמירה חוקיות), ניתן לפנות אל:{' '}
-          <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-600 hover:underline">
+          <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-700 underline">
             {LEGAL.privacyContactEmail}
           </a>.
           החברה תשיב תוך 30 יום ותפרט אילו נתונים ניתן למחוק ואילו חייבים להישמר על פי דין.

@@ -135,7 +135,7 @@ export default function UserManagementClient({ initialUsers }: Props) {
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">👤</p>
             <p className="font-medium">אין משתמשים עדיין</p>
-            <p className="text-sm mt-1">לחץ "צור משתמש" כדי להוסיף את הראשון</p>
+            <p className="text-sm mt-1">לחץ &quot;צור משתמש&quot; כדי להוסיף את הראשון</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

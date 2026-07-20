@@ -43,7 +43,7 @@ export default function SubprocessorsPage() {
                       href={sp.dpUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-orange-600 hover:underline text-xs"
+                      className="text-orange-700 underline text-xs"
                     >
                       פרטי פרטיות ↗
                     </a>
@@ -61,7 +61,7 @@ export default function SubprocessorsPage() {
           {LEGAL.companyName} פועלת לחתום על הסכמי עיבוד נתונים (Data Processing Agreements) עם
           ספקי המשנה הרלוונטיים. הסכמים אלה מבטיחים שהספקים מעבדים מידע אישי בהתאם להוראותינו
           ולדרישות הדין החל. לפרטים, פנה אל{' '}
-          <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-600 hover:underline">
+          <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-700 underline">
             {LEGAL.privacyContactEmail}
           </a>.
         </p>
@@ -80,7 +80,7 @@ export default function SubprocessorsPage() {
         <h2 id="contact" className="text-lg font-semibold text-gray-900 mb-3">שאלות</h2>
         <p className="text-gray-700 leading-relaxed">
           לשאלות בנוגע לספקי משנה, עיבוד נתונים, או בקשה לעיין בהסכמי DPA:{' '}
-          <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-600 hover:underline">
+          <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-700 underline">
             {LEGAL.privacyContactEmail}
           </a>
         </p>

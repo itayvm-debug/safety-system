@@ -120,6 +120,7 @@ function SigBlock({ label, name, date, sig }: { label: string; name: string; dat
       <div style={{ flex: 1.3 }}>
         <div style={{ fontFamily: 'Arial', fontSize: 10, color: '#6b7280', marginBottom: 3 }}>{label}:</div>
         {sig ? (
+          // eslint-disable-next-line @next/next/no-img-element -- PDF canvas: next/image incompatible with inline style layout
           <img src={sig} alt={label} style={{ width: '100%', height: 50, objectFit: 'contain', display: 'block', borderBottom: '1px solid #374151' }} />
         ) : (
           <div style={lineStyle} />
@@ -206,6 +207,7 @@ const LiftingMachineAppointmentDoc = React.forwardRef<HTMLDivElement, Appointmen
           </div>
           {/* לוגו — צד שמאל */}
           {data.logoSrc && (
+            // eslint-disable-next-line @next/next/no-img-element -- PDF canvas: next/image incompatible with inline style layout
             <img
               src={data.logoSrc}
               alt="לוגו חברה"

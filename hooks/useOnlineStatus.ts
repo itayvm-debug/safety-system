@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react';
 
 export function useOnlineStatus(): boolean {
-  // Start with true to avoid SSR/hydration mismatch; corrected in effect
-  const [online, setOnline] = useState(true);
+  // Lazy init: read navigator.onLine on the client; fall back to true on SSR
+  const [online, setOnline] = useState(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
 
   useEffect(() => {
-    setOnline(navigator.onLine);
     const goOnline = () => setOnline(true);
     const goOffline = () => setOnline(false);
     window.addEventListener('online', goOnline);

@@ -1,34 +1,57 @@
 import { createServiceClient } from '@/lib/supabase/server';
 
 export type AuditAction =
+  // ── Authentication ───────────────────────────────────────────────
   | 'login'
   | 'logout'
+  | 'login_failed'
+  | 'access_denied'
+  | 'rate_limit_triggered'
+  | 'password_reset_initiated'
+  // ── Workers ──────────────────────────────────────────────────────
   | 'worker.create'
   | 'worker.update'
   | 'worker.archive'
   | 'worker.unarchive'
+  | 'entity_permanently_deleted'
+  // ── Documents ────────────────────────────────────────────────────
   | 'document.upload'
   | 'document.delete'
+  | 'document_downloaded'
+  | 'document_replaced'
+  // ── Vehicles ─────────────────────────────────────────────────────
   | 'vehicle.create'
   | 'vehicle.update'
   | 'vehicle.archive'
+  // ── Heavy Equipment ──────────────────────────────────────────────
   | 'heavy_equipment.create'
   | 'heavy_equipment.update'
   | 'heavy_equipment.archive'
+  // ── Lifting Equipment ────────────────────────────────────────────
   | 'lifting_equipment.create'
   | 'lifting_equipment.update'
   | 'lifting_equipment.archive'
+  // ── Subcontractors ───────────────────────────────────────────────
   | 'subcontractor.create'
   | 'subcontractor.update'
   | 'subcontractor.archive'
+  // ── Safety ───────────────────────────────────────────────────────
   | 'safety_briefing.create'
   | 'lifting_appointment.create'
-  | 'legal_consent.accept'
+  // ── Reports & Exports ────────────────────────────────────────────
+  | 'report_exported'
+  | 'weekly_report_sent'
+  | 'system_export_created'
   | 'export.generate'
+  // ── Legal ────────────────────────────────────────────────────────
+  | 'legal_consent.accept'
+  // ── Admin ────────────────────────────────────────────────────────
   | 'admin.user_create'
   | 'admin.user_update'
   | 'admin.phone_add'
-  | 'admin.phone_remove';
+  | 'admin.phone_remove'
+  | 'user_disabled'
+  | 'user_reactivated';
 
 export interface AuditLogEntry {
   user_id: string | null;
