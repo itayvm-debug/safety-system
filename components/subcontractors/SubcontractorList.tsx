@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -152,7 +152,7 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
       {list.length === 0 && !showAddForm && (
         <div className="text-center py-16 text-gray-400">
           <p className="text-lg">אין קבלני משנה עדיין</p>
-          <p className="text-sm mt-1">לחץ על "הוסף קבלן משנה" כדי להתחיל</p>
+          <p className="text-sm mt-1">לחץ על &quot;הוסף קבלן משנה&quot; כדי להתחיל</p>
         </div>
       )}
 

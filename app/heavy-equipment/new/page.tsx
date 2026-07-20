@@ -6,7 +6,7 @@ export default function NewHeavyEquipmentPage() {
     <div className="max-w-lg mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/heavy-equipment" className="text-gray-400 hover:text-gray-600 text-sm">
-          ← רשימת כלי צמ"ה
+          ← רשימת כלי צמ&quot;ה
         </Link>
       </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">כלי חדש</h1>

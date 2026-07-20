@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/playwright-report
+/test-results
 
 # next.js
 /.next/
@@ -32,6 +34,17 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.local.example
+
+# backup script outputs
+db-metadata-*.json
+storage-manifest-*.json
+safedoc-export-*.zip
+backups/
+
+# generated client configs from scripts/create-client-config.ps1
+.env.local.new
+.env.local.client-*
 
 # vercel
 .vercel

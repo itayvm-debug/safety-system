@@ -45,7 +45,7 @@ export default function PrivacyPage() {
           <p>{LEGAL.companyAddress}</p>
           <p>
             לפניות בנושאי פרטיות:{' '}
-            <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-600 hover:underline">
+            <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-700 underline">
               {LEGAL.privacyContactEmail}
             </a>
           </p>
@@ -145,7 +145,7 @@ export default function PrivacyPage() {
           <li>
             <strong>ספקי תשתית טכנית</strong> — בכפוף להסכמים חוזיים.
             ראה{' '}
-            <a href="/subprocessors" className="text-orange-600 hover:underline">רשימת ספקי משנה</a>{' '}
+            <a href="/subprocessors" className="text-orange-700 underline">רשימת ספקי משנה</a>{' '}
             לפרטים.
           </li>
           <li>
@@ -162,7 +162,7 @@ export default function PrivacyPage() {
         <h2 className="text-lg font-semibold text-gray-900 mb-3">6. שמירת מידע</h2>
         <p className="text-gray-700 leading-relaxed">
           המידע נשמר בהתאם ל
-          <a href="/data-retention" className="text-orange-600 hover:underline">מדיניות שמירת המידע המלאה</a>.
+          <a href="/data-retention" className="text-orange-700 underline">מדיניות שמירת המידע המלאה</a>.
           בתמצית: נתוני עובדים נשמרים לתקופת ההעסקה ו-{LEGAL.retentionWorkerDataYears} שנים לאחריה;
           לוגי audit נשמרים {LEGAL.retentionAuditLogsYears} שנים; session cookies בתוקף ל-{LEGAL.retentionSessionDays} ימים.
           בתום תקופת השמירה, מידע יימחק או יאנונמז.
@@ -185,7 +185,7 @@ export default function PrivacyPage() {
         </ul>
         <p className="text-gray-700 leading-relaxed mt-3">
           לדוח אבטחה מפורט, ראה{' '}
-          <a href="/about" className="text-orange-600 hover:underline">אודות המערכת</a>.
+          <a href="/about" className="text-orange-700 underline">אודות המערכת</a>.
         </p>
       </section>
 
@@ -237,7 +237,7 @@ export default function PrivacyPage() {
         </ul>
         <p className="text-gray-700 leading-relaxed">
           בקשות יש לשלוח בכתב אל:{' '}
-          <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-600 hover:underline">
+          <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-700 underline">
             {LEGAL.privacyContactEmail}
           </a>
           . החברה תשיב תוך 30 יום.
@@ -258,7 +258,7 @@ export default function PrivacyPage() {
         <ul className="list-disc list-inside text-gray-700 space-y-1.5 leading-relaxed mt-2">
           <li>הסכמי עיבוד נתונים (DPA) עם ספקי התשתית</li>
           <li>מדיניות הפרטיות של ספקי המשנה — ראה{' '}
-            <a href="/subprocessors" className="text-orange-600 hover:underline">רשימת ספקי משנה</a>
+            <a href="/subprocessors" className="text-orange-700 underline">רשימת ספקי משנה</a>
           </li>
         </ul>
       </section>
@@ -283,13 +283,13 @@ export default function PrivacyPage() {
           <p><strong>{LEGAL.companyName}</strong></p>
           <p>
             אימייל:{' '}
-            <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-600 hover:underline">
+            <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-700 underline">
               {LEGAL.privacyContactEmail}
             </a>
           </p>
           <p>
             טלפון:{' '}
-            <a href={`tel:${LEGAL.companyPhone}`} className="text-orange-600 hover:underline">
+            <a href={`tel:${LEGAL.companyPhone}`} className="text-orange-700 underline">
               {LEGAL.companyPhone}
             </a>
           </p>

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAuth, requireAdmin } from '@/lib/auth/api';
+import { requireAuth } from '@/lib/auth/api';
 
 export async function GET(request: NextRequest) {
   const { error: authError } = await requireAuth();

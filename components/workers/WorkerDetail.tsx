@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
@@ -509,12 +509,7 @@ function SubcontractorDisplay({
   const [managerName, setManagerName] = useState('');
 
   useEffect(() => {
-    if (!managerWorkerId) {
-      setManagerSub(null);
-      setManagerName('');
-      return;
-    }
-    setManagerSub(undefined);
+    if (!managerWorkerId) return;
     fetch(`/api/workers/${managerWorkerId}`)
       .then((r) => r.json())
       .then((data) => {
@@ -523,6 +518,9 @@ function SubcontractorDisplay({
       })
       .catch(() => setManagerSub(null));
   }, [managerWorkerId]);
+
+  const effectiveManagerSub = managerWorkerId ? managerSub : null;
+  const effectiveManagerName = managerWorkerId ? managerName : '';
 
   if (managerWorkerId && managerSub === undefined) {
     return (
@@ -533,13 +531,13 @@ function SubcontractorDisplay({
     );
   }
 
-  if (managerSub) {
+  if (effectiveManagerSub) {
     return (
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm text-gray-500 whitespace-nowrap">קבלן משנה:</span>
-        <span className="text-sm font-medium text-blue-700">{managerSub.name}</span>
+        <span className="text-sm font-medium text-blue-700">{effectiveManagerSub.name}</span>
         <span className="text-xs bg-blue-50 text-blue-500 border border-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap">
-          דרך מנהל העבודה {managerName}
+          דרך מנהל העבודה {effectiveManagerName}
         </span>
       </div>
     );

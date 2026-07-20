@@ -46,25 +46,17 @@ export default function LegalPageLayout({
             </svg>
             חזרה
           </Link>
-          <span className="text-sm font-semibold text-orange-600 truncate">{LEGAL.productName}</span>
+          <span className="text-sm font-semibold text-orange-700 truncate">{LEGAL.productName}</span>
           <PrintButton />
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-10">
 
-        {/* ─── Draft notice ─── */}
-        {!LEGAL.legallyReviewed && (
-          <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 text-amber-800 text-sm mb-6 print:hidden">
-            <strong>טיוטה בלבד — לסקירת עורך דין ישראלי.</strong>{' '}
-            מסמך זה טרם עבר סקירה משפטית ואינו מחייב עד לאישור סופי.
-          </div>
-        )}
-
         {/* ─── Title ─── */}
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{title}</h1>
         {(version || effectiveDate) && (
-          <p className="text-sm text-gray-400 mb-6">
+          <p className="text-sm text-gray-600 mb-6">
             {version && `גרסה ${version}`}
             {version && effectiveDate && ' · '}
             {effectiveDate && `בתוקף מ-${effectiveDate}`}
@@ -110,13 +102,13 @@ export default function LegalPageLayout({
           <p className="font-semibold mb-2">שאלות? צור קשר</p>
           <p>
             <span className="text-gray-500">אימייל: </span>
-            <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-600 hover:underline">
+            <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-700 underline">
               {LEGAL.privacyContactEmail}
             </a>
           </p>
           <p>
             <span className="text-gray-500">טלפון: </span>
-            <a href={`tel:${LEGAL.companyPhone}`} className="text-orange-600 hover:underline">
+            <a href={`tel:${LEGAL.companyPhone}`} className="text-orange-700 underline">
               {LEGAL.companyPhone}
             </a>
           </p>
@@ -126,7 +118,7 @@ export default function LegalPageLayout({
         {(prevPage || nextPage) && (
           <nav className="mt-8 flex justify-between gap-4 text-sm print:hidden" aria-label="ניווט בין מסמכים">
             {prevPage ? (
-              <Link href={prevPage.href} className="flex items-center gap-1.5 text-orange-600 hover:underline">
+              <Link href={prevPage.href} className="flex items-center gap-1.5 text-orange-700 underline">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
@@ -134,7 +126,7 @@ export default function LegalPageLayout({
               </Link>
             ) : <span />}
             {nextPage ? (
-              <Link href={nextPage.href} className="flex items-center gap-1.5 text-orange-600 hover:underline">
+              <Link href={nextPage.href} className="flex items-center gap-1.5 text-orange-700 underline">
                 {nextPage.label}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -145,19 +137,19 @@ export default function LegalPageLayout({
         )}
 
         {/* ─── Footer links ─── */}
-        <footer className="mt-16 pt-8 border-t border-gray-200 text-xs text-gray-400 space-y-1 print:mt-8">
+        <footer className="mt-16 pt-8 border-t border-gray-200 text-xs text-gray-600 space-y-1 print:mt-8">
           <p className="flex flex-wrap gap-x-3 gap-y-1">
-            <Link href="/terms" className="hover:text-gray-600">תנאי שימוש</Link>
+            <Link href="/terms" className="text-gray-600 hover:underline">תנאי שימוש</Link>
             <span>·</span>
-            <Link href="/privacy" className="hover:text-gray-600">מדיניות פרטיות</Link>
+            <Link href="/privacy" className="text-gray-600 hover:underline">מדיניות פרטיות</Link>
             <span>·</span>
-            <Link href="/accessibility" className="hover:text-gray-600">נגישות</Link>
+            <Link href="/accessibility" className="text-gray-600 hover:underline">נגישות</Link>
             <span>·</span>
-            <Link href="/subprocessors" className="hover:text-gray-600">ספקי משנה</Link>
+            <Link href="/subprocessors" className="text-gray-600 hover:underline">ספקי משנה</Link>
             <span>·</span>
-            <Link href="/data-retention" className="hover:text-gray-600">שמירת מידע</Link>
+            <Link href="/data-retention" className="text-gray-600 hover:underline">שמירת מידע</Link>
             <span>·</span>
-            <Link href="/about" className="hover:text-gray-600">אודות</Link>
+            <Link href="/about" className="text-gray-600 hover:underline">אודות</Link>
           </p>
           <p>© {new Date().getFullYear()} {LEGAL.companyName}</p>
         </footer>

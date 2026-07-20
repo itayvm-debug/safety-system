@@ -1,8 +1,7 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import FileUploadZone from '@/components/FileUploadZone';
-import { useRouter } from 'next/navigation';
 import {
   SafetyBriefing,
   BriefingLanguage,

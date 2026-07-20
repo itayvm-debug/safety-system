@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
@@ -39,13 +39,12 @@ function saveReadIds(ids: Set<string>): void {
 
 export default function AlertsBell() {
   const [alerts, setAlerts] = useState<Issue[]>([]);
-  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [readIds, setReadIds] = useState<Set<string>>(() => getReadIds());
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setReadIds(getReadIds());
     fetch('/api/alerts')
       .then((r) => (r.ok ? r.json() : []))
       .then((data: unknown) => setAlerts(Array.isArray(data) ? (data as Issue[]) : []))

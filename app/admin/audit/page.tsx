@@ -61,7 +61,7 @@ export default function AuditPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">לוג פעולות (Audit Log)</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          {data?.total ?? '–'} רשומות סה"כ
+          {data?.total ?? '–'} רשומות סה&quot;כ
         </p>
       </div>
 

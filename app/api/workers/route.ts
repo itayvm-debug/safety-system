@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAuth, requireAdmin } from '@/lib/auth/api';
 
@@ -9,8 +9,6 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const managersOnly = searchParams.get('managers') === 'true';
   const subcontractorId = searchParams.get('subcontractor_id');
-  const lightweight = managersOnly || !!subcontractorId;
-
   const supabase = createServiceClient();
   let query = supabase
     .from('workers')

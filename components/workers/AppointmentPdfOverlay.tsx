@@ -185,6 +185,7 @@ const AppointmentPdfOverlay = React.forwardRef<HTMLDivElement, OverlayData>(
         <T v={fmtDate(data.appointment_date)} f={FM.appointer_date} />
         <T v={data.appointer_name}            f={FM.appointer_name_line} />
         {data.appointer_sig && (
+          // eslint-disable-next-line @next/next/no-img-element -- PDF canvas overlay: next/image incompatible with absolute positioning
           <img
             src={data.appointer_sig}
             alt="חתימת ממנה"
@@ -203,6 +204,7 @@ const AppointmentPdfOverlay = React.forwardRef<HTMLDivElement, OverlayData>(
         <T v={fmtDate(data.appointment_date)} f={FM.operator_date} />
         <T v={data.worker_full_name}          f={FM.operator_name_line} />
         {data.operator_sig && (
+          // eslint-disable-next-line @next/next/no-img-element -- PDF canvas overlay: next/image incompatible with absolute positioning
           <img
             src={data.operator_sig}
             alt="חתימת מפעיל"

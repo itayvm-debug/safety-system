@@ -282,7 +282,14 @@ export default async function DashboardPage() {
       ) : null}
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+        <StatBox
+          count={workers.length}
+          label="עובדים פעילים"
+          sublabel={workerCounts.urgent > 0 ? `${workerCounts.urgent} לא תקינים` : 'הכל תקין'}
+          href="/workers"
+          color="blue"
+        />
         <StatBox
           count={urgentTotal}
           label="פריטים לא תקינים"

@@ -1,37 +1,38 @@
 /**
  * config.ts — קבועים משפטיים מרכזיים
- * ⚠️ DRAFT — לסקירת עורך דין לפני פרסום
+ * גרסת המסמכים שודרגה ל-1.0 בסשן Final Consolidated Production-Readiness, 2026-07-18
  */
+
+import { PLATFORM_OPERATOR } from '@/config/operator';
 
 export const LEGAL = {
   // ── זיהוי החברה ─────────────────────────────────────────────────
-  companyName:          'נתן ולדמן ובניו בע"מ',
-  companyNameEn:        'Natan Valdman & Sons Ltd.',
-  companyRegistration:  '511664674',
-  companyAddress:       'התבונה 4, אילת',
-  companyPhone:         '08-6378089',
-  companyEmail:         'valdmann@012.net.il',
-  privacyContactEmail:  'itayvm@gmail.com',
+  companyName:          PLATFORM_OPERATOR.name,
+  companyNameEn:        PLATFORM_OPERATOR.nameEn,
+  companyRegistration:  PLATFORM_OPERATOR.registration,
+  companyAddress:       PLATFORM_OPERATOR.address,
+  companyPhone:         PLATFORM_OPERATOR.phone,
+  companyEmail:         PLATFORM_OPERATOR.email,
+  privacyContactEmail:  PLATFORM_OPERATOR.privacyEmail,
   dpoName:               '',
 
   // ── שם מוצר ─────────────────────────────────────────────────────
   productName:   'SafeDoc',
-  productUrl:    'https://safety-system-henna.vercel.app',
+  productUrl:    process.env.NEXT_PUBLIC_APP_URL ?? 'https://safety-system-henna.vercel.app',
 
   // ── תאריכים ─────────────────────────────────────────────────────
   /** תאריך תחולה של גרסת המסמכים הנוכחית */
-  termsEffectiveDate: '2026-07-17',
+  termsEffectiveDate: '2026-07-18',
 
   // ── גרסאות מסמכים — יש לעדכן בכל שינוי מהותי ─────────────────
   /** גרסת תנאי שימוש — שינוי דורש אישור מחדש מהמשתמשים */
-  termsVersion:        '1.0-draft.2',
+  termsVersion:        '1.0',
   /** גרסת מדיניות פרטיות — שינוי דורש אישור מחדש מהמשתמשים */
-  privacyVersion:      '1.0-draft.2',
+  privacyVersion:      '1.0',
   /** גרסת הצהרת נגישות — שינוי אינו דורש אישור מחדש */
-  accessibilityVersion: '1.0-draft.1',
+  accessibilityVersion: '1.0',
 
-  // ── retention defaults ───────────────────────────────────────────
-  /** TODO: לאשר עם עורך דין */
+  // ── retention defaults (ניתן להתאמה לפי לקוח והסכם) ─────────────
   retentionWorkerDataYears:    7,
   retentionDocumentFilesYears: 7,
   retentionAuditLogsYears:     5,
@@ -60,13 +61,15 @@ export const LEGAL = {
   ],
 
   // ── WCAG / accessibility ─────────────────────────────────────────
-  accessibilityLastAudit:      '2026-07-17 (בדיקה פנימית ראשונית)',
-  accessibilityLevel:          'בתהליך — טרם הוצהרה עמידה בתקן WCAG AA',
-  accessibilityContactEmail:   'itayvm@gmail.com',
+  accessibilityLastAudit:    '2026-07-18 (בדיקה פנימית)',
+  accessibilityLevel:        'בתהליך — טרם הוצהרה עמידה רשמית בתקן',
+  accessibilityContactEmail: PLATFORM_OPERATOR.accessibilityEmail,
 
-  // ── drafts reminder ──────────────────────────────────────────────
-  /** האם המסמכים עברו סקירת עורך דין */
-  legallyReviewed: false,
+  // ── internal flags (NOT FOR PUBLIC DISPLAY) ──────────────────────
+  legallyReviewed:                             false,
+  externalLegalReviewCompleted:                false,
+  externalAccessibilityCertificationCompleted: false,
+  penetrationTestCompleted:                    false,
 } as const;
 
 export type SubProcessor = typeof LEGAL.subprocessors[number];

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -7,7 +7,7 @@ import { Issue, IssueStatus } from '@/lib/documents/issues';
 const ENTITY_LABELS: Record<Issue['entityType'], string> = {
   worker: 'עובד',
   vehicle: 'רכב',
-  heavy_equipment: 'כלי צמ"ה',
+  heavy_equipment: 'כלי צמ&quot;ה',
   lifting_equipment: 'ציוד הרמה',
   subcontractor: 'קבלן משנה',
 };
@@ -117,7 +117,7 @@ export default function IssuesList({ issues, initialStatus }: Props) {
             <option value="worker">עובדים</option>
             <option value="manager">מנהלי עבודה</option>
             <option value="vehicle">רכבים</option>
-            <option value="heavy_equipment">כלי צמ"ה</option>
+            <option value="heavy_equipment">כלי צמ&quot;ה</option>
             <option value="lifting_equipment">ציוד הרמה</option>
           </select>
 

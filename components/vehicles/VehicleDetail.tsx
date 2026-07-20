@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,8 +18,6 @@ interface Props {
 }
 
 const INSURANCE_TYPES = ['ביטוח חובה', 'ביטוח מקיף', 'ביטוח צד ג'] as const;
-type InsuranceType = typeof INSURANCE_TYPES[number];
-
 export default function VehicleDetail({ vehicle: initial, imageUrl: initialImageUrl, workers }: Props) {
   const router = useRouter();
   const [vehicle, setVehicle] = useState<Vehicle>(initial);
