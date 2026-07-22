@@ -18,30 +18,18 @@ export default function AboutPage() {
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">מהי המערכת</h2>
         <p className="text-gray-700 leading-relaxed">
-          SafeDoc היא מערכת ניהול מסמכי בטיחות לעובדים באתרי בנייה, שפותחה עבור {LEGAL.companyName}.
+          SafeDoc היא מערכת ניהול מסמכי בטיחות לעובדים באתרי בנייה, המופעלת על ידי {LEGAL.companyName}.
           המערכת מאפשרת ניהול מסמכים ותעודות, מעקב תוקף, ניהול עובדים, ציוד הרמה, רכבים וצמ&rdquo;ה —
           הכל במקום אחד, עם ממשק מותאם לשפה העברית וכיווניות RTL.
         </p>
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">פרטי החברה</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">פרטי המפעיל</h2>
         <dl className="space-y-2 text-gray-700">
           <div>
-            <dt className="font-medium text-gray-900">שם החברה</dt>
+            <dt className="font-medium text-gray-900">מפעיל</dt>
             <dd>{LEGAL.companyName}</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-gray-900">שם באנגלית</dt>
-            <dd>{LEGAL.companyNameEn}</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-gray-900">מספר ח.פ.</dt>
-            <dd>{LEGAL.companyRegistration}</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-gray-900">כתובת</dt>
-            <dd>{LEGAL.companyAddress}</dd>
           </div>
           <div>
             <dt className="font-medium text-gray-900">טלפון</dt>

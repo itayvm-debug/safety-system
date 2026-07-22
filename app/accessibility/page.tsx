@@ -10,7 +10,7 @@ export default function AccessibilityPage() {
       title="הצהרת נגישות"
       version={LEGAL.accessibilityVersion}
       effectiveDate={LEGAL.termsEffectiveDate}
-      summary={`${LEGAL.companyName} פועלת לשיפור הנגישות של מערכת SafeDoc. מסמך זה מפרט את מצב הנגישות הנוכחי, מגבלות ידועות, וערוצי דיווח. הצהרה זו היא ביניים — בדיקה מקצועית מלאה טרם בוצעה.`}
+      summary={`${LEGAL.companyName} פועל לשיפור הנגישות של מערכת SafeDoc. מסמך זה מפרט את מצב הנגישות הנוכחי וערוצי דיווח. הצהרה זו היא ביניים — בדיקה מקצועית מלאה טרם בוצעה.`}
       prevPage={{ href: '/data-retention', label: 'שמירת מידע' }}
       nextPage={{ href: '/about', label: 'אודות' }}
     >
@@ -18,7 +18,7 @@ export default function AccessibilityPage() {
       <section id="commitment">
         <h2 className="text-lg font-semibold text-gray-900 mb-3">1. מחויבותנו לנגישות</h2>
         <p className="text-gray-700 leading-relaxed">
-          {LEGAL.companyName} מחויבת לנגישות דיגיטלית ולאפשר שימוש במערכת SafeDoc לכלל המשתמשים,
+          {LEGAL.companyName} מחויב לנגישות דיגיטלית ולאפשר שימוש במערכת SafeDoc לכלל המשתמשים,
           לרבות אנשים עם מוגבלויות. אנחנו פועלים לפי עקרונות WCAG 2.1 ותקן ישראלי 5568
           ומשפרים את הנגישות באופן מתמשך.
         </p>
@@ -46,36 +46,12 @@ export default function AccessibilityPage() {
         </p>
       </section>
 
-      <section id="limitations">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">3. מגבלות ידועות</h2>
+      <section id="report">
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">3. דיווח על בעיות נגישות</h2>
         <p className="text-gray-700 leading-relaxed mb-3">
-          המגבלות הבאות זוהו בבדיקה הפנימית ונמצאות בתהליך טיפול:
+          נתקלת בבעיית נגישות? ניתן לפנות אלינו בכל אחד מהערוצים הבאים:
         </p>
-        <ul className="list-disc list-inside text-gray-700 space-y-1.5 leading-relaxed">
-          <li>ניהול focus במודלים ובחלונות קופצים אינו מיטבי לכלל קוראי המסך</li>
-          <li>חלק מהטפסים אינם מסמנים שדות חובה באמצעות ARIA בצורה עקבית</li>
-          <li>הודעות שגיאה מסוימות אינן מכוסות ב-<code className="text-xs bg-gray-100 px-1 rounded">aria-live</code></li>
-          <li>בדיקה עם קוראי מסך (NVDA, VoiceOver) לא בוצעה במלואה</li>
-          <li>ניגודיות צבע בחלק מהרכיבים עדיין מאומתת</li>
-        </ul>
-      </section>
-
-      <section id="tech">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">4. טכנולוגיות נתמכות</h2>
-        <ul className="list-disc list-inside text-gray-700 space-y-1.5 leading-relaxed">
-          <li><strong>דפדפנים:</strong> Chrome, Edge, Firefox, Safari — גרסאות עדכניות</li>
-          <li><strong>מכשירים:</strong> Desktop, Tablet, Mobile (iOS Safari, Android Chrome)</li>
-          <li><strong>קוראי מסך:</strong> NVDA (Windows), VoiceOver (iOS / macOS) — בבדיקה חלקית בלבד</li>
-        </ul>
-      </section>
-
-      <section id="feedback">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">5. משוב ודיווח על בעיות</h2>
-        <p className="text-gray-700 leading-relaxed mb-3">
-          נתקלת בבעיית נגישות? נשמח לשמוע ולטפל בה.
-          החברה תעשה מאמץ להגיב לפניות נגישות בהקדם האפשרי בהתאם לאופי הבעיה.
-        </p>
-        <address className="not-italic text-gray-700 space-y-1">
+        <address className="not-italic text-gray-700 space-y-1 mb-3">
           <p>
             <strong>אימייל:</strong>{' '}
             <a href={`mailto:${LEGAL.accessibilityContactEmail}`} className="text-orange-700 underline">
@@ -89,13 +65,24 @@ export default function AccessibilityPage() {
             </a>
           </p>
         </address>
-        <p className="text-gray-700 leading-relaxed mt-3">
+        <p className="text-gray-700 leading-relaxed">
           בפנייה, נא לפרט: תיאור הבעיה, הדפדפן/מכשיר בו השתמשת, ואם רלוונטי — שם קורא המסך.
+          נשאף להגיב בתוך 5 ימי עסקים.
         </p>
       </section>
 
+      <section id="tech">
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">4. טכנולוגיות תומכות</h2>
+        <ul className="list-disc list-inside text-gray-700 space-y-1.5 leading-relaxed">
+          <li><strong>דפדפנים:</strong> Chrome, Edge, Firefox, Safari — גרסאות עדכניות</li>
+          <li><strong>מכשירים:</strong> Desktop, Tablet, Mobile (iOS Safari, Android Chrome)</li>
+          <li><strong>קוראי מסך:</strong> NVDA (Windows), VoiceOver (iOS / macOS) — בבדיקה חלקית בלבד</li>
+        </ul>
+      </section>
+
+
       <section id="regulation">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">6. תקנות ורגולציה</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">5. תקנות ורגולציה</h2>
         <p className="text-gray-700 leading-relaxed">
           הצהרה זו מוגשת בהתאם לדרישות תקנות שוויון זכויות לאנשים עם מוגבלות (התאמות נגישות לשירות),
           התשע&rdquo;ג-2013 ותקן ישראלי 5568 (המבוסס על WCAG 2.1).

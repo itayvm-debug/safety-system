@@ -10,7 +10,7 @@ const geist = Geist({ subsets: ['latin'] });
 // ─── PWA + SEO metadata ────────────────────────────────────────
 export const metadata: Metadata = {
   title: 'SafeDoc — ניהול מסמכי בטיחות',
-  description: 'מערכת לניהול מסמכי בטיחות של עובדים באתר בנייה — נתן ולדמן ובניו בע"מ',
+  description: 'מערכת לניהול מסמכי בטיחות של עובדים באתר בנייה',
   manifest: '/manifest.json',
 
   // iOS PWA

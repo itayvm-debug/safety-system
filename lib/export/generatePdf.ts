@@ -149,7 +149,7 @@ function buildHtmlShell(
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px">
-        <div class="company" style="text-align:right"><h1>נתן ולדמן ובניו בע"מ</h1><p>ניהול בטיחות · SafeDoc</p></div>
+        <div class="company" style="text-align:right"><h1>SafeDoc</h1><p>ניהול בטיחות · איתי ולדמן</p></div>
         <img src="/logo.png" class="logo" />
       </div>
     </div>
@@ -159,7 +159,7 @@ function buildHtmlShell(
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <div class="footer">SafeDoc · נתן ולדמן ובניו בע"מ · הופק ב-${today}</div>
+    <div class="footer">SafeDoc · איתי ולדמן · הופק ב-${today}</div>
   </div>
 </body>
 </html>`;

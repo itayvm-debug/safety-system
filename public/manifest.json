@@ -1,7 +1,7 @@
 {
   "name": "SafeDoc — ניהול בטיחות",
   "short_name": "SafeDoc",
-  "description": "ניהול מסמכי בטיחות — נתן ולדמן ובניו בע\"מ",
+  "description": "ניהול מסמכי בטיחות עובדים באתרי בנייה",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",

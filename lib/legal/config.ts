@@ -1,36 +1,33 @@
 /**
  * config.ts — קבועים משפטיים מרכזיים
- * גרסת המסמכים שודרגה ל-1.0 בסשן Final Consolidated Production-Readiness, 2026-07-18
+ * גרסת המסמכים שודרגה ל-1.1 בסשן Legal Identity Correction, 2026-07-22
  */
 
 import { PLATFORM_OPERATOR } from '@/config/operator';
 
 export const LEGAL = {
-  // ── זיהוי החברה ─────────────────────────────────────────────────
-  companyName:          PLATFORM_OPERATOR.name,
-  companyNameEn:        PLATFORM_OPERATOR.nameEn,
-  companyRegistration:  PLATFORM_OPERATOR.registration,
-  companyAddress:       PLATFORM_OPERATOR.address,
-  companyPhone:         PLATFORM_OPERATOR.phone,
-  companyEmail:         PLATFORM_OPERATOR.email,
-  privacyContactEmail:  PLATFORM_OPERATOR.privacyEmail,
-  dpoName:               '',
+  // ── זיהוי המפעיל ─────────────────────────────────────────────────
+  companyName:         PLATFORM_OPERATOR.operatorName,
+  companyPhone:        PLATFORM_OPERATOR.operatorPhone,
+  companyEmail:        PLATFORM_OPERATOR.operatorEmail,
+  privacyContactEmail: PLATFORM_OPERATOR.privacyContactEmail,
+  dpoName:             '',
 
   // ── שם מוצר ─────────────────────────────────────────────────────
-  productName:   'SafeDoc',
-  productUrl:    process.env.NEXT_PUBLIC_APP_URL ?? 'https://safety-system-henna.vercel.app',
+  productName: 'SafeDoc',
+  productUrl:  process.env.NEXT_PUBLIC_APP_URL ?? 'https://safety-system-henna.vercel.app',
 
   // ── תאריכים ─────────────────────────────────────────────────────
   /** תאריך תחולה של גרסת המסמכים הנוכחית */
-  termsEffectiveDate: '2026-07-18',
+  termsEffectiveDate: '2026-07-22',
 
   // ── גרסאות מסמכים — יש לעדכן בכל שינוי מהותי ─────────────────
   /** גרסת תנאי שימוש — שינוי דורש אישור מחדש מהמשתמשים */
-  termsVersion:        '1.0',
+  termsVersion:        '1.1',
   /** גרסת מדיניות פרטיות — שינוי דורש אישור מחדש מהמשתמשים */
-  privacyVersion:      '1.0',
+  privacyVersion:      '1.1',
   /** גרסת הצהרת נגישות — שינוי אינו דורש אישור מחדש */
-  accessibilityVersion: '1.0',
+  accessibilityVersion: '1.1',
 
   // ── retention defaults (ניתן להתאמה לפי לקוח והסכם) ─────────────
   retentionWorkerDataYears:    7,
@@ -61,9 +58,9 @@ export const LEGAL = {
   ],
 
   // ── WCAG / accessibility ─────────────────────────────────────────
-  accessibilityLastAudit:    '2026-07-18 (בדיקה פנימית)',
+  accessibilityLastAudit:    '2026-07-22 (בדיקה פנימית)',
   accessibilityLevel:        'בתהליך — טרם הוצהרה עמידה רשמית בתקן',
-  accessibilityContactEmail: PLATFORM_OPERATOR.accessibilityEmail,
+  accessibilityContactEmail: PLATFORM_OPERATOR.accessibilityContactEmail,
 
   // ── internal flags (NOT FOR PUBLIC DISPLAY) ──────────────────────
   legallyReviewed:                             false,
