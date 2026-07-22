@@ -24,7 +24,7 @@ export default function TermsPage() {
       title="תנאי שימוש"
       version={LEGAL.termsVersion}
       effectiveDate={LEGAL.termsEffectiveDate}
-      summary={`מסמך זה מגדיר את תנאי השימוש במערכת SafeDoc המופעלת על ידי ${LEGAL.companyName}. גישה למערכת מותנית בהסכמה לתנאים אלה. השימוש מוגבל לגורמים מורשים לצורך ניהול מסמכי בטיחות עובדים.`}
+      summary={`מסמך זה מגדיר את תנאי השימוש במערכת SafeDoc המופעלת על ידי ${LEGAL.companyName} ("המפעיל"). גישה למערכת מותנית בהסכמה לתנאים אלה. השימוש מוגבל לגורמים מורשים לצורך ניהול מסמכי בטיחות עובדים.`}
       toc={toc}
       nextPage={{ href: '/privacy', label: 'מדיניות פרטיות' }}
     >
@@ -204,8 +204,9 @@ export default function TermsPage() {
         <h2 className="text-lg font-semibold text-gray-900 mb-3">10. דין חל וסמכות שיפוט</h2>
         <p className="text-gray-700 leading-relaxed mb-3">
           תנאים אלה כפופים לדיני מדינת ישראל, ללא תחולת כללי ברירת הדין.
-          כל מחלוקת הנובעת מהם תידון בבתי המשפט המוסמכים במחוז הדרום, ישראל,
-          ולהם תהא סמכות שיפוט בינלאומית ומקומית ייחודית.
+          כל מחלוקת הנובעת מהם תובא לדיון בפני בית המשפט המוסמך באילת,
+          ולחלופין בפני בית המשפט המוסמך בבאר שבע.
+          לבתי משפט אלה תהא סמכות שיפוט מקומית ייחודית בכפוף לכל דין.
         </p>
         <p className="text-gray-700 leading-relaxed">
           הצדדים יעשו מאמץ לפתור מחלוקות בדרכי שלום לפני פנייה לבית המשפט.
@@ -219,8 +220,7 @@ export default function TermsPage() {
           לשאלות, הסתייגויות, או בקשות בנוגע לתנאי השימוש, ניתן לפנות אל:
         </p>
         <address className="not-italic text-gray-700 mt-2 space-y-1">
-          <p><strong>{LEGAL.companyName}</strong></p>
-          <p>{LEGAL.companyAddress}</p>
+          <p><strong>{LEGAL.companyName}</strong> — מפעיל SafeDoc</p>
           <p>
             אימייל:{' '}
             <a href={`mailto:${LEGAL.companyEmail}`} className="text-orange-700 underline">

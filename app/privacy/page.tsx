@@ -25,7 +25,7 @@ export default function PrivacyPage() {
       title="מדיניות פרטיות"
       version={LEGAL.privacyVersion}
       effectiveDate={LEGAL.termsEffectiveDate}
-      summary={`מסמך זה מסביר כיצד ${LEGAL.companyName} אוספת, מעבדת ושומרת מידע אישי של עובדים ומשתמשי מערכת SafeDoc. המידע נאסף לצורך ניהול בטיחות בעבודה בלבד ולא נמכר או מועבר לגורמי שיווק.`}
+      summary={`מסמך זה מסביר כיצד ${LEGAL.companyName} (מפעיל) אוסף, מעבד ושומר מידע אישי של עובדים (נושאי מידע) ומשתמשי מערכת SafeDoc. המידע נאסף לצורך ניהול בטיחות בעבודה בלבד ולא נמכר או מועבר לגורמי שיווק.`}
       toc={toc}
       prevPage={{ href: '/terms', label: 'תנאי שימוש' }}
       nextPage={{ href: '/subprocessors', label: 'ספקי משנה' }}
@@ -35,14 +35,19 @@ export default function PrivacyPage() {
       <section id="who-we-are">
         <h2 className="text-lg font-semibold text-gray-900 mb-3">1. מי אנחנו</h2>
         <p className="text-gray-700 leading-relaxed mb-3">
-          {LEGAL.companyName} (&ldquo;החברה&rdquo;, &ldquo;אנחנו&rdquo;) מפעילה את מערכת SafeDoc
-          לניהול מסמכי בטיחות בסביבות בנייה. החברה היא &ldquo;מחזיק מאגר&rdquo; ו&ldquo;גורם מתפעל&rdquo;
+          <strong>{LEGAL.companyName}</strong> (&ldquo;המפעיל&rdquo;) הוא מפתח ומפעיל פלטפורמת SafeDoc
+          לניהול מסמכי בטיחות. המפעיל הוא &ldquo;מחזיק מאגר&rdquo; ו&ldquo;גורם מתפעל&rdquo;
           כמשמעם בחוק הגנת הפרטיות, התשמ&rdquo;א-1981 (&ldquo;חוק הגנת הפרטיות&rdquo;).
         </p>
+        <p className="text-gray-700 leading-relaxed mb-3">
+          <strong>הגדרות מפתח:</strong>{' '}
+          <em>מפעיל</em> — {LEGAL.companyName}, המפתח ומפעיל הפלטפורמה.{' '}
+          <em>לקוח</em> — חברה קבלנית או ארגון המשתמש ב-SafeDoc לניהול כוח האדם שלו.{' '}
+          <em>משתמש</em> — מנהל אתר או גורם מורשה אחר הנכנס למערכת מטעם הלקוח.{' '}
+          <em>נושא מידע</em> — עובד שמידע אישי שלו מוחזק במערכת.
+        </p>
         <address className="not-italic text-gray-700 space-y-1 text-sm">
-          <p><strong>{LEGAL.companyName}</strong></p>
-          <p>ח.פ.: {LEGAL.companyRegistration}</p>
-          <p>{LEGAL.companyAddress}</p>
+          <p><strong>{LEGAL.companyName}</strong> (מפעיל)</p>
           <p>
             לפניות בנושאי פרטיות:{' '}
             <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-700 underline">
@@ -225,22 +230,30 @@ export default function PrivacyPage() {
       <section id="rights">
         <h2 className="text-lg font-semibold text-gray-900 mb-3">9. זכויות נושאי המידע</h2>
         <p className="text-gray-700 leading-relaxed mb-3">
-          עובד שמידע אישי שלו מעובד במערכת רשאי לממש את הזכויות הבאות, בכפוף לחוק הגנת הפרטיות
-          ולחובות שמירה חוקיות:
+          עובד (נושא מידע) שמידע אישי שלו מעובד במערכת רשאי לממש את הזכויות הבאות,
+          בכפוף לחוק הגנת הפרטיות ולחובות שמירה חוקיות:
         </p>
         <ul className="list-disc list-inside text-gray-700 space-y-1.5 leading-relaxed mb-3">
           <li><strong>עיון</strong> — בקשה לראות את המידע המוחזק אודותיו</li>
           <li><strong>תיקון</strong> — בקשה לתקן מידע שגוי או לא עדכני</li>
-          <li><strong>מחיקה</strong> — בקשה למחיקת מידע (בכפוף לחובות שמירה חוקיות)</li>
+          <li>
+            <strong>מחיקה</strong> — בקשה למחיקת מידע; המחיקה תבוצע ככל שאינה מנוגדת
+            לחובות שמירה חוקיות (כגון חוקי בטיחות בעבודה או חוק הגנת הפרטיות). מידע הכפוף
+            לחובת שמירה — יישמר עד תום התקופה הנדרשת
+          </li>
           <li><strong>התנגדות</strong> — התנגדות לעיבוד המידע לצרכים ספציפיים</li>
-          <li><strong>ניידות</strong> — קבלת המידע בפורמט מובנה (לפי שיקול דעת החברה)</li>
+          <li><strong>ניידות</strong> — קבלת עותק של המידע בפורמט קריא, לפי שיקול דעת המפעיל</li>
         </ul>
-        <p className="text-gray-700 leading-relaxed">
-          בקשות יש לשלוח בכתב אל:{' '}
+        <p className="text-gray-700 leading-relaxed mb-2">
+          <strong>כיצד להגיש בקשה:</strong> יש לשלוח פנייה בכתב הכוללת:
+          שם מלא, פרטי יצירת קשר, תיאור הבקשה וסוג הזכות המבוקשת — אל:{' '}
           <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-700 underline">
             {LEGAL.privacyContactEmail}
-          </a>
-          . החברה תשיב תוך 30 יום.
+          </a>.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          המפעיל ישיב בתוך זמן סביר בהתאם לאופי הבקשה. חלק מהבקשות מחייבות
+          תיאום עם הלקוח (הארגון) שבמסגרתו הוזן המידע.
         </p>
       </section>
 
@@ -280,7 +293,7 @@ export default function PrivacyPage() {
           לשאלות, בקשות מימוש זכויות, או פניות בנושאי פרטיות:
         </p>
         <address className="not-italic text-gray-700 mt-2 space-y-1">
-          <p><strong>{LEGAL.companyName}</strong></p>
+          <p><strong>{LEGAL.companyName}</strong> — מפעיל SafeDoc</p>
           <p>
             אימייל:{' '}
             <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-700 underline">

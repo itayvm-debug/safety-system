@@ -142,7 +142,7 @@ export default function DataRetentionPage() {
           <a href={`mailto:${LEGAL.privacyContactEmail}`} className="text-orange-700 underline">
             {LEGAL.privacyContactEmail}
           </a>.
-          החברה תשיב תוך 30 יום ותפרט אילו נתונים ניתן למחוק ואילו חייבים להישמר על פי דין.
+          המפעיל ישיב בתוך זמן סביר ויפרט אילו נתונים ניתן למחוק ואילו חייבים להישמר על פי דין.
         </p>
       </section>
 

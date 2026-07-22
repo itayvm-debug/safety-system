@@ -147,7 +147,7 @@ export default function LoginPage() {
         <p className="mt-6 max-w-md text-center text-xs leading-relaxed px-4
                       text-gray-400 lg:text-white/55">
           כל הזכויות במערכת SafeDoc, לרבות המסמכים, העיצוב, הקוד, הנתונים והפונקציונליות
-          שמורות לחברת נתן ולדמן ובניו בע&quot;מ. אין להעתיק, לשכפל, להפיץ או לעשות שימוש
+          שמורות לאיתי ולדמן. אין להעתיק, לשכפל, להפיץ או לעשות שימוש
           במערכת או בחלק ממנה ללא אישור מראש ובכתב.
         </p>
       </div>

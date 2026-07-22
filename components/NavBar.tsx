@@ -47,7 +47,7 @@ export default function NavBar() {
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
             <Image src="/logo.png" alt="לוגו חברה" width={36} height={36} className="object-contain" priority />
             <div className="leading-tight hidden xl:block">
-              <p className="font-bold text-gray-900 text-sm">נתן ולדמן ובניו בע&quot;מ</p>
+              <p className="font-bold text-gray-900 text-sm">SafeDoc</p>
               <p className="text-xs text-gray-500">ניהול בטיחות</p>
             </div>
           </Link>
@@ -132,7 +132,7 @@ export default function NavBar() {
           {/* לוגו (ימין ב-RTL — DOM ראשון) */}
           <Link href="/dashboard" className="flex items-center gap-2">
             <Image src="/logo.png" alt="לוגו חברה" width={32} height={32} className="object-contain" priority />
-            <p className="font-bold text-gray-900 text-sm">נתן ולדמן ובניו בע&quot;מ</p>
+            <p className="font-bold text-gray-900 text-sm">SafeDoc</p>
           </Link>
 
           {/* כפתורים (שמאל ב-RTL — DOM אחרון) */}
