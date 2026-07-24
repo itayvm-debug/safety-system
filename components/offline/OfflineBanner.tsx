@@ -1,9 +1,25 @@
 'use client';
+import { usePathname } from 'next/navigation';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
+// Pages where the offline banner must not appear (public / legal / auth pages)
+const EXCLUDED_PATHS = [
+  '/login',
+  '/legal-consent',
+  '/terms',
+  '/privacy',
+  '/accessibility',
+  '/about',
+  '/subprocessors',
+  '/data-retention',
+];
+
 export default function OfflineBanner() {
-  const isOnline = useOnlineStatus();
-  if (isOnline) return null;
+  const pathname = usePathname();
+  const status = useOnlineStatus();
+
+  if (EXCLUDED_PATHS.some((p) => pathname?.startsWith(p))) return null;
+  if (status !== 'offline') return null;
 
   return (
     <div

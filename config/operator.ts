@@ -5,6 +5,8 @@
 
 export const PLATFORM_OPERATOR = {
   operatorName:              'איתי ולדמן',
+  legalOperatorName:         'איתי ולדמן',
+  brandName:                 'SafeDoc',
   operatorBrand:             'SafeDoc',
   operatorEmail:             'itayvm@gmail.com',
   privacyContactEmail:       'itayvm@gmail.com',
