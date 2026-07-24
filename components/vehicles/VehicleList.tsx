@@ -12,7 +12,8 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 export default function VehicleList() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  const isOnline = useOnlineStatus();
+  const onlineStatus = useOnlineStatus();
+  const isOnline = onlineStatus !== 'offline';
 
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);

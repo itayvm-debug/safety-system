@@ -13,7 +13,8 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 function LiftingEquipmentRow({ eq: initialEq }: { eq: LiftingEquipment }) {
   const router = useRouter();
-  const isOnline = useOnlineStatus();
+  const onlineStatus = useOnlineStatus();
+  const isOnline = onlineStatus !== 'offline';
   const [eq, setEq] = useState(initialEq);
   const [toggling, setToggling] = useState(false);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
@@ -93,7 +94,8 @@ function LiftingEquipmentRow({ eq: initialEq }: { eq: LiftingEquipment }) {
 export default function LiftingEquipmentList() {
   const [equipment, setEquipment] = useState<LiftingEquipment[]>([]);
   const [loading, setLoading] = useState(true);
-  const isOnline = useOnlineStatus();
+  const onlineStatus = useOnlineStatus();
+  const isOnline = onlineStatus !== 'offline';
 
   const [showInactive, setShowInactive] = useState(false);
   const [search, setSearch] = useState('');
