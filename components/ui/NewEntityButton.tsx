@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 export function NewEntityButton({ href, label }: { href: string; label: string }) {
-  const isOnline = useOnlineStatus();
+  const onlineStatus = useOnlineStatus();
+  const isOnline = onlineStatus !== 'offline';
   if (!isOnline) return null;
   return (
     <Link

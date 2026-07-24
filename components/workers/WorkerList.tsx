@@ -17,7 +17,8 @@ type FilterType = 'all' | DocumentStatus;
 export default function WorkerList() {
   const [workers, setWorkers] = useState<WorkerWithDocuments[]>([]);
   const [loading, setLoading] = useState(true);
-  const isOnline = useOnlineStatus();
+  const onlineStatus = useOnlineStatus();
+  const isOnline = onlineStatus !== 'offline';
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');

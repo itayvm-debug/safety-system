@@ -123,7 +123,8 @@ function WorkerSummaryBanner({ issues }: { issues: Issue[] }) {
 
 export default function WorkerDetail({ worker }: WorkerDetailProps) {
   const router = useRouter();
-  const isOnline = useOnlineStatus();
+  const onlineStatus = useOnlineStatus();
+  const isOnline = onlineStatus !== 'offline';
   const [archivingWorker, setArchivingWorker] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
   const [togglingCraneOp, setTogglingCraneOp] = useState(false);
@@ -734,7 +735,8 @@ function ManagerSelector({
 // ─── תמונת עובד ───────────────────────────────────────────────
 function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
   const router = useRouter();
-  const isOnline = useOnlineStatus();
+  const onlineStatus = useOnlineStatus();
+  const isOnline = onlineStatus !== 'offline';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
