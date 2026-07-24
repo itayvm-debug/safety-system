@@ -24,7 +24,7 @@ export function isWorkVisaLocked(docType: DocumentType, isForeignWorker: boolean
 
 /**
  * חוקי סטטוס מסמך — לוגיקה אחידה לכל הטבלאות:
- * - is_required=false + אין קובץ → 'not_required'
+ * - is_required=false → 'not_required' (תמיד, ללא תלות בקובץ או תאריך)
  * - אין קובץ → 'missing'
  * - יש קובץ + אין תאריך תוקף + requiresExpiry=true → 'missing'
  * - יש קובץ + אין תאריך תוקף + requiresExpiry=false → 'valid' (למשל: תעודת זהות)
@@ -38,7 +38,8 @@ export function getDocumentStatus(
   isRequired = true,
   requiresExpiry = true
 ): DocumentStatus {
-  if (!fileUrl) return isRequired ? 'missing' : 'not_required';
+  if (!isRequired) return 'not_required';
+  if (!fileUrl) return 'missing';
   if (!expiryDate) return requiresExpiry ? 'missing' : 'valid';
 
   const today = startOfDay(new Date());
@@ -224,17 +225,6 @@ export function getHeavyEquipmentStatus(eq: HeavyEquipment): DocumentStatus {
   const mandatoryStatus = getDocumentStatus(mandatory?.file_url ?? null, mandatory?.expiry_date ?? null, true, true);
   if (STATUS_SEVERITY[mandatoryStatus] > STATUS_SEVERITY[worst]) worst = mandatoryStatus;
 
-  for (const ins of insurances.filter((i) => i.insurance_type !== 'ביטוח חובה' && (i.file_url || i.expiry_date))) {
-    const s = getDocumentStatus(ins.file_url, ins.expiry_date, false, true);
-    if (STATUS_SEVERITY[s] > STATUS_SEVERITY[worst]) worst = s;
-  }
-
-  // תסקיר — אופציונלי: אם הועלה קובץ, חייב להיות עם תאריך תקין
-  if (eq.inspection_file_url || eq.inspection_expiry) {
-    const s = getDocumentStatus(eq.inspection_file_url, eq.inspection_expiry, false, true);
-    if (STATUS_SEVERITY[s] > STATUS_SEVERITY[worst]) worst = s;
-  }
-
   return worst;
 }
 
@@ -285,15 +275,6 @@ export function getVehicleStatus(vehicle: Vehicle): DocumentStatus {
     true
   );
   if (STATUS_SEVERITY[insStatus] > STATUS_SEVERITY[worst]) worst = insStatus;
-
-  // מקיף / צד ג — אופציונליים: אם הועלה קובץ, חייב להיות בתוקף
-  const optional = (vehicle.vehicle_insurances ?? []).filter(
-    (i) => i.insurance_type !== 'ביטוח חובה' && (i.file_url || i.expiry_date)
-  );
-  for (const ins of optional) {
-    const s = getDocumentStatus(ins.file_url, ins.expiry_date, false, true);
-    if (STATUS_SEVERITY[s] > STATUS_SEVERITY[worst]) worst = s;
-  }
 
   return worst;
 }

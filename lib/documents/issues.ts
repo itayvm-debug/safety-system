@@ -144,11 +144,6 @@ export function buildVehicleIssues(vehicle: Vehicle): Issue[] {
   const ins = toIssue(getDocumentStatus(mIns?.file_url ?? null, mIns?.expiry_date ?? null, true, true));
   if (ins) issues.push({ ...base, id: `vehicle-${vehicle.id}-ins`, status: ins, problem: 'ביטוח חובה' });
 
-  for (const optI of (vehicle.vehicle_insurances ?? []).filter((i) => i.insurance_type !== 'ביטוח חובה' && (i.file_url || i.expiry_date))) {
-    const os = toIssue(getDocumentStatus(optI.file_url, optI.expiry_date, false, true));
-    if (os) issues.push({ ...base, id: `vehicle-${vehicle.id}-ins-${optI.id}`, status: os, problem: optI.insurance_type });
-  }
-
   return issues;
 }
 
@@ -171,16 +166,6 @@ export function buildHeavyEquipmentIssues(eq: HeavyEquipment): Issue[] {
   const mandatory = insurances.find((i) => i.insurance_type === 'ביטוח חובה');
   const ins = toIssue(getDocumentStatus(mandatory?.file_url ?? null, mandatory?.expiry_date ?? null, true, true));
   if (ins) issues.push({ ...base, id: `heavy-${eq.id}-ins`, status: ins, problem: 'ביטוח חובה' });
-
-  for (const optI of insurances.filter((i) => i.insurance_type !== 'ביטוח חובה' && (i.file_url || i.expiry_date))) {
-    const os = toIssue(getDocumentStatus(optI.file_url, optI.expiry_date, false, true));
-    if (os) issues.push({ ...base, id: `heavy-${eq.id}-ins-${optI.id}`, status: os, problem: optI.insurance_type });
-  }
-
-  if (eq.inspection_file_url || eq.inspection_expiry) {
-    const is = toIssue(getDocumentStatus(eq.inspection_file_url, eq.inspection_expiry, false, true));
-    if (is) issues.push({ ...base, id: `heavy-${eq.id}-inspection`, status: is, problem: 'תסקיר' });
-  }
 
   return issues;
 }
