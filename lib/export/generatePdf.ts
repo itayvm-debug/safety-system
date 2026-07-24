@@ -53,7 +53,7 @@ function getWorkerIssueDetails(w: WorkerWithDocuments): string {
   else if (hs === 'expiring_soon') problems.push('אישור עבודה בגובה עומד לפוג');
 
   for (const lic of (w.professional_licenses ?? [])) {
-    const ls = getDocumentStatus(lic.file_url, lic.expiry_date, true, true);
+    const ls = getDocumentStatus(lic.file_url, lic.expiry_date, true, !!lic.expiry_date);
     if (ls === 'missing') problems.push(`חסר מסמך: ${lic.license_type}`);
     else if (ls === 'expired') problems.push(`פג תוקף: ${lic.license_type}`);
     else if (ls === 'expiring_soon') problems.push(`עומד לפוג: ${lic.license_type}`);
@@ -66,7 +66,6 @@ function getVehicleIssueDetails(v: Vehicle): string {
   const problems: string[] = [];
   const lic = (v.vehicle_licenses ?? [])[0] ?? null;
   const mandatory = (v.vehicle_insurances ?? []).find((i) => i.insurance_type === 'ביטוח חובה') ?? null;
-  const comprehensive = (v.vehicle_insurances ?? []).find((i) => i.insurance_type === 'ביטוח מקיף') ?? null;
 
   const ls = getDocumentStatus(lic?.file_url ?? null, lic?.expiry_date ?? null, true, true);
   if (ls === 'missing') problems.push('חסר רישיון רכב');
@@ -77,10 +76,6 @@ function getVehicleIssueDetails(v: Vehicle): string {
   if (ms === 'missing') problems.push('חסר ביטוח חובה');
   else if (ms === 'expired') problems.push('ביטוח חובה פג תוקף');
   else if (ms === 'expiring_soon') problems.push('ביטוח חובה עומד לפוג');
-
-  const cs = getDocumentStatus(comprehensive?.file_url ?? null, comprehensive?.expiry_date ?? null, false, true);
-  if (cs === 'expired') problems.push('ביטוח מקיף פג תוקף');
-  else if (cs === 'expiring_soon') problems.push('ביטוח מקיף עומד לפוג');
 
   return issueCell(problems);
 }
