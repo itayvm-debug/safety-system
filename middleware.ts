@@ -8,6 +8,9 @@ const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 function isAllowedOrigin(origin: string | null, host: string | null, appUrl: string): boolean {
   if (!origin) return true; // same-site — no Origin header is normal for same-site requests
   if (appUrl && origin === appUrl) return true;
+  // Vercel Preview deployments: VERCEL_URL is the preview hostname (no protocol prefix)
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl && origin === `https://${vercelUrl}`) return true;
   if (host) {
     if (origin === `https://${host}`) return true;
     if (origin === `http://${host}`) return true;

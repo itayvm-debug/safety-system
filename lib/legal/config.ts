@@ -6,6 +6,10 @@
 import { PLATFORM_OPERATOR } from '@/config/operator';
 
 export const LEGAL = {
+  // ── זיהוי מותג ומפעיל — יש להשתמש ב-brandName בממשק עסקי, ב-legalOperatorName בדפים משפטיים ─
+  brandName:           PLATFORM_OPERATOR.brandName,
+  legalOperatorName:   PLATFORM_OPERATOR.legalOperatorName,
+
   // ── זיהוי המפעיל ─────────────────────────────────────────────────
   companyName:         PLATFORM_OPERATOR.operatorName,
   companyPhone:        PLATFORM_OPERATOR.operatorPhone,

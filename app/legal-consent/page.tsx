@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -11,11 +11,14 @@ export default function LegalConsentPage() {
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const submitting = useRef(false);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!acceptedTerms || !acceptedPrivacy) return;
+    if (submitting.current) return;
+    submitting.current = true;
 
     setLoading(true);
     setError('');
@@ -23,21 +26,25 @@ export default function LegalConsentPage() {
     try {
       const res = await fetch('/api/legal-consent', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accepted_terms: true, accepted_privacy: true }),
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || 'שגיאה בשמירת ההסכמה');
+        const data = await res.json().catch(() => ({}));
+        const msg = (data as { error?: string }).error ?? 'שגיאה בשמירת ההסכמה';
+        setError(`(${res.status}) ${msg}`);
         return;
       }
 
-      router.push('/dashboard');
+      router.replace('/dashboard');
+      router.refresh();
     } catch {
       setError('שגיאת תקשורת — נסה שנית');
     } finally {
       setLoading(false);
+      submitting.current = false;
     }
   }
 
