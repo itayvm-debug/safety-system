@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdmin } from '@/lib/auth/company-context';
+import { normalizeIdentityValue } from '@/lib/workers/normalize';
 
 export async function GET(request: NextRequest) {
   const { context, error } = await getCurrentCompanyContext();
@@ -47,34 +48,35 @@ export async function POST(request: NextRequest) {
   if (!full_name?.trim()) return NextResponse.json({ error: 'שם מלא נדרש' }, { status: 400 });
 
   const isForeign = !!is_foreign_worker;
-  const nationalIdTrimmed = national_id?.trim() || null;
-  const passportTrimmed = passport_number?.trim() || null;
+  const nationalIdNorm   = normalizeIdentityValue(national_id);
+  const passportNorm     = normalizeIdentityValue(passport_number);
 
-  if (!isForeign && !nationalIdTrimmed)
+  if (!isForeign && !nationalIdNorm)
     return NextResponse.json({ error: 'מספר תעודת זהות נדרש' }, { status: 400 });
-  if (isForeign && !passportTrimmed)
+  if (isForeign && !passportNorm)
     return NextResponse.json({ error: 'מספר דרכון נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
 
-  // Check for duplicate ID within the company
-  if (!isForeign && nationalIdTrimmed) {
+  // Duplicate check scoped to this company only.
+  // Same identity in a different company is allowed — do not reveal cross-company existence.
+  if (!isForeign && nationalIdNorm) {
     const { data: existing } = await supabase
       .from('workers')
       .select('id')
-      .eq('national_id', nationalIdTrimmed)
+      .eq('national_id', nationalIdNorm)
       .eq('company_id', companyId)
       .maybeSingle();
-    if (existing) return NextResponse.json({ error: 'עובד עם תעודת זהות זו כבר קיים במערכת' }, { status: 409 });
+    if (existing) return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים בחברה' }, { status: 409 });
   }
-  if (isForeign && passportTrimmed) {
+  if (isForeign && passportNorm) {
     const { data: existing } = await supabase
       .from('workers')
       .select('id')
-      .eq('passport_number', passportTrimmed)
+      .eq('passport_number', passportNorm)
       .eq('company_id', companyId)
       .maybeSingle();
-    if (existing) return NextResponse.json({ error: 'עובד עם מספר דרכון זה כבר קיים במערכת' }, { status: 409 });
+    if (existing) return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים בחברה' }, { status: 409 });
   }
 
   const { data, error: dbError } = await supabase
@@ -84,9 +86,9 @@ export async function POST(request: NextRequest) {
       full_name: full_name.trim(),
       worker_type: isForeign ? 'foreign' : 'israeli',
       is_foreign_worker: isForeign,
-      national_id: nationalIdTrimmed,
-      passport_number: passportTrimmed,
-      id_number: nationalIdTrimmed ?? passportTrimmed,
+      national_id: nationalIdNorm,
+      passport_number: passportNorm,
+      id_number: nationalIdNorm ?? passportNorm,
       phone: phone?.trim() || null,
       notes: notes?.trim() || null,
       project_name: project_name?.trim() || null,
@@ -95,7 +97,9 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (dbError) {
-    if (dbError.code === '23505') return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים במערכת' }, { status: 409 });
+    // 23505 here means the DB composite index caught a race-condition duplicate
+    // within this company.  Do not expose "in the system" — only "in this company".
+    if (dbError.code === '23505') return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים בחברה' }, { status: 409 });
     return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
   return NextResponse.json(data, { status: 201 });

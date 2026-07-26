@@ -16,28 +16,26 @@ export type AuthorizeStorageResult =
   | { allowed: false; reason: StorageDenyReason };
 
 /**
- * Tables migrated to multi-tenant in Batch 1 (have company_id column).
- * Add entries here when a future batch migrates additional tables.
+ * Tables migrated to multi-tenant (have company_id column).
  * Any table listed here is NEVER eligible for standalone-legacy compatibility mode.
+ * Phase 2 Batch 2: added 'vehicles'.
  */
 export const TENANT_MIGRATED_TABLES: ReadonlySet<string> = new Set([
   'workers',
   'documents',
+  'vehicles',
 ]);
 
 /**
  * Standalone legacy tables — no company_id, no worker link.
  * Authorized via single-company compatibility mode only.
- * When a table gains company_id in a future batch: remove it from this list
- * and add it to Mode A (direct company_id check) in the function below.
+ * Phase 2 Batch 2: removed vehicles/vehicle_licenses/vehicle_insurances (migrated to Mode A/B-vehicle).
+ * Batch 3: remove heavy_equipment/lifting_equipment when they gain company_id.
  */
 export const STANDALONE_LEGACY_CONFIGS: ReadonlyArray<{
   table: string;
   urlColumns: readonly string[];
 }> = [
-  { table: 'vehicles',                   urlColumns: ['image_url'] },
-  { table: 'vehicle_licenses',           urlColumns: ['file_url'] },
-  { table: 'vehicle_insurances',         urlColumns: ['file_url'] },
   { table: 'heavy_equipment',            urlColumns: ['image_url', 'license_file_url', 'insurance_file_url', 'inspection_file_url'] },
   { table: 'heavy_equipment_insurances', urlColumns: ['file_url'] },
   { table: 'lifting_equipment',          urlColumns: ['image_url', 'inspection_file_url'] },
@@ -86,11 +84,12 @@ export function normalizeStoragePath(raw: string): string | null {
  *    professional_licenses, manager_licenses, lifting_machine_appointments):
  *    ownership verified via worker_id → workers.company_id chain.
  *
- * C) Standalone legacy (vehicles, vehicle_licenses, vehicle_insurances,
- *    heavy_equipment, heavy_equipment_insurances, lifting_equipment):
- *    Compatibility mode — only allowed when exactly one active company exists
- *    AND the DB record is found. Auto-disabled per-table when that table gains
- *    company_id: remove from STANDALONE_LEGACY_CONFIGS and add to Mode A/B.
+ * B-vehicle) Vehicle-linked (vehicle_licenses, vehicle_insurances):
+ *    ownership verified via vehicle_id IN (company vehicle IDs) chain.
+ *
+ * C) Standalone legacy (heavy_equipment, heavy_equipment_insurances,
+ *    lifting_equipment): Compatibility mode — only allowed when exactly one
+ *    active company exists AND the DB record is found.
  */
 export async function authorizeStorageObjectAccess(
   params: AuthorizeStorageParams
@@ -101,8 +100,8 @@ export async function authorizeStorageObjectAccess(
   if (!path) return { allowed: false, reason: 'invalid_path' };
 
   // ── Mode A: Tenant-migrated ──────────────────────────────────────────────
-  // Fetch company workers (IDs + photo_url) and check documents in parallel.
-  const [workersRes, docsRes] = await Promise.all([
+  // Fetch company workers (IDs + photo_url), documents, and vehicles in parallel.
+  const [workersRes, docsRes, vehiclesRes] = await Promise.all([
     supabase.from('workers').select('id, photo_url').eq('company_id', companyId),
     supabase
       .from('documents')
@@ -111,15 +110,22 @@ export async function authorizeStorageObjectAccess(
       .eq('company_id', companyId)
       .limit(1)
       .maybeSingle(),
+    supabase.from('vehicles').select('id, image_url').eq('company_id', companyId),
   ]);
 
   const companyWorkers: Array<{ id: string; photo_url: string | null }> =
     (workersRes as { data: Array<{ id: string; photo_url: string | null }> | null }).data ?? [];
 
+  const companyVehicles: Array<{ id: string; image_url: string | null }> =
+    (vehiclesRes as { data: Array<{ id: string; image_url: string | null }> | null }).data ?? [];
+
   if (companyWorkers.some(w => w.photo_url === path)) {
     return { allowed: true, entityType: 'workers' };
   }
   if ((docsRes as { data: unknown }).data) return { allowed: true, entityType: 'documents' };
+  if (companyVehicles.some(v => v.image_url === path)) {
+    return { allowed: true, entityType: 'vehicles' };
+  }
 
   // ── Mode B: Worker-linked legacy ─────────────────────────────────────────
   const workerIds = companyWorkers.map(w => w.id);
@@ -157,6 +163,23 @@ export async function authorizeStorageObjectAccess(
 
     const workerLinkedHit = workerLinkedChecks.find(t => t !== null);
     if (workerLinkedHit) return { allowed: true, entityType: workerLinkedHit };
+  }
+
+  // ── Mode B-vehicle: Vehicle-linked (vehicle_licenses, vehicle_insurances) ─
+  const vehicleIds = companyVehicles.map(v => v.id);
+
+  if (vehicleIds.length > 0) {
+    const vehicleChildChecks = await Promise.all([
+      supabase.from('vehicle_licenses').select('id').eq('file_url', path)
+        .in('vehicle_id', vehicleIds).limit(1).maybeSingle()
+        .then((r: { data: unknown }) => r.data ? 'vehicle_licenses' : null),
+      supabase.from('vehicle_insurances').select('id').eq('file_url', path)
+        .in('vehicle_id', vehicleIds).limit(1).maybeSingle()
+        .then((r: { data: unknown }) => r.data ? 'vehicle_insurances' : null),
+    ]);
+
+    const vehicleChildHit = vehicleChildChecks.find(t => t !== null);
+    if (vehicleChildHit) return { allowed: true, entityType: vehicleChildHit };
   }
 
   // ── Mode C: Standalone legacy — compatibility mode ────────────────────────

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdmin } from '@/lib/auth/company-context';
+import { normalizeIdentityValue } from '@/lib/workers/normalize';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { context, error } = await getCurrentCompanyContext();
@@ -35,12 +36,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (!full_name?.trim()) return NextResponse.json({ error: 'שם מלא נדרש' }, { status: 400 });
 
   const isForeign = !!is_foreign_worker;
-  const nationalIdTrimmed = national_id?.trim() || null;
-  const passportTrimmed = passport_number?.trim() || null;
+  const nationalIdNorm   = normalizeIdentityValue(national_id);
+  const passportNorm     = normalizeIdentityValue(passport_number);
 
-  if (!isForeign && !nationalIdTrimmed)
+  if (!isForeign && !nationalIdNorm)
     return NextResponse.json({ error: 'מספר תעודת זהות נדרש' }, { status: 400 });
-  if (isForeign && !passportTrimmed)
+  if (isForeign && !passportNorm)
     return NextResponse.json({ error: 'מספר דרכון נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
@@ -54,26 +55,27 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     .maybeSingle();
   if (!existing) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
 
-  // Check for duplicate ID within the company (excluding current worker)
-  if (!isForeign && nationalIdTrimmed) {
+  // Duplicate check scoped to this company only, excluding the current record.
+  // Same identity in a different company is allowed — do not reveal cross-company existence.
+  if (!isForeign && nationalIdNorm) {
     const { data: dup } = await supabase
       .from('workers')
       .select('id')
-      .eq('national_id', nationalIdTrimmed)
+      .eq('national_id', nationalIdNorm)
       .eq('company_id', companyId)
       .neq('id', id)
       .maybeSingle();
-    if (dup) return NextResponse.json({ error: 'עובד עם תעודת זהות זו כבר קיים במערכת' }, { status: 409 });
+    if (dup) return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים בחברה' }, { status: 409 });
   }
-  if (isForeign && passportTrimmed) {
+  if (isForeign && passportNorm) {
     const { data: dup } = await supabase
       .from('workers')
       .select('id')
-      .eq('passport_number', passportTrimmed)
+      .eq('passport_number', passportNorm)
       .eq('company_id', companyId)
       .neq('id', id)
       .maybeSingle();
-    if (dup) return NextResponse.json({ error: 'עובד עם מספר דרכון זה כבר קיים במערכת' }, { status: 409 });
+    if (dup) return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים בחברה' }, { status: 409 });
   }
 
   const { data, error: dbError } = await supabase
@@ -82,9 +84,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       full_name: full_name.trim(),
       worker_type: isForeign ? 'foreign' : 'israeli',
       is_foreign_worker: isForeign,
-      national_id: nationalIdTrimmed,
-      passport_number: passportTrimmed,
-      id_number: nationalIdTrimmed ?? passportTrimmed,
+      national_id: nationalIdNorm,
+      passport_number: passportNorm,
+      id_number: nationalIdNorm ?? passportNorm,
       phone: phone?.trim() || null,
       notes: notes?.trim() || null,
       photo_url: photo_url || null,
@@ -104,7 +106,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     .single();
 
   if (dbError) {
-    if (dbError.code === '23505') return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים' }, { status: 409 });
+    if (dbError.code === '23505') return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים בחברה' }, { status: 409 });
     return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
   return NextResponse.json(data);
@@ -190,7 +192,8 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   const { error: e2 } = await supabase
     .from('subcontractors')
     .update({ responsible_worker_id: null })
-    .eq('responsible_worker_id', id);
+    .eq('responsible_worker_id', id)
+    .eq('company_id', companyId);
   if (e2) {
     console.error('[DELETE worker] failed to clear subcontractors.responsible_worker_id:', e2);
     return NextResponse.json({ error: `שגיאה בניקוי שיוך קבלן משנה: ${e2.message}` }, { status: 500 });
@@ -217,7 +220,8 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   const { error: e6 } = await supabase
     .from('vehicles')
     .update({ assigned_manager_id: null })
-    .eq('assigned_manager_id', id);
+    .eq('assigned_manager_id', id)
+    .eq('company_id', companyId);
   if (e6) {
     console.error('[DELETE worker] failed to null vehicles.assigned_manager_id:', e6);
     return NextResponse.json({ error: `שגיאה בניתוק רכבים מהעובד: ${e6.message}` }, { status: 500 });

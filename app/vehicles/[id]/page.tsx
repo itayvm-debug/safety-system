@@ -1,5 +1,6 @@
+import { getCurrentCompanyContext } from '@/lib/auth/company-context';
 import { createServiceClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Vehicle } from '@/types';
 import VehicleDetail from '@/components/vehicles/VehicleDetail';
@@ -8,19 +9,23 @@ export const dynamic = 'force-dynamic';
 
 export default async function VehiclePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const { context, error } = await getCurrentCompanyContext();
+  if (error) redirect('/login');
+  const { companyId } = context;
+
   const supabase = createServiceClient();
 
-  const { data, error } = await supabase
+  const { data, error: dbError } = await supabase
     .from('vehicles')
     .select(`*, assigned_manager:workers!vehicles_assigned_manager_id_fkey(id, full_name), vehicle_licenses(*), vehicle_insurances(*)`)
     .eq('id', id)
+    .eq('company_id', companyId)
     .single();
 
-  if (error || !data) notFound();
+  if (dbError || !data) notFound();
 
   const vehicle = data as Vehicle;
 
-  // signed URL לתמונה
   let imageUrl: string | null = null;
   if (vehicle.image_url) {
     const { data: signed } = await supabase.storage
@@ -32,6 +37,7 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
   const { data: workers } = await supabase
     .from('workers')
     .select('id, full_name')
+    .eq('company_id', companyId)
     .eq('is_active', true)
     .order('full_name');
 
