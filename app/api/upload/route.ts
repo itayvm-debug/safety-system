@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdmin } from '@/lib/auth/company-context';
 import { rateLimitUploadDb } from '@/lib/rate-limit/db';
+import { authorizeStorageObjectAccess } from '@/lib/storage/authorize';
 
 export const runtime = 'nodejs';
 
@@ -100,13 +101,27 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const { error } = await requireCompanyAdmin();
+  const { context, error } = await requireCompanyAdmin();
   if (error) return error;
 
   const path = request.nextUrl.searchParams.get('path');
   if (!path) return NextResponse.json({ error: 'path נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
+
+  // Verify the file belongs to this company before deleting.
+  // Exception: orphaned files (path no longer in any DB table) may be cleaned
+  // up by an admin — they are unguessable by construction (timestamp + random hex).
+  const authResult = await authorizeStorageObjectAccess({
+    companyId: context.companyId,
+    path,
+    supabase,
+  });
+
+  if (!authResult.allowed && authResult.reason !== 'no_matching_record') {
+    return NextResponse.json({ error: 'אין גישה לקובץ זה' }, { status: 403 });
+  }
+
   const { error: storageError } = await supabase.storage.from('worker-files').remove([path]);
   if (storageError) return NextResponse.json({ error: storageError.message }, { status: 500 });
   return NextResponse.json({ ok: true });
