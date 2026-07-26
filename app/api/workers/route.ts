@@ -1,15 +1,17 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAuth, requireAdmin } from '@/lib/auth/api';
+import { getCurrentCompanyContext, requireCompanyAdmin } from '@/lib/auth/company-context';
 
 export async function GET(request: NextRequest) {
-  const { error: authError } = await requireAuth();
-  if (authError) return authError;
+  const { context, error } = await getCurrentCompanyContext();
+  if (error) return error;
+  const { companyId } = context;
 
   const { searchParams } = new URL(request.url);
   const managersOnly = searchParams.get('managers') === 'true';
   const subcontractorId = searchParams.get('subcontractor_id');
   const supabase = createServiceClient();
+
   let query = supabase
     .from('workers')
     .select(managersOnly
@@ -17,6 +19,7 @@ export async function GET(request: NextRequest) {
       : subcontractorId
         ? 'id, full_name'
         : `*, documents(*), safety_briefings(*), height_restrictions(*), professional_licenses(*), lifting_machine_appointments(id), manager_licenses(*), vehicles(*, vehicle_licenses(*), vehicle_insurances(*)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
+    .eq('company_id', companyId)
     .order('full_name');
 
   query = query.eq('is_archived', false);
@@ -28,14 +31,15 @@ export async function GET(request: NextRequest) {
     query = query.eq('subcontractor_id', subcontractorId).eq('is_active', true);
   }
 
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { data, error: dbError } = await query;
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
 export async function POST(request: NextRequest) {
-  const { error: authError } = await requireAdmin();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
+  const { companyId } = context;
 
   const body = await request.json();
   const { full_name, is_foreign_worker, national_id, passport_number, phone, notes, project_name } = body;
@@ -53,21 +57,32 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  // בדיקת כפילויות
+  // Check for duplicate ID within the company
   if (!isForeign && nationalIdTrimmed) {
-    const { data: existing } = await supabase.from('workers').select('id').eq('national_id', nationalIdTrimmed).maybeSingle();
+    const { data: existing } = await supabase
+      .from('workers')
+      .select('id')
+      .eq('national_id', nationalIdTrimmed)
+      .eq('company_id', companyId)
+      .maybeSingle();
     if (existing) return NextResponse.json({ error: 'עובד עם תעודת זהות זו כבר קיים במערכת' }, { status: 409 });
   }
   if (isForeign && passportTrimmed) {
-    const { data: existing } = await supabase.from('workers').select('id').eq('passport_number', passportTrimmed).maybeSingle();
+    const { data: existing } = await supabase
+      .from('workers')
+      .select('id')
+      .eq('passport_number', passportTrimmed)
+      .eq('company_id', companyId)
+      .maybeSingle();
     if (existing) return NextResponse.json({ error: 'עובד עם מספר דרכון זה כבר קיים במערכת' }, { status: 409 });
   }
 
-  const { data, error } = await supabase
+  const { data, error: dbError } = await supabase
     .from('workers')
     .insert({
+      company_id: companyId,
       full_name: full_name.trim(),
-      worker_type: isForeign ? 'foreign' : 'israeli', // backward compat with DB NOT NULL constraint
+      worker_type: isForeign ? 'foreign' : 'israeli',
       is_foreign_worker: isForeign,
       national_id: nationalIdTrimmed,
       passport_number: passportTrimmed,
@@ -79,9 +94,9 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (error) {
-    if (error.code === '23505') return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים במערכת' }, { status: 409 });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (dbError) {
+    if (dbError.code === '23505') return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים במערכת' }, { status: 409 });
+    return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
   return NextResponse.json(data, { status: 201 });
 }

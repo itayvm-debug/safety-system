@@ -48,9 +48,11 @@ function makeVehicle(licenses: VehicleLicense[], insurances: VehicleInsurance[])
   };
 }
 
+const TEST_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
+
 function makeWorkerIsraeli(docs: Partial<Document>[] = []): WorkerWithDocuments {
   const base: Document = {
-    id: 'doc-id', worker_id: 'w1', doc_type: 'id_document',
+    id: 'doc-id', company_id: TEST_COMPANY_ID, worker_id: 'w1', doc_type: 'id_document',
     license_name: null, file_url: 'id.jpg', expiry_date: null,
     is_required: true, uploaded_at: '', updated_at: '',
   };
@@ -65,7 +67,7 @@ function makeWorkerIsraeli(docs: Partial<Document>[] = []): WorkerWithDocuments 
     issued_at: '', expires_at: future(200), created_at: '',
   };
   return {
-    id: 'w1', full_name: 'ישראל ישראלי', is_foreign_worker: false,
+    id: 'w1', company_id: TEST_COMPANY_ID, full_name: 'ישראל ישראלי', is_foreign_worker: false,
     national_id: '000000000', passport_number: null, id_number: '000000000',
     phone: null, notes: null, photo_url: null,
     is_active: true, is_crane_operator: false, is_responsible_site_manager: false,
@@ -186,7 +188,7 @@ describe('Vehicle C — mandatory insurance missing', () => {
 
 describe('Worker A — Israeli, work_visa not_required with stale expired data', () => {
   const staleVisa: Partial<Document> = {
-    id: 'doc-visa', worker_id: 'w1', doc_type: 'work_visa',
+    id: 'doc-visa', company_id: TEST_COMPANY_ID, worker_id: 'w1', doc_type: 'work_visa',
     license_name: null, file_url: 'old_visa.jpg', expiry_date: past(500),
     is_required: false, uploaded_at: '', updated_at: '',
   };
@@ -214,12 +216,12 @@ describe('Worker B — foreign worker, work_visa required but missing', () => {
     is_foreign_worker: true,
     documents: [
       {
-        id: 'doc-id', worker_id: 'w1', doc_type: 'id_document',
+        id: 'doc-id', company_id: TEST_COMPANY_ID, worker_id: 'w1', doc_type: 'id_document',
         license_name: null, file_url: 'id.jpg', expiry_date: null,
         is_required: true, uploaded_at: '', updated_at: '',
       },
       {
-        id: 'doc-visa', worker_id: 'w1', doc_type: 'work_visa',
+        id: 'doc-visa', company_id: TEST_COMPANY_ID, worker_id: 'w1', doc_type: 'work_visa',
         license_name: null, file_url: null, expiry_date: null,
         is_required: true, uploaded_at: '', updated_at: '',
       },

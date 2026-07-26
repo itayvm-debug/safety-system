@@ -1,25 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth/api';
+import { requireCompanyAdmin } from '@/lib/auth/company-context';
 import { rateLimitUploadDb } from '@/lib/rate-limit/db';
 
-// מאלץ Node.js runtime — חשוב לפרסינג FormData ו-body גדולים
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   console.log('[upload] request received');
 
-  // --- auth ---
-  const { error: authError, session } = await requireAdmin();
-  if (authError) {
-    console.log('[upload] auth failed — not admin');
-    return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) {
+    console.log('[upload] auth failed');
+    return error;
   }
-  console.log('[upload] auth ok, role:', session?.role, 'user:', session?.username);
+  console.log('[upload] auth ok, role:', context.platformRole, 'user:', context.username, 'company:', context.companyId);
 
-  // --- rate limit ---
-  const rl = await rateLimitUploadDb(session!.userId);
+  const rl = await rateLimitUploadDb(context.userId);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'יותר מדי העלאות. נסה שנית בעוד מספר דקות.' },
@@ -27,7 +24,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // --- formData ---
   let formData: FormData;
   try {
     formData = await request.formData();
@@ -61,7 +57,6 @@ export async function POST(request: NextRequest) {
   console.log('[upload] file size:', file.size, 'bytes', `(${(file.size / 1024 / 1024).toFixed(2)} MB)`);
   console.log('[upload] file type:', file.type);
 
-  // --- validations ---
   if (file.size > 10 * 1024 * 1024) {
     console.log('[upload] file too large:', file.size);
     return NextResponse.json({ error: 'הקובץ גדול מדי (מקסימום 10MB)' }, { status: 400 });
@@ -85,7 +80,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'אי-התאמה בין סוג הקובץ לסיומת' }, { status: 400 });
   }
 
-  // --- storage upload ---
   const ext = rawExt;
   const fileName = `${folder}/${Date.now()}-${randomBytes(8).toString('hex')}.${ext}`;
   console.log('[upload] uploading to storage path:', fileName);
@@ -106,14 +100,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const { error: authError } = await requireAdmin();
-  if (authError) return authError;
+  const { error } = await requireCompanyAdmin();
+  if (error) return error;
 
   const path = request.nextUrl.searchParams.get('path');
   if (!path) return NextResponse.json({ error: 'path נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
-  const { error } = await supabase.storage.from('worker-files').remove([path]);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { error: storageError } = await supabase.storage.from('worker-files').remove([path]);
+  if (storageError) return NextResponse.json({ error: storageError.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

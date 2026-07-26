@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth/api';
+import { requireCompanyAdmin } from '@/lib/auth/company-context';
 import { isWorkVisaLocked } from '@/lib/documents/status';
 
 export async function POST(request: NextRequest) {
-  const { error: authError } = await requireAdmin();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
+  const { companyId } = context;
 
   const body = await request.json();
   const { worker_id, doc_type, license_name, file_url, expiry_date, is_required } = body;
@@ -21,23 +22,28 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  // אכיפת חוק עסקי: אשרת עבודה לעובד זר — תמיד חובה
+  // Verify the worker belongs to this company
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('id, is_foreign_worker')
+    .eq('id', worker_id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!worker) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
+
   let effectiveIsRequired = is_required !== undefined ? is_required : true;
   if (doc_type === 'work_visa') {
-    const { data: worker } = await supabase
-      .from('workers')
-      .select('is_foreign_worker')
-      .eq('id', worker_id)
-      .single();
-    if (isWorkVisaLocked('work_visa', !!worker?.is_foreign_worker)) {
+    if (isWorkVisaLocked('work_visa', !!worker.is_foreign_worker)) {
       effectiveIsRequired = true;
     }
   }
 
   if (doc_type === 'optional_license') {
-    const { data, error } = await supabase
+    const { data, error: dbError } = await supabase
       .from('documents')
       .insert({
+        company_id: companyId,
         worker_id,
         doc_type,
         license_name: license_name.trim(),
@@ -47,14 +53,15 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
     return NextResponse.json(data);
   }
 
-  const { data, error } = await supabase
+  const { data, error: dbError } = await supabase
     .from('documents')
     .upsert(
       {
+        company_id: companyId,
         worker_id,
         doc_type,
         file_url: file_url !== undefined ? (file_url || null) : undefined,
@@ -67,34 +74,44 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (error) {
-    console.error('[documents] upsert error:', error.message, error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (dbError) {
+    console.error('[documents] upsert error:', dbError.message, dbError);
+    return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
   console.log('[documents] upsert ok, id:', data?.id, 'doc_type:', data?.doc_type, 'file_url:', data?.file_url);
   return NextResponse.json(data);
 }
 
 export async function DELETE(request: NextRequest) {
-  const { error: authError } = await requireAdmin();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
+  const { companyId } = context;
 
   const { doc_id } = await request.json();
   if (!doc_id) return NextResponse.json({ error: 'doc_id נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
 
+  // Fetch document and verify it belongs to this company
   const { data: doc } = await supabase
     .from('documents')
-    .select('file_url')
+    .select('file_url, company_id')
     .eq('id', doc_id)
-    .single();
+    .eq('company_id', companyId)
+    .maybeSingle();
 
-  if (doc?.file_url) {
+  if (!doc) return NextResponse.json({ error: 'מסמך לא נמצא' }, { status: 404 });
+
+  if (doc.file_url) {
     await supabase.storage.from('worker-files').remove([doc.file_url]);
   }
 
-  const { error } = await supabase.from('documents').delete().eq('id', doc_id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { error: dbError } = await supabase
+    .from('documents')
+    .delete()
+    .eq('id', doc_id)
+    .eq('company_id', companyId);
+
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

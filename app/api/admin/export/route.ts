@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/api';
+import { requireCompanyAdmin } from '@/lib/auth/company-context';
 import { auditLog } from '@/lib/audit/log';
 import { exportAllTables, toJsonl } from '@/lib/export/exportTables';
 import { buildManifest } from '@/lib/export/exportManifest';
@@ -7,14 +7,13 @@ import { buildZip } from '@/lib/export/zipWriter';
 import { rateLimitExportDb } from '@/lib/rate-limit/db';
 
 export const runtime = 'nodejs';
-// Generous timeout for large exports
 export const maxDuration = 60;
 
 export async function GET() {
-  const { error, session } = await requireAdmin();
+  const { context, error } = await requireCompanyAdmin();
   if (error) return error;
 
-  const rl = await rateLimitExportDb(session!.userId);
+  const rl = await rateLimitExportDb(context.userId);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'יותר מדי יצואות. נסה שנית בעוד מספר דקות.' },
@@ -28,20 +27,17 @@ export async function GET() {
     );
   }
 
-  const tables = await exportAllTables();
+  const tables = await exportAllTables(context.companyId);
 
-  // Build JSONL buffers
   const fileBuffers = new Map<string, Buffer>();
   for (const t of tables) {
     fileBuffers.set(`${t.table}.jsonl`, toJsonl(t.rows));
   }
 
-  // Build manifest
   const manifest = buildManifest(tables, fileBuffers);
   const manifestBuf = Buffer.from(JSON.stringify(manifest, null, 2), 'utf8');
   fileBuffers.set('manifest.json', manifestBuf);
 
-  // Build ZIP
   const entries = [
     { name: 'manifest.json', data: manifestBuf },
     ...[...fileBuffers.entries()]
@@ -54,14 +50,15 @@ export async function GET() {
   const filename = `safedoc-export-${dateStr}.zip`;
 
   void auditLog({
-    user_id: session!.userId,
-    user_email: session!.email,
-    action: 'system_export_created',
+    user_id:    context.userId,
+    user_email: context.email,
+    action:     'system_export_created',
     metadata: {
-      tables: manifest.totalTables,
-      totalRows: manifest.totalRows,
+      company_id: context.companyId,
+      tables:     manifest.totalTables,
+      totalRows:  manifest.totalRows,
       filename,
-      sizeBytes: zipBuffer.length,
+      sizeBytes:  zipBuffer.length,
     },
   });
 

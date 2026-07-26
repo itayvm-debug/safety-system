@@ -7,9 +7,11 @@ export interface TableExport {
   exportedAt: string;
 }
 
-const EXPORT_TABLES = [
-  'workers',
-  'documents',
+// Workers and documents are scoped to the requesting company.
+const COMPANY_SCOPED_TABLES = ['workers', 'documents'] as const;
+
+// These tables are not yet company-scoped (Phase 2 Batch 2+).
+const GLOBAL_TABLES = [
   'vehicles',
   'vehicle_licenses',
   'vehicle_insurances',
@@ -26,14 +28,30 @@ const EXPORT_TABLES = [
   'legal_acceptances',
 ] as const;
 
-export type ExportTable = typeof EXPORT_TABLES[number];
+export type ExportTable = typeof COMPANY_SCOPED_TABLES[number] | typeof GLOBAL_TABLES[number];
 
-export async function exportAllTables(): Promise<TableExport[]> {
+export async function exportAllTables(companyId: string): Promise<TableExport[]> {
   const supabase = createServiceClient();
   const exportedAt = new Date().toISOString();
   const results: TableExport[] = [];
 
-  for (const table of EXPORT_TABLES) {
+  for (const table of COMPANY_SCOPED_TABLES) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at' as never, { ascending: true })
+      .limit(100_000);
+
+    if (error) {
+      results.push({ table, rows: [], rowCount: -1, exportedAt });
+      console.error(`[export] failed to export ${table}:`, error.message);
+      continue;
+    }
+    results.push({ table, rows: data ?? [], rowCount: (data ?? []).length, exportedAt });
+  }
+
+  for (const table of GLOBAL_TABLES) {
     const { data, error } = await supabase
       .from(table)
       .select('*')
@@ -41,19 +59,16 @@ export async function exportAllTables(): Promise<TableExport[]> {
       .limit(100_000);
 
     if (error) {
-      // Soft fail per table — record error entry so manifest reflects it
       results.push({ table, rows: [], rowCount: -1, exportedAt });
       console.error(`[export] failed to export ${table}:`, error.message);
       continue;
     }
-
     results.push({ table, rows: data ?? [], rowCount: (data ?? []).length, exportedAt });
   }
 
   return results;
 }
 
-/** Convert table rows to JSONL (one JSON object per line) */
 export function toJsonl(rows: Record<string, unknown>[]): Buffer {
   const lines = rows.map(r => JSON.stringify(r)).join('\n');
   return Buffer.from(lines, 'utf8');
