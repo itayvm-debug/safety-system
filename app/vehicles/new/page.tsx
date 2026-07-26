@@ -1,14 +1,21 @@
+import { getCurrentCompanyContext } from '@/lib/auth/company-context';
 import { createServiceClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import VehicleForm from '@/components/vehicles/VehicleForm';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewVehiclePage({ searchParams }: { searchParams: Promise<{ manager_id?: string }> }) {
   const { manager_id } = await searchParams;
+  const { context, error } = await getCurrentCompanyContext();
+  if (error) redirect('/login');
+  const { companyId } = context;
+
   const supabase = createServiceClient();
   const { data: workers } = await supabase
     .from('workers')
     .select('id, full_name')
+    .eq('company_id', companyId)
     .eq('is_active', true)
     .order('full_name');
 

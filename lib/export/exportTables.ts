@@ -7,19 +7,18 @@ export interface TableExport {
   exportedAt: string;
 }
 
-// Workers and documents are scoped to the requesting company.
-const COMPANY_SCOPED_TABLES = ['workers', 'documents'] as const;
+// Company-scoped tables: filtered by company_id. Phase 2 Batch 2 added subcontractors + vehicles.
+const COMPANY_SCOPED_TABLES = ['workers', 'documents', 'subcontractors', 'vehicles'] as const;
 
-// These tables are not yet company-scoped (Phase 2 Batch 2+).
+// Global tables: not yet company-scoped (Phase 2 Batch 3+).
+// vehicle_licenses and vehicle_insurances stay global until Batch 3 adds direct company_id.
 const GLOBAL_TABLES = [
-  'vehicles',
   'vehicle_licenses',
   'vehicle_insurances',
   'heavy_equipment',
   'heavy_equipment_insurances',
   'lifting_equipment',
   'lifting_machine_appointments',
-  'subcontractors',
   'safety_briefings',
   'height_restrictions',
   'entity_notes',

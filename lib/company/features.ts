@@ -10,13 +10,16 @@ export function requireFeature(
 }
 
 export const FEATURE_LABELS: Record<keyof CompanyFeatures, string> = {
-  workers:                  'עובדים',
-  documents:                'מסמכים',
-  vehicles:                 'רכבים',
-  heavyEquipment:           'כלי צמ"ה',
-  liftingEquipment:         'ציוד הרמה',
-  subcontractors:           'קבלני משנה',
-  reports:                  'דוחות',
-  customWorkerFields:       'שדות עובד מותאמים',
-  customDocumentCategories: 'קטגוריות מסמך מותאמות',
+  workers:                        'עובדים',
+  documents:                      'מסמכים',
+  vehicles:                       'רכבים',
+  heavyEquipment:                 'כלי צמ"ה',
+  liftingEquipment:               'ציוד הרמה',
+  subcontractors:                 'קבלני משנה',
+  reports:                        'דוחות',
+  customWorkerFields:             'שדות עובד מותאמים',
+  customDocumentCategories:       'קטגוריות מסמך מותאמות',
+  customVehicleFields:            'שדות רכב מותאמים',
+  vehicleAssignmentToWorker:      'שיוך רכב לעובד',
+  vehicleAssignmentToSubcontractor: 'שיוך רכב לקבלן משנה',
 };

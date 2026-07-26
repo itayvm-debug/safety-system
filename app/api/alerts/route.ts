@@ -25,10 +25,10 @@ export async function GET() {
       .eq('is_active', true)
       .eq('is_archived', false)
       .order('full_name'),
-    // vehicles not yet company-scoped (Phase 2 Batch 2)
     supabase
       .from('vehicles')
       .select(`*, assigned_manager:workers!vehicles_assigned_manager_id_fkey(id, full_name), vehicle_licenses(*), vehicle_insurances(*)`)
+      .eq('company_id', companyId)
       .eq('is_active', true)
       .eq('is_archived', false)
       .order('vehicle_number'),
