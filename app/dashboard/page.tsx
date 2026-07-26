@@ -1,6 +1,7 @@
 import React from 'react';
+import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
-import { getSession } from '@/lib/auth/session';
+import { getCurrentCompanyContext } from '@/lib/auth/company-context';
 import Link from 'next/link';
 import { WorkerWithDocuments, Vehicle, HeavyEquipment, LiftingEquipment } from '@/types';
 import { buildAllIssues, countByEntity, EntityCounts } from '@/lib/documents/issues';
@@ -159,9 +160,10 @@ function DashboardCard({
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage() {
-  const session = await getSession();
-  const role = session?.role ?? 'viewer';
-  const isAdmin = role === 'admin';
+  const ctxResult = await getCurrentCompanyContext();
+  if (ctxResult.error) redirect('/login');
+  const { companyId, platformRole } = ctxResult.context;
+  const isAdmin = platformRole === 'admin';
 
   const supabase = createServiceClient();
 
@@ -177,6 +179,7 @@ export default async function DashboardPage() {
     supabase
       .from('workers')
       .select(`*, documents(id,doc_type,file_url,expiry_date,is_required), safety_briefings(id,expires_at,created_at), height_restrictions(id,expires_at,created_at), lifting_machine_appointments(id), professional_licenses(id,file_url,expiry_date,license_type), manager_licenses(id,file_url,expiry_date,license_type), vehicles(id,vehicle_number,vehicle_licenses(id,file_url,expiry_date),vehicle_insurances(id,insurance_type,file_url,expiry_date)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id,name)`)
+      .eq('company_id', companyId)
       .eq('is_active', true)
       .eq('is_archived', false),
     supabase
@@ -244,7 +247,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="mb-8">
         <span className="text-xs font-medium text-orange-500 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-100">
-          {role === 'viewer' ? 'צפייה בלבד' : 'ניהול'}
+          {isAdmin ? 'ניהול' : 'צפייה בלבד'}
         </span>
         <h1 className="text-3xl font-bold text-gray-900 mt-4 mb-1">SafeDoc</h1>
         <p className="text-sm text-gray-500">מערכת ניהול מסמכי בטיחות לעובדים וכלים</p>

@@ -1,4 +1,6 @@
+import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
+import { getCurrentCompanyContext } from '@/lib/auth/company-context';
 import { WorkerWithDocuments, Vehicle, HeavyEquipment, LiftingEquipment } from '@/types';
 import { buildAllIssues } from '@/lib/documents/issues';
 import { buildNoteIssues, buildEntityMap } from '@/lib/documents/notes';
@@ -11,6 +13,10 @@ export default async function IssuesPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  const ctxResult = await getCurrentCompanyContext();
+  if (ctxResult.error) redirect('/login');
+  const { companyId } = ctxResult.context;
+
   const { status } = await searchParams;
   const supabase = createServiceClient();
 
@@ -25,6 +31,7 @@ export default async function IssuesPage({
     supabase
       .from('workers')
       .select(`*, documents(id,doc_type,file_url,expiry_date,is_required), safety_briefings(id,expires_at,created_at), height_restrictions(id,expires_at,created_at), lifting_machine_appointments(id), professional_licenses(id,file_url,expiry_date,license_type), manager_licenses(id,file_url,expiry_date,license_type), vehicles(id,vehicle_number,vehicle_licenses(id,file_url,expiry_date),vehicle_insurances(id,insurance_type,file_url,expiry_date)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id,name)`)
+      .eq('company_id', companyId)
       .eq('is_active', true)
       .eq('is_archived', false),
     supabase

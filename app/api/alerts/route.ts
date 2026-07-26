@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/api';
+import { getCurrentCompanyContext } from '@/lib/auth/company-context';
 import { buildAllIssues } from '@/lib/documents/issues';
 import type { Issue } from '@/lib/documents/issues';
 
@@ -11,8 +11,9 @@ const SEVERITY: Record<Issue['status'], number> = {
 };
 
 export async function GET() {
-  const { error: authError } = await requireAuth();
-  if (authError) return authError;
+  const { context, error } = await getCurrentCompanyContext();
+  if (error) return error;
+  const { companyId } = context;
 
   const supabase = createServiceClient();
 
@@ -20,9 +21,11 @@ export async function GET() {
     supabase
       .from('workers')
       .select(`*, documents(*), safety_briefings(*), height_restrictions(*), lifting_machine_appointments(id), professional_licenses(*), manager_licenses(*), vehicles(*, vehicle_licenses(*), vehicle_insurances(*)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
+      .eq('company_id', companyId)
       .eq('is_active', true)
       .eq('is_archived', false)
       .order('full_name'),
+    // vehicles not yet company-scoped (Phase 2 Batch 2)
     supabase
       .from('vehicles')
       .select(`*, assigned_manager:workers!vehicles_assigned_manager_id_fkey(id, full_name), vehicle_licenses(*), vehicle_insurances(*)`)

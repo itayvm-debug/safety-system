@@ -54,6 +54,7 @@ export type BriefingLanguage = 'hebrew' | 'arabic' | 'english' | 'russian' | 'th
 
 export interface Worker {
   id: string;
+  company_id: string;
   full_name: string;
   is_foreign_worker: boolean;
   national_id: string | null;
@@ -83,6 +84,7 @@ export interface Worker {
 
 export interface Document {
   id: string;
+  company_id: string;
   worker_id: string;
   doc_type: DocumentType;
   license_name: string | null; // רק עבור optional_license
@@ -336,6 +338,37 @@ export const BRIEFING_LANGUAGE_LABELS: Record<BriefingLanguage, string> = {
 };
 
 // נוסח אישור העובד בשפת האם
+// ──────────────────────────────────────────────────────────────────
+// Multi-Tenant types (Phase 1)
+// ──────────────────────────────────────────────────────────────────
+
+export type CompanyRole = 'owner' | 'admin' | 'member';
+
+export interface Company {
+  id: string;
+  name: string;
+  name_en: string | null;
+  slug: string | null;
+  registration: string | null;
+  address: string | null;
+  phone: string | null;
+  contact_email: string | null;
+  safety_email: string | null;
+  settings: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompanyMember {
+  id: string;
+  company_id: string;
+  user_id: string;
+  role: CompanyRole;
+  is_active: boolean;
+  joined_at: string;
+}
+
 export const BRIEFING_ACKNOWLEDGMENT: Record<BriefingLanguage, string> = {
   hebrew: 'קראתי והבנתי את הוראות הבטיחות. אני מתחייב/ת לפעול לפיהן ולדווח על כל מצב מסוכן.',
   arabic: 'لقد قرأت تعليمات السلامة وفهمتها. أتعهد بالعمل وفقاً لها والإبلاغ عن أي حالة خطر.',
