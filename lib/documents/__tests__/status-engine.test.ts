@@ -28,11 +28,11 @@ function past(days: number): string {
 // ── Minimal fixtures ─────────────────────────────────────────────────────────
 
 function makeLicense(expiryDate: string | null): VehicleLicense {
-  return { id: 'lic1', vehicle_id: 'v1', file_url: 'license.pdf', expiry_date: expiryDate, created_at: '', updated_at: '' };
+  return { id: 'lic1', vehicle_id: 'v1', company_id: 'c1', file_url: 'license.pdf', expiry_date: expiryDate, created_at: '', updated_at: '' };
 }
 
 function makeInsurance(type: string, fileUrl: string | null, expiryDate: string | null): VehicleInsurance {
-  return { id: `ins-${type}`, vehicle_id: 'v1', insurance_type: type, file_url: fileUrl, expiry_date: expiryDate, created_at: '', updated_at: '' };
+  return { id: `ins-${type}`, vehicle_id: 'v1', company_id: 'c1', insurance_type: type, file_url: fileUrl, expiry_date: expiryDate, created_at: '', updated_at: '' };
 }
 
 function makeVehicle(licenses: VehicleLicense[], insurances: VehicleInsurance[]): Vehicle {

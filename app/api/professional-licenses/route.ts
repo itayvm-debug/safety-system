@@ -1,28 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAuth, requireAdmin } from '@/lib/auth/api';
+import { requireCompanyAdmin, getCurrentCompanyContext } from '@/lib/auth/company-context';
 
 export async function GET(request: NextRequest) {
-  const { error: authError } = await requireAuth();
-  if (authError) return authError;
+  const { context, error } = await getCurrentCompanyContext();
+  if (error) return error;
+  const { companyId } = context;
 
   const workerId = request.nextUrl.searchParams.get('worker_id');
   if (!workerId) return NextResponse.json({ error: 'worker_id נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+
+  // Verify worker belongs to this company
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('id')
+    .eq('id', workerId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!worker) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
+
+  const { data, error: dbError } = await supabase
     .from('professional_licenses')
     .select('*')
     .eq('worker_id', workerId)
     .order('created_at', { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
 export async function POST(request: NextRequest) {
-  const { error: authError } = await requireAdmin();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
+  const { companyId } = context;
 
   const body = await request.json();
   const { worker_id, license_type, license_number, expiry_date, file_url, notes } = body;
@@ -32,7 +45,18 @@ export async function POST(request: NextRequest) {
   if (!expiry_date) return NextResponse.json({ error: 'תאריך תוקף נדרש לרישיון מקצועי' }, { status: 400 });
 
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+
+  // Verify worker belongs to this company
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('id')
+    .eq('id', worker_id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!worker) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
+
+  const { data, error: dbError } = await supabase
     .from('professional_licenses')
     .insert({
       worker_id,
@@ -45,19 +69,39 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
 }
 
 export async function DELETE(request: NextRequest) {
-  const { error: authError } = await requireAdmin();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
+  const { companyId } = context;
 
   const { id } = await request.json();
   if (!id) return NextResponse.json({ error: 'id נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
-  const { error } = await supabase.from('professional_licenses').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Verify ownership via worker chain
+  const { data: license } = await supabase
+    .from('professional_licenses')
+    .select('worker_id')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (!license) return NextResponse.json({ error: 'רישיון לא נמצא' }, { status: 404 });
+
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('id')
+    .eq('id', license.worker_id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!worker) return NextResponse.json({ error: 'רישיון לא נמצא' }, { status: 404 });
+
+  const { error: dbError } = await supabase.from('professional_licenses').delete().eq('id', id);
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

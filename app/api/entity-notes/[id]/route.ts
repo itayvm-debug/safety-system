@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth/api';
+import { requireCompanyAdmin } from '@/lib/auth/company-context';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { error: authError } = await requireAuth();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
+  const { companyId } = context;
 
   const { id } = await params;
   const body = await request.json();
@@ -25,24 +26,53 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   updates.updated_at = new Date().toISOString();
 
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+
+  // Verify note belongs to this company
+  const { data: note } = await supabase
+    .from('entity_notes')
+    .select('company_id')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (!note) return NextResponse.json({ error: 'הערה לא נמצאה' }, { status: 404 });
+  if (note.company_id !== companyId) return NextResponse.json({ error: 'הערה לא נמצאה' }, { status: 404 });
+
+  const { data, error: dbError } = await supabase
     .from('entity_notes')
     .update(updates)
     .eq('id', id)
+    .eq('company_id', companyId)
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { error: authError } = await requireAuth();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
+  const { companyId } = context;
 
   const { id } = await params;
   const supabase = createServiceClient();
-  const { error } = await supabase.from('entity_notes').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Verify note belongs to this company
+  const { data: note } = await supabase
+    .from('entity_notes')
+    .select('company_id')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (!note) return NextResponse.json({ error: 'הערה לא נמצאה' }, { status: 404 });
+  if (note.company_id !== companyId) return NextResponse.json({ error: 'הערה לא נמצאה' }, { status: 404 });
+
+  const { error: dbError } = await supabase
+    .from('entity_notes')
+    .delete()
+    .eq('id', id)
+    .eq('company_id', companyId);
+
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

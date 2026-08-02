@@ -25,12 +25,14 @@ async function fetchCompanyData(companyId: string) {
     supabase
       .from('heavy_equipment')
       .select('*, subcontractor:subcontractors(id, name), heavy_equipment_insurances(*)')
+      .eq('company_id', companyId)
       .eq('is_active', true)
       .eq('is_archived', false)
       .order('description'),
     supabase
       .from('lifting_equipment')
       .select('*, subcontractor:subcontractors(id, name)')
+      .eq('company_id', companyId)
       .eq('is_active', true)
       .eq('is_archived', false)
       .order('description'),

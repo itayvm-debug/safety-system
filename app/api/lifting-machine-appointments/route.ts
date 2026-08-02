@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAuth, requireAdmin } from '@/lib/auth/api';
+import { requireCompanyAdmin, getCurrentCompanyContext } from '@/lib/auth/company-context';
 
 export async function GET(request: NextRequest) {
-  const { error: authError } = await requireAuth();
-  if (authError) return authError;
+  const { context, error } = await getCurrentCompanyContext();
+  if (error) return error;
+  const { companyId } = context;
 
   const workerId = request.nextUrl.searchParams.get('worker_id');
   const supabase = createServiceClient();
@@ -12,28 +13,29 @@ export async function GET(request: NextRequest) {
   const query = supabase
     .from('lifting_machine_appointments')
     .select('*')
+    .eq('company_id', companyId)
     .order('appointment_date', { ascending: false });
 
   if (workerId) query.eq('worker_id', workerId);
 
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { data, error: dbError } = await query;
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
 export async function POST(request: NextRequest) {
-  const { error: authError } = await requireAdmin();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
+  const { companyId, username } = context;
 
   const body = await request.json();
   const {
     worker_id, equipment_id,
     machine_name, manufacturer, machine_identifier, safe_working_load, power_type,
-    machines, // מערך מכונות (אופציונלי — אם קיים, מועדף על שדות בודדים)
+    machines,
     appointer_name, appointer_role, appointer_phone, appointer_address, appointer_zip,
     appointment_date,
     operator_signature_b64, appointer_signature_b64,
-    // שדות עובד לעדכון (אופציונלי)
     worker_father_name, worker_birth_year, worker_profession, worker_address,
   } = body;
 
@@ -43,7 +45,29 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  // 1. העלאת חתימות ל-Storage
+  // Verify worker belongs to this company
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('id')
+    .eq('id', worker_id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!worker) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
+
+  // If equipment_id provided, verify it belongs to this company
+  if (equipment_id) {
+    const { data: equip } = await supabase
+      .from('heavy_equipment')
+      .select('id')
+      .eq('id', equipment_id)
+      .eq('company_id', companyId)
+      .maybeSingle();
+
+    if (!equip) return NextResponse.json({ error: 'ציוד לא נמצא' }, { status: 404 });
+  }
+
+  // Upload signatures to Storage
   let operatorSigUrl: string | null = null;
   let appointerSigUrl: string | null = null;
 
@@ -61,7 +85,7 @@ export async function POST(request: NextRequest) {
     if (!sigErr) appointerSigUrl = path;
   }
 
-  // 2. עדכון שדות עובד (אם הוזנו)
+  // Update worker fields (optional)
   const workerUpdates: Record<string, unknown> = {};
   if (worker_father_name !== undefined) workerUpdates.father_name = worker_father_name?.trim() || null;
   if (worker_birth_year !== undefined) workerUpdates.birth_year = worker_birth_year ? Number(worker_birth_year) : null;
@@ -69,13 +93,14 @@ export async function POST(request: NextRequest) {
   if (worker_address !== undefined) workerUpdates.address = worker_address?.trim() || null;
 
   if (Object.keys(workerUpdates).length > 0) {
-    await supabase.from('workers').update(workerUpdates).eq('id', worker_id);
+    await supabase.from('workers').update(workerUpdates).eq('id', worker_id).eq('company_id', companyId);
   }
 
-  // 3. יצירת רשומת המינוי
-  const { data, error } = await supabase
+  // Create appointment record with company_id
+  const { data, error: dbError } = await supabase
     .from('lifting_machine_appointments')
     .insert({
+      company_id: companyId,
       worker_id,
       equipment_id: equipment_id || null,
       machine_name: machine_name.trim(),
@@ -96,8 +121,8 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
 
-  // PDF generation is handled client-side via html2canvas → /generate-pdf route
+  void username; // used for audit context if needed
   return NextResponse.json(data, { status: 201 });
 }

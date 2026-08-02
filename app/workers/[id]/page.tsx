@@ -19,6 +19,8 @@ export default async function WorkerPage({ params }: { params: Promise<{ id: str
   if (error || !data) notFound();
 
   // queries נפרדים לטבלאות קשורות
+  const workerCompanyId = data.company_id as string;
+
   const [
     { data: heightData },
     { data: appointmentsData },
@@ -27,7 +29,7 @@ export default async function WorkerPage({ params }: { params: Promise<{ id: str
     { data: vehiclesData },
   ] = await Promise.all([
     supabase.from('height_restrictions').select('*').eq('worker_id', id).order('created_at', { ascending: false }),
-    supabase.from('lifting_machine_appointments').select('*').eq('worker_id', id).order('appointment_date', { ascending: false }),
+    supabase.from('lifting_machine_appointments').select('*').eq('worker_id', id).eq('company_id', workerCompanyId).order('appointment_date', { ascending: false }),
     supabase.from('professional_licenses').select('*').eq('worker_id', id).order('created_at', { ascending: false }),
     supabase.from('manager_licenses').select('*').eq('worker_id', id).order('created_at', { ascending: false }),
     supabase.from('vehicles').select('*, vehicle_licenses(*), vehicle_insurances(*)').eq('assigned_manager_id', id).order('created_at', { ascending: false }),

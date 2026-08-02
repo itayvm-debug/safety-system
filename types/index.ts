@@ -33,6 +33,7 @@ export type EntityType = 'worker' | 'vehicle' | 'heavy_equipment' | 'lifting_equ
 
 export interface EntityNote {
   id: string;
+  company_id: string;
   entity_type: EntityType;
   entity_id: string;
   content: string;
@@ -167,6 +168,7 @@ export interface Vehicle {
 export interface VehicleLicense {
   id: string;
   vehicle_id: string;
+  company_id: string;
   file_url: string | null;
   expiry_date: string | null;
   created_at: string;
@@ -176,6 +178,7 @@ export interface VehicleLicense {
 export interface VehicleInsurance {
   id: string;
   vehicle_id: string;
+  company_id: string;
   insurance_type: string;
   file_url: string | null;
   expiry_date: string | null;
@@ -186,6 +189,7 @@ export interface VehicleInsurance {
 export interface HeavyEquipmentInsurance {
   id: string;
   heavy_equipment_id: string;
+  company_id: string;
   insurance_type: string;
   file_url: string | null;
   expiry_date: string | null;
@@ -225,6 +229,7 @@ export const POWER_TYPE_LABELS: Record<PowerType, string> = {
 
 export interface HeavyEquipment {
   id: string;
+  company_id: string;
   description: string;
   license_number: string | null;
   image_url: string | null;
@@ -262,6 +267,7 @@ export interface AppointmentMachine {
 
 export interface LiftingMachineAppointment {
   id: string;
+  company_id: string;
   worker_id: string;
   equipment_id: string | null;
   machine_name: string;
@@ -285,6 +291,7 @@ export interface LiftingMachineAppointment {
 
 export interface LiftingEquipment {
   id: string;
+  company_id: string;
   description: string;
   image_url: string | null;
   inspection_file_url: string | null;

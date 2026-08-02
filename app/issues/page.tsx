@@ -42,11 +42,13 @@ export default async function IssuesPage({
     supabase
       .from('heavy_equipment')
       .select('*, subcontractor:subcontractors(id,name)')
+      .eq('company_id', companyId)
       .eq('is_active', true)
       .eq('is_archived', false),
     supabase
       .from('lifting_equipment')
       .select('*, subcontractor:subcontractors(id,name)')
+      .eq('company_id', companyId)
       .eq('is_active', true)
       .eq('is_archived', false),
     supabase

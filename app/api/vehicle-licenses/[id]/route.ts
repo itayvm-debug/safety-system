@@ -12,21 +12,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const supabase = createServiceClient();
 
-  // Chain ownership: license → vehicle_id → vehicles.company_id
+  // Direct company_id ownership check — no two-hop chain needed after Batch 3
   const { data: record } = await supabase
     .from('vehicle_licenses')
-    .select('id, vehicle_id')
-    .eq('id', id)
-    .maybeSingle();
-  if (!record) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
-
-  const { data: vehicle } = await supabase
-    .from('vehicles')
     .select('id')
-    .eq('id', record.vehicle_id)
+    .eq('id', id)
     .eq('company_id', companyId)
     .maybeSingle();
-  if (!vehicle) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
+  if (!record) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
 
   const allowed = ['file_url', 'expiry_date'] as const;
   const updates: Record<string, unknown> = {};
@@ -40,6 +33,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .from('vehicle_licenses')
     .update(updates)
     .eq('id', id)
+    .eq('company_id', companyId)
     .select()
     .single();
 
@@ -55,23 +49,16 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const supabase = createServiceClient();
 
-  // Chain ownership: license → vehicle_id → vehicles.company_id
+  // Direct company_id ownership check — no two-hop chain needed after Batch 3
   const { data: record } = await supabase
     .from('vehicle_licenses')
-    .select('id, vehicle_id')
+    .select('id')
     .eq('id', id)
+    .eq('company_id', companyId)
     .maybeSingle();
   if (!record) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
 
-  const { data: vehicle } = await supabase
-    .from('vehicles')
-    .select('id')
-    .eq('id', record.vehicle_id)
-    .eq('company_id', companyId)
-    .maybeSingle();
-  if (!vehicle) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
-
-  const { error: dbError } = await supabase.from('vehicle_licenses').delete().eq('id', id);
+  const { error: dbError } = await supabase.from('vehicle_licenses').delete().eq('id', id).eq('company_id', companyId);
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

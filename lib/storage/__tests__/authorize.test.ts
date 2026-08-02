@@ -1,18 +1,23 @@
 /**
- * Storage authorization — 16 scenarios
+ * Storage authorization — 18 scenarios
  *
  * Covers:
- *   Mode A      — tenant-migrated tables (workers, documents, vehicles)
- *   Mode B      — worker-linked legacy tables
- *   Mode B-veh  — vehicle-linked (vehicle_licenses, vehicle_insurances)
- *   Mode C      — standalone legacy tables (single-company compatibility mode)
+ *   Mode A      — tenant-migrated tables (workers, documents, vehicles,
+ *                 vehicle_licenses, vehicle_insurances, heavy_equipment,
+ *                 heavy_equipment_insurances, lifting_equipment,
+ *                 lifting_machine_appointments)
+ *   Mode B      — worker-linked legacy tables (safety_briefings,
+ *                 height_restrictions, professional_licenses, manager_licenses)
+ *   Mode C      — standalone legacy tables (EMPTY after Batch 5)
  *   Path        — normalizeStoragePath validation
  *   Structural  — TENANT_MIGRATED_TABLES ∩ STANDALONE_LEGACY_CONFIGS = ∅
  *
- * Phase 2 Batch 2 changes vs prior version:
- *   - Scenarios 5 + 6 rewritten: vehicles/vehicle_licenses no longer Mode C
- *   - Scenario 8 updated: tests heavy_equipment (Mode C) not vehicles (Mode A)
- *   - Scenarios 13–16 added: vehicle Mode A, Mode B-vehicle, cross-company denial
+ * Phase 2 Batch 2: vehicles moved from Mode C to Mode A.
+ * Phase 2 Batch 3: vehicle_licenses/vehicle_insurances moved from Mode B-vehicle to Mode A.
+ * Phase 2 Batch 4: heavy_equipment/heavy_equipment_insurances moved from Mode C to Mode A.
+ * Phase 2 Batch 5: lifting_equipment moved from Mode C to Mode A. STANDALONE_LEGACY_CONFIGS now empty.
+ * Phase 2 Batch 6: lifting_machine_appointments moved from Mode B to Mode A.
+ *                  entity_notes added to TENANT_MIGRATED_TABLES (no storage files).
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -202,16 +207,15 @@ describe('Scenario 5: vehicle image_url match via company vehicles list (Mode A)
   });
 });
 
-// ─── Scenario 6: Vehicle license file via Mode B-vehicle (Batch 2) ───────────
+// ─── Scenario 6: Vehicle license file via Mode A (Batch 3) ──────────────────
 
-describe('Scenario 6: vehicle_license file_url matched via vehicle_id chain (Mode B-vehicle) → allowed', () => {
+describe('Scenario 6: vehicle_license file_url matched via direct company_id (Mode A) → allowed', () => {
   it('returns allowed with entityType vehicle_licenses', async () => {
     const supabase = buildMockSupabase({
       workers:          { list: [] },
       documents:        { single: null },
-      // company has one vehicle, but no image_url match for this path
       vehicles:         { list: [{ id: 'v1', image_url: null }] },
-      // vehicle_licenses matches the path via IN(vehicleIds)
+      // vehicle_licenses matches the path via direct company_id filter
       vehicle_licenses: { single: { id: 'vl1' } },
       vehicle_insurances: { single: null },
     });
@@ -325,18 +329,18 @@ describe('Scenario 10: double-encoded path traversal → invalid_path', () => {
   });
 });
 
-// ─── Scenario 11: No workers — Mode B skipped, Mode C used ───────────────────
+// ─── Scenario 11: heavy_equipment file via Mode A (Batch 4) ──────────────────
 
-describe('Scenario 11: company with no workers — Mode B skipped, Mode C used', () => {
-  it('allows access to heavy_equipment file when company has no workers', async () => {
+describe('Scenario 11: heavy_equipment image_url via direct company_id (Mode A) → allowed', () => {
+  it('allows access to heavy_equipment file using Mode A company_id check', async () => {
     const supabase = buildMockSupabase({
-      workers:         { list: [] },
-      documents:       { single: null },
-      vehicles:        { list: [] },
-      companies:       { count: 1 },
-      heavy_equipment: [
-        { single: { id: 'he1' } },
-      ],
+      workers:                    { list: [] },
+      documents:                  { single: null },
+      vehicles:                   { list: [] },
+      vehicle_licenses:           { single: null },
+      vehicle_insurances:         { single: null },
+      heavy_equipment:            { list: [{ id: 'he1', image_url: 'heavy-equipment/1704000000-abcdef12.jpg', license_file_url: null, inspection_file_url: null }] },
+      heavy_equipment_insurances: { single: null },
     });
 
     const result = await authorizeStorageObjectAccess({
@@ -406,18 +410,18 @@ describe('Scenario 13: vehicle image_url still accessible with 2 active companie
 // ─── Scenario 14: Vehicle license from different company → denied ─────────────
 
 describe('Scenario 14: vehicle_license path from a different company → denied', () => {
-  it('returns no_matching_record when vehicle_id not in requesting company vehicle IDs', async () => {
-    // Company B requests a path whose vehicle belongs to Company A.
-    // Company B has no vehicles, so vehicleIds = [].
-    // Mode B-vehicle is skipped (no vehicleIds).
-    // Mode C: count = 1, but vehicle_licenses is NOT in STANDALONE_LEGACY_CONFIGS.
-    // Falls through to no_matching_record.
+  it('returns no_matching_record when company_id mismatch in Mode A query', async () => {
+    // Company B requests a path whose vehicle_license belongs to Company A.
+    // Mode A: vehicle_licenses queried with company_id = Company B → mock returns null.
+    // Mode B: workerIds = [] → skipped.
+    // Mode C: count = 1, vehicle_licenses not in STANDALONE_LEGACY_CONFIGS → falls through.
+    // Result: no_matching_record.
     const supabase = buildMockSupabase({
       workers:   { list: [] },
       documents: { single: null },
-      vehicles:  { list: [] },  // Company B has no vehicles
+      vehicles:  { list: [] },
       companies: { count: 1 },
-      // vehicle_licenses not in STANDALONE_LEGACY_CONFIGS — not reached
+      // vehicle_licenses not configured → mock returns null (wrong company_id filtered out)
     });
 
     const result = await authorizeStorageObjectAccess({
@@ -431,9 +435,9 @@ describe('Scenario 14: vehicle_license path from a different company → denied'
   });
 });
 
-// ─── Scenario 15: Vehicle insurance via Mode B-vehicle ───────────────────────
+// ─── Scenario 15: Vehicle insurance via Mode A (Batch 3) ─────────────────────
 
-describe('Scenario 15: vehicle_insurance file_url via Mode B-vehicle → allowed', () => {
+describe('Scenario 15: vehicle_insurance file_url via direct company_id (Mode A) → allowed', () => {
   it('returns allowed with entityType vehicle_insurances', async () => {
     const supabase = buildMockSupabase({
       workers:            { list: [] },
@@ -454,21 +458,154 @@ describe('Scenario 15: vehicle_insurance file_url via Mode B-vehicle → allowed
   });
 });
 
-// ─── Scenario 16: vehicle_licenses/insurances NOT in STANDALONE_LEGACY_CONFIGS ─
+// ─── Scenario 16: vehicle_licenses/insurances structural integrity (Batch 3) ──
 
-describe('Scenario 16: vehicle child tables not in STANDALONE_LEGACY_CONFIGS (Batch 2)', () => {
-  it('vehicle_licenses is not in standalone legacy (now Mode B-vehicle)', () => {
+describe('Scenario 16: vehicle child tables in TENANT_MIGRATED_TABLES (Batch 3)', () => {
+  it('vehicle_licenses is NOT in standalone legacy', () => {
     const standaloneNames = STANDALONE_LEGACY_CONFIGS.map(c => c.table);
     expect(standaloneNames).not.toContain('vehicle_licenses');
   });
 
-  it('vehicle_insurances is not in standalone legacy (now Mode B-vehicle)', () => {
+  it('vehicle_insurances is NOT in standalone legacy', () => {
     const standaloneNames = STANDALONE_LEGACY_CONFIGS.map(c => c.table);
     expect(standaloneNames).not.toContain('vehicle_insurances');
   });
 
-  it('heavy_equipment remains in standalone legacy (Batch 3)', () => {
+  it('vehicle_licenses is in TENANT_MIGRATED_TABLES (migrated in Batch 3)', () => {
+    expect(TENANT_MIGRATED_TABLES.has('vehicle_licenses')).toBe(true);
+  });
+
+  it('vehicle_insurances is in TENANT_MIGRATED_TABLES (migrated in Batch 3)', () => {
+    expect(TENANT_MIGRATED_TABLES.has('vehicle_insurances')).toBe(true);
+  });
+
+  it('heavy_equipment is in TENANT_MIGRATED_TABLES (migrated in Batch 4)', () => {
+    expect(TENANT_MIGRATED_TABLES.has('heavy_equipment')).toBe(true);
+  });
+
+  it('lifting_equipment is in TENANT_MIGRATED_TABLES (migrated in Batch 5)', () => {
+    expect(TENANT_MIGRATED_TABLES.has('lifting_equipment')).toBe(true);
+  });
+
+  it('lifting_equipment is NOT in STANDALONE_LEGACY_CONFIGS (removed in Batch 5)', () => {
     const standaloneNames = STANDALONE_LEGACY_CONFIGS.map(c => c.table);
-    expect(standaloneNames).toContain('heavy_equipment');
+    expect(standaloneNames).not.toContain('lifting_equipment');
+  });
+
+  it('STANDALONE_LEGACY_CONFIGS is now empty (all legacy tables migrated)', () => {
+    expect(STANDALONE_LEGACY_CONFIGS).toHaveLength(0);
+  });
+
+  it('lifting_machine_appointments is in TENANT_MIGRATED_TABLES (migrated in Batch 6)', () => {
+    expect(TENANT_MIGRATED_TABLES.has('lifting_machine_appointments')).toBe(true);
+  });
+
+  it('entity_notes is in TENANT_MIGRATED_TABLES (migrated in Batch 6)', () => {
+    expect(TENANT_MIGRATED_TABLES.has('entity_notes')).toBe(true);
+  });
+
+  it('lifting_machine_appointments is NOT in STANDALONE_LEGACY_CONFIGS', () => {
+    const standaloneNames = STANDALONE_LEGACY_CONFIGS.map(c => c.table);
+    expect(standaloneNames).not.toContain('lifting_machine_appointments');
+  });
+});
+
+// ─── Scenario 17: lifting_equipment file via Mode A (Batch 5) ────────────────
+
+describe('Scenario 17: lifting_equipment image_url via direct company_id (Mode A) → allowed', () => {
+  it('allows access to lifting_equipment file using Mode A company_id check', async () => {
+    const supabase = buildMockSupabase({
+      workers:                    { list: [] },
+      documents:                  { single: null },
+      vehicles:                   { list: [] },
+      vehicle_licenses:           { single: null },
+      vehicle_insurances:         { single: null },
+      heavy_equipment:            { list: [] },
+      heavy_equipment_insurances: { single: null },
+      lifting_equipment:          { list: [{ id: 'le1', image_url: 'lifting-equipment/1704000000-abcdef12.jpg', inspection_file_url: null }] },
+    });
+
+    const result = await authorizeStorageObjectAccess({
+      companyId: COMPANY_A,
+      path: 'lifting-equipment/1704000000-abcdef12.jpg',
+      supabase,
+    });
+
+    expect(result.allowed).toBe(true);
+    if (result.allowed) expect(result.entityType).toBe('lifting_equipment');
+  });
+});
+
+// ─── Scenario 18: lifting_machine_appointments file via Mode A (Batch 6) ──────
+
+describe('Scenario 18: lifting_machine_appointments pdf_url via direct company_id (Mode A) → allowed', () => {
+  it('allows access to LMA pdf_url using Mode A company_id check', async () => {
+    const supabase = buildMockSupabase({
+      workers:                      { list: [] },
+      documents:                    { single: null },
+      vehicles:                     { list: [] },
+      vehicle_licenses:             { single: null },
+      vehicle_insurances:           { single: null },
+      heavy_equipment:              { list: [] },
+      heavy_equipment_insurances:   { single: null },
+      lifting_equipment:            { list: [] },
+      lifting_machine_appointments: { list: [{ id: 'lma-a1', operator_signature_url: null, appointer_signature_url: null, pdf_url: 'appointment-pdfs/lma-a1-1704000000.pdf' }] },
+    });
+
+    const result = await authorizeStorageObjectAccess({
+      companyId: COMPANY_A,
+      path: 'appointment-pdfs/lma-a1-1704000000.pdf',
+      supabase,
+    });
+
+    expect(result.allowed).toBe(true);
+    if (result.allowed) expect(result.entityType).toBe('lifting_machine_appointments');
+  });
+
+  it('allows access to LMA operator_signature_url using Mode A company_id check', async () => {
+    const supabase = buildMockSupabase({
+      workers:                      { list: [] },
+      documents:                    { single: null },
+      vehicles:                     { list: [] },
+      vehicle_licenses:             { single: null },
+      vehicle_insurances:           { single: null },
+      heavy_equipment:              { list: [] },
+      heavy_equipment_insurances:   { single: null },
+      lifting_equipment:            { list: [] },
+      lifting_machine_appointments: { list: [{ id: 'lma-a2', operator_signature_url: 'appointment-signatures/op-lma-a2.png', appointer_signature_url: null, pdf_url: null }] },
+    });
+
+    const result = await authorizeStorageObjectAccess({
+      companyId: COMPANY_A,
+      path: 'appointment-signatures/op-lma-a2.png',
+      supabase,
+    });
+
+    expect(result.allowed).toBe(true);
+    if (result.allowed) expect(result.entityType).toBe('lifting_machine_appointments');
+  });
+
+  it('denies access to LMA file belonging to a different company (empty list)', async () => {
+    const supabase = buildMockSupabase({
+      workers:                      { list: [] },
+      documents:                    { single: null },
+      vehicles:                     { list: [] },
+      vehicle_licenses:             { single: null },
+      vehicle_insurances:           { single: null },
+      heavy_equipment:              { list: [] },
+      heavy_equipment_insurances:   { single: null },
+      lifting_equipment:            { list: [] },
+      lifting_machine_appointments: { list: [] },
+      companies:                    { count: 2 },
+    });
+
+    const result = await authorizeStorageObjectAccess({
+      companyId: COMPANY_A,
+      path: 'appointment-pdfs/lma-b1-1704000000.pdf',
+      supabase,
+    });
+
+    expect(result.allowed).toBe(false);
+    if (!result.allowed) expect(result.reason).toBe('legacy_multi_company');
   });
 });

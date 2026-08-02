@@ -34,6 +34,7 @@ interface WorkerRow {
 interface VehicleLicenseRow {
   id: string;
   vehicle_id: string;
+  company_id: string;
   file_url: string | null;
 }
 
@@ -197,23 +198,16 @@ async function vehicleLicenseVehicleCheck(
   return data !== null;
 }
 
-/** Mirror: PATCH /api/vehicle-licenses/[id] ownership chain (record → vehicle_id → company_id) */
-async function vehicleLicenseOwnershipChain(
+/** Mirror: PATCH/DELETE /api/vehicle-licenses/[id] — direct company_id check (Batch 3) */
+async function vehicleLicenseDirectCheck(
   supabase: ReturnType<typeof createServiceClient>,
   licenseId: string,
   companyId: string
 ): Promise<boolean> {
-  // Step 1: fetch license record
-  const licenseChain = supabase.from('vehicle_licenses').select('id, vehicle_id').eq('id', licenseId);
+  const chain = supabase.from('vehicle_licenses').select('id').eq('id', licenseId).eq('company_id', companyId);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: record } = await (licenseChain as any).maybeSingle();
-  if (!record) return false;
-
-  // Step 2: verify parent vehicle belongs to company
-  const vehicleChain = supabase.from('vehicles').select('id').eq('id', record.vehicle_id).eq('company_id', companyId);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: vehicle } = await (vehicleChain as any).maybeSingle();
-  return vehicle !== null;
+  const { data } = await (chain as any).maybeSingle();
+  return data !== null;
 }
 
 // ─── Test data ────────────────────────────────────────────────────────────────
@@ -229,7 +223,7 @@ const ALL_WORKERS: WorkerRow[] = [
 ];
 
 const ALL_LICENSES: VehicleLicenseRow[] = [
-  { id: LICENSE_A1, vehicle_id: VEHICLE_A1, file_url: 'vehicles/1234-abcd.pdf' },
+  { id: LICENSE_A1, vehicle_id: VEHICLE_A1, company_id: COMPANY_A, file_url: 'vehicles/1234-abcd.pdf' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -390,21 +384,21 @@ describe('Scenario 15: POST vehicle-license — parent vehicle from different co
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Scenarios 16–19: vehicle_licenses [id] ownership chain
+// Scenarios 16–18: vehicle_licenses [id] — direct company_id check (Batch 3)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('Scenario 16: PATCH/DELETE vehicle-license [id] — ownership chain resolves', () => {
-  it('company A can modify its license (chain: license → vehicle → company_id)', async () => {
+describe('Scenario 16: PATCH/DELETE vehicle-license [id] — direct company_id check resolves', () => {
+  it('company A can modify its own license (direct: license.company_id = companyId)', async () => {
     const supabase = buildMockSupabase(ALL_VEHICLES, ALL_WORKERS, ALL_LICENSES);
-    const ok = await vehicleLicenseOwnershipChain(supabase, LICENSE_A1, COMPANY_A);
+    const ok = await vehicleLicenseDirectCheck(supabase, LICENSE_A1, COMPANY_A);
     expect(ok).toBe(true);
   });
 });
 
-describe('Scenario 17: PATCH/DELETE vehicle-license [id] — cross-company chain denied', () => {
-  it('company B cannot modify company A license (chain resolves to wrong company)', async () => {
+describe('Scenario 17: PATCH/DELETE vehicle-license [id] — cross-company direct check denied', () => {
+  it('company B cannot modify company A license (license.company_id ≠ B)', async () => {
     const supabase = buildMockSupabase(ALL_VEHICLES, ALL_WORKERS, ALL_LICENSES);
-    const ok = await vehicleLicenseOwnershipChain(supabase, LICENSE_A1, COMPANY_B);
+    const ok = await vehicleLicenseDirectCheck(supabase, LICENSE_A1, COMPANY_B);
     expect(ok).toBe(false);
   });
 });
@@ -412,7 +406,7 @@ describe('Scenario 17: PATCH/DELETE vehicle-license [id] — cross-company chain
 describe('Scenario 18: PATCH/DELETE vehicle-license [id] — non-existent license ID', () => {
   it('returns false when license ID does not exist', async () => {
     const supabase = buildMockSupabase(ALL_VEHICLES, ALL_WORKERS, ALL_LICENSES);
-    const ok = await vehicleLicenseOwnershipChain(supabase, 'nonexistent-license-id', COMPANY_A);
+    const ok = await vehicleLicenseDirectCheck(supabase, 'nonexistent-license-id', COMPANY_A);
     expect(ok).toBe(false);
   });
 });

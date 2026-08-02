@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth/api';
+import { requireCompanyAdmin } from '@/lib/auth/company-context';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { error: authError } = await requireAdmin();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
+  const { companyId } = context;
 
   const { id } = await params;
   const body = await request.json();
@@ -20,24 +21,64 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+
+  // Verify ownership via worker chain
+  const { data: license } = await supabase
+    .from('manager_licenses')
+    .select('worker_id')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (!license) return NextResponse.json({ error: 'רישיון לא נמצא' }, { status: 404 });
+
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('id')
+    .eq('id', license.worker_id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!worker) return NextResponse.json({ error: 'רישיון לא נמצא' }, { status: 404 });
+
+  const { data, error: dbError } = await supabase
     .from('manager_licenses')
     .update(updates)
     .eq('id', id)
+    .eq('worker_id', license.worker_id)
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { error: authError } = await requireAdmin();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
+  const { companyId } = context;
 
   const { id } = await params;
   const supabase = createServiceClient();
-  const { error } = await supabase.from('manager_licenses').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Verify ownership via worker chain
+  const { data: license } = await supabase
+    .from('manager_licenses')
+    .select('worker_id')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (!license) return NextResponse.json({ error: 'רישיון לא נמצא' }, { status: 404 });
+
+  const { data: worker } = await supabase
+    .from('workers')
+    .select('id')
+    .eq('id', license.worker_id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!worker) return NextResponse.json({ error: 'רישיון לא נמצא' }, { status: 404 });
+
+  const { error: dbError } = await supabase.from('manager_licenses').delete().eq('id', id).eq('worker_id', license.worker_id);
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

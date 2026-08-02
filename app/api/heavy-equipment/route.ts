@@ -1,25 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAuth, requireAdmin } from '@/lib/auth/api';
+import { requireCompanyAdmin } from '@/lib/auth/company-context';
 
 export async function GET() {
-  const { error: authError } = await requireAuth();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
 
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+  const { data, error: dbError } = await supabase
     .from('heavy_equipment')
     .select('*, subcontractor:subcontractors(id, name), heavy_equipment_insurances(*)')
+    .eq('company_id', context.companyId)
     .eq('is_archived', false)
     .order('description');
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
 export async function POST(request: NextRequest) {
-  const { error: authError } = await requireAdmin();
-  if (authError) return authError;
+  const { context, error } = await requireCompanyAdmin();
+  if (error) return error;
 
   const body = await request.json();
   const { description, license_number, subcontractor_id, project_name } = body;
@@ -28,19 +29,21 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  // בדיקת כפילות על מספר רישוי
+  // בדיקת כפילות על מספר רישוי — per-company (tenant-local)
   if (license_number?.trim()) {
     const { data: existing } = await supabase
       .from('heavy_equipment')
       .select('id')
+      .eq('company_id', context.companyId)
       .eq('license_number', license_number.trim())
       .maybeSingle();
     if (existing) return NextResponse.json({ error: 'כלי צמ"ה עם מספר רישוי זה כבר קיים במערכת' }, { status: 409 });
   }
 
-  const { data, error } = await supabase
+  const { data, error: dbError } = await supabase
     .from('heavy_equipment')
     .insert({
+      company_id: context.companyId,
       description: description.trim(),
       license_number: license_number?.trim() || null,
       subcontractor_id: subcontractor_id || null,
@@ -49,6 +52,6 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
 }
