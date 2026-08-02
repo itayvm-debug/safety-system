@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     .from('vehicle_insurances')
     .select('*')
     .eq('vehicle_id', vehicleId)
+    .eq('company_id', companyId)
     .order('insurance_type');
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
     .from('vehicle_insurances')
     .insert({
       vehicle_id,
+      company_id: companyId,
       insurance_type: insurance_type.trim(),
       file_url: file_url || null,
       expiry_date: expiry_date || null,

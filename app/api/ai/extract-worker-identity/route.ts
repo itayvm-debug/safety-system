@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth/api';
+import { requireCompanyAdmin } from '@/lib/auth/company-context';
+import { authorizeStorageObjectAccess, normalizeStoragePath } from '@/lib/storage/authorize';
 
 export const runtime = 'nodejs';
 
 type ExtractedField = { value: string | null; confidence: number };
 
 export async function POST(request: NextRequest) {
-  const { error: authError } = await requireAdmin();
+  // Step 1: Authenticate + resolve trusted company context (never trusts companyId from browser)
+  const { context, error: authError } = await requireCompanyAdmin();
   if (authError) return authError;
+  const { companyId, userId } = context;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -22,11 +25,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'בקשה לא תקינה' }, { status: 400 });
   }
 
-  const { path, document_type } = body;
-  if (!path) return NextResponse.json({ error: 'path נדרש' }, { status: 400 });
+  const { path: rawPath, document_type } = body;
+  if (!rawPath) return NextResponse.json({ error: 'path נדרש' }, { status: 400 });
 
-  // Get signed URL to fetch the file
+  // Step 2: Validate and normalize the path (rejects traversal, control chars, double-encoded)
+  const path = normalizeStoragePath(rawPath);
+  if (!path) {
+    // Return generic not-found — don't reveal why path is invalid
+    return NextResponse.json({ success: false, error: 'file_not_found' }, { status: 404 });
+  }
+
+  // Step 3: Authorize — verify the path belongs to this company before creating a signed URL.
+  // Uses the same authorization chain as /api/signed-url. The service client is passed so
+  // authorizeStorageObjectAccess can query the DB with service-role privileges.
   const supabase = createServiceClient();
+  const accessResult = await authorizeStorageObjectAccess({ companyId, path, supabase });
+
+  if (!accessResult.allowed) {
+    // Log the internal reason safely — never expose it to the client.
+    console.error('[extract-worker-identity] storage access denied', {
+      reason: accessResult.reason,
+      companyId,
+      userId,
+      // path intentionally omitted from log to avoid leaking filenames cross-tenant
+    });
+    // Generic 404 — indistinguishable from "file does not exist"
+    return NextResponse.json({ success: false, error: 'file_not_found' }, { status: 404 });
+  }
+
+  // Step 4: Authorization succeeded — only now create the signed URL.
   const { data: signedData, error: signedError } = await supabase.storage
     .from('worker-files')
     .createSignedUrl(path, 60);

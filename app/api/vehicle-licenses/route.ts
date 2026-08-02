@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     .from('vehicle_licenses')
     .select('*')
     .eq('vehicle_id', vehicleId)
+    .eq('company_id', companyId)
     .order('created_at', { ascending: false });
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error: dbError } = await supabase
     .from('vehicle_licenses')
-    .insert({ vehicle_id, file_url: file_url || null, expiry_date: expiry_date || null })
+    .insert({ vehicle_id, company_id: companyId, file_url: file_url || null, expiry_date: expiry_date || null })
     .select()
     .single();
 

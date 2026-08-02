@@ -127,7 +127,8 @@ export function generateVehiclesExcel(vehicles: Vehicle[]): void {
 export function generateEquipmentExcel(equipment: HeavyEquipment[]): void {
   const rows = equipment.map((eq) => {
     const licStatus = STATUS_LABELS[getDocumentStatus(eq.license_file_url, eq.license_expiry, true, true)];
-    const insStatus = STATUS_LABELS[getDocumentStatus(eq.insurance_file_url, eq.insurance_expiry, true, true)];
+    const mandatory = (eq.heavy_equipment_insurances ?? []).find((i) => i.insurance_type === 'ביטוח חובה');
+    const insStatus = STATUS_LABELS[getDocumentStatus(mandatory?.file_url ?? null, mandatory?.expiry_date ?? null, true, true)];
     const overall = STATUS_LABELS[getHeavyEquipmentStatus(eq)];
 
     return [
@@ -137,7 +138,7 @@ export function generateEquipmentExcel(equipment: HeavyEquipment[]): void {
       eq.project_name ?? '',
       eq.license_expiry ?? '',
       licStatus,
-      eq.insurance_expiry ?? '',
+      mandatory?.expiry_date ?? '',
       insStatus,
       eq.inspection_expiry ?? '',
       overall,
