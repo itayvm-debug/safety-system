@@ -1,78 +1,82 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireCompanyAdmin } from '@/lib/auth/company-context';
+import { requireCompanyAdminRole, getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { resolveEntityCompany } from '@/lib/company/resolve-entity-company';
+import type { EntityType } from '@/types';
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { context, error } = await requireCompanyAdmin();
+const VALID_TYPES: EntityType[] = ['worker', 'vehicle', 'heavy_equipment', 'lifting_equipment', 'subcontractor'];
+
+export async function GET(request: NextRequest) {
+  const { context, error } = await getCurrentCompanyContext();
   if (error) return error;
   const { companyId } = context;
 
-  const { id } = await params;
-  const body = await request.json();
-  const updates: Record<string, unknown> = {};
+  const { searchParams } = new URL(request.url);
+  const entityType = searchParams.get('entity_type') as EntityType | null;
+  const entityId   = searchParams.get('entity_id');
 
-  if ('content' in body) {
-    if (!body.content?.trim()) return NextResponse.json({ error: 'תוכן ההערה נדרש' }, { status: 400 });
-    updates.content = body.content.trim();
-  }
-  if ('status' in body) {
-    const valid = ['ok', 'needs_attention'];
-    if (!valid.includes(body.status)) return NextResponse.json({ error: 'סטטוס לא תקין' }, { status: 400 });
-    updates.status = body.status;
-  }
-  if (Object.keys(updates).length === 0)
-    return NextResponse.json({ error: 'אין שדות לעדכון' }, { status: 400 });
+  if (!entityType || !entityId)
+    return NextResponse.json({ error: 'entity_type ו-entity_id נדרשים' }, { status: 400 });
 
-  updates.updated_at = new Date().toISOString();
+  if (!VALID_TYPES.includes(entityType))
+    return NextResponse.json({ error: 'סוג ישות לא תקין' }, { status: 400 });
 
   const supabase = createServiceClient();
 
-  // Verify note belongs to this company
-  const { data: note } = await supabase
-    .from('entity_notes')
-    .select('company_id')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (!note) return NextResponse.json({ error: 'הערה לא נמצאה' }, { status: 404 });
-  if (note.company_id !== companyId) return NextResponse.json({ error: 'הערה לא נמצאה' }, { status: 404 });
+  // Verify the entity belongs to this company
+  const entityCompanyId = await resolveEntityCompany(supabase, entityType, entityId);
+  if (!entityCompanyId || entityCompanyId !== companyId)
+    return NextResponse.json({ error: 'ישות לא נמצאה' }, { status: 404 });
 
   const { data, error: dbError } = await supabase
     .from('entity_notes')
-    .update(updates)
-    .eq('id', id)
+    .select('*')
+    .eq('entity_type', entityType)
+    .eq('entity_id', entityId)
     .eq('company_id', companyId)
-    .select()
-    .single();
+    .order('created_at', { ascending: false });
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
-export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { context, error } = await requireCompanyAdmin();
+export async function POST(request: NextRequest) {
+  const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
-  const { companyId } = context;
+  const { companyId, username } = context;
 
-  const { id } = await params;
+  const body = await request.json();
+  const { entity_type, entity_id, content, status } = body;
+
+  if (!entity_type || !entity_id) return NextResponse.json({ error: 'entity_type ו-entity_id נדרשים' }, { status: 400 });
+  if (!content?.trim()) return NextResponse.json({ error: 'תוכן ההערה נדרש' }, { status: 400 });
+
+  if (!VALID_TYPES.includes(entity_type as EntityType))
+    return NextResponse.json({ error: 'סוג ישות לא תקין' }, { status: 400 });
+
+  const validStatuses = ['ok', 'needs_attention'];
+  const noteStatus = validStatuses.includes(status) ? status : 'ok';
+
   const supabase = createServiceClient();
 
-  // Verify note belongs to this company
-  const { data: note } = await supabase
-    .from('entity_notes')
-    .select('company_id')
-    .eq('id', id)
-    .maybeSingle();
+  // Resolve entity company — never trust client-supplied company_id
+  const entityCompanyId = await resolveEntityCompany(supabase, entity_type as EntityType, entity_id);
+  if (!entityCompanyId || entityCompanyId !== companyId)
+    return NextResponse.json({ error: 'ישות לא נמצאה' }, { status: 404 });
 
-  if (!note) return NextResponse.json({ error: 'הערה לא נמצאה' }, { status: 404 });
-  if (note.company_id !== companyId) return NextResponse.json({ error: 'הערה לא נמצאה' }, { status: 404 });
-
-  const { error: dbError } = await supabase
+  const { data, error: dbError } = await supabase
     .from('entity_notes')
-    .delete()
-    .eq('id', id)
-    .eq('company_id', companyId);
+    .insert({
+      company_id: companyId,
+      entity_type,
+      entity_id,
+      content: content.trim(),
+      status: noteStatus,
+      created_by: username ?? null,
+    })
+    .select()
+    .single();
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
-  return NextResponse.json({ success: true });
+  return NextResponse.json(data, { status: 201 });
 }

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireCompanyAdmin } from '@/lib/auth/company-context';
+import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { authorizeStorageObjectAccess, normalizeStoragePath } from '@/lib/storage/authorize';
 
 export const runtime = 'nodejs';
@@ -9,7 +9,7 @@ type ExtractedField = { value: string | null; confidence: number };
 
 export async function POST(request: NextRequest) {
   // Step 1: Authenticate + resolve trusted company context (never trusts companyId from browser)
-  const { context, error: authError } = await requireCompanyAdmin();
+  const { context, error: authError } = await requireCompanyAdminRole();
   if (authError) return authError;
   const { companyId, userId } = context;
 

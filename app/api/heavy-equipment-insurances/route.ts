@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireCompanyAdmin } from '@/lib/auth/company-context';
+import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 
 export async function GET(request: NextRequest) {
-  const { context, error } = await requireCompanyAdmin();
+  const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
 
   const heavyEquipmentId = request.nextUrl.searchParams.get('heavy_equipment_id');
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { context, error } = await requireCompanyAdmin();
+  const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
 
   const body = await request.json();

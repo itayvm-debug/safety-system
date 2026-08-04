@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { requireCompanyAdmin } from '@/lib/auth/company-context';
+﻿import { NextResponse } from 'next/server';
+import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { auditLog } from '@/lib/audit/log';
 import { exportAllTables, toJsonl } from '@/lib/export/exportTables';
 import { buildManifest } from '@/lib/export/exportManifest';
@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 export async function GET() {
-  const { context, error } = await requireCompanyAdmin();
+  const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
 
   const rl = await rateLimitExportDb(context.userId);

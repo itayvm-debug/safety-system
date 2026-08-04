@@ -1,37 +1,49 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { getCurrentCompanyContext, requireCompanyAdmin } from '@/lib/auth/company-context';
+import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { normalizeIdentityValue } from '@/lib/workers/normalize';
 
-export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest) {
   const { context, error } = await getCurrentCompanyContext();
   if (error) return error;
   const { companyId } = context;
 
-  const { id } = await params;
+  const { searchParams } = new URL(request.url);
+  const managersOnly = searchParams.get('managers') === 'true';
+  const subcontractorId = searchParams.get('subcontractor_id');
   const supabase = createServiceClient();
 
-  const { data, error: dbError } = await supabase
+  let query = supabase
     .from('workers')
-    .select(`*, documents(*), safety_briefings(*), height_restrictions(*), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
-    .eq('id', id)
+    .select(managersOnly
+      ? 'id, full_name, subcontractor_id'
+      : subcontractorId
+        ? 'id, full_name'
+        : `*, documents(*), safety_briefings(*), height_restrictions(*), professional_licenses(*), lifting_machine_appointments(id), manager_licenses(*), vehicles(*, vehicle_licenses(*), vehicle_insurances(*)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
     .eq('company_id', companyId)
-    .single();
+    .order('full_name');
 
-  if (dbError || !data) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
+  query = query.eq('is_archived', false);
+
+  if (managersOnly) {
+    query = query.eq('is_responsible_site_manager', true).eq('is_active', true);
+  }
+  if (subcontractorId) {
+    query = query.eq('subcontractor_id', subcontractorId).eq('is_active', true);
+  }
+
+  const { data, error: dbError } = await query;
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { context, error } = await requireCompanyAdmin();
+export async function POST(request: NextRequest) {
+  const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
   const { companyId } = context;
 
-  const { id } = await params;
   const body = await request.json();
-  const { full_name, is_foreign_worker, national_id, passport_number, phone, notes, photo_url,
-          project_name, is_active, father_name, birth_year, profession, address,
-          is_crane_operator, is_responsible_site_manager, responsible_manager_id } = body;
+  const { full_name, is_foreign_worker, national_id, passport_number, phone, notes, project_name } = body;
 
   if (!full_name?.trim()) return NextResponse.json({ error: 'שם מלא נדרש' }, { status: 400 });
 
@@ -46,41 +58,31 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   const supabase = createServiceClient();
 
-  // Verify worker belongs to this company before updating
-  const { data: existing } = await supabase
-    .from('workers')
-    .select('id')
-    .eq('id', id)
-    .eq('company_id', companyId)
-    .maybeSingle();
-  if (!existing) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
-
-  // Duplicate check scoped to this company only, excluding the current record.
+  // Duplicate check scoped to this company only.
   // Same identity in a different company is allowed — do not reveal cross-company existence.
   if (!isForeign && nationalIdNorm) {
-    const { data: dup } = await supabase
+    const { data: existing } = await supabase
       .from('workers')
       .select('id')
       .eq('national_id', nationalIdNorm)
       .eq('company_id', companyId)
-      .neq('id', id)
       .maybeSingle();
-    if (dup) return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים בחברה' }, { status: 409 });
+    if (existing) return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים בחברה' }, { status: 409 });
   }
   if (isForeign && passportNorm) {
-    const { data: dup } = await supabase
+    const { data: existing } = await supabase
       .from('workers')
       .select('id')
       .eq('passport_number', passportNorm)
       .eq('company_id', companyId)
-      .neq('id', id)
       .maybeSingle();
-    if (dup) return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים בחברה' }, { status: 409 });
+    if (existing) return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים בחברה' }, { status: 409 });
   }
 
   const { data, error: dbError } = await supabase
     .from('workers')
-    .update({
+    .insert({
+      company_id: companyId,
       full_name: full_name.trim(),
       worker_type: isForeign ? 'foreign' : 'israeli',
       is_foreign_worker: isForeign,
@@ -89,154 +91,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       id_number: nationalIdNorm ?? passportNorm,
       phone: phone?.trim() || null,
       notes: notes?.trim() || null,
-      photo_url: photo_url || null,
       project_name: project_name?.trim() || null,
-      is_active: is_active !== undefined ? is_active : true,
-      father_name: father_name?.trim() || null,
-      birth_year: birth_year ? Number(birth_year) : null,
-      profession: profession?.trim() || null,
-      address: address?.trim() || null,
-      is_crane_operator: is_crane_operator !== undefined ? !!is_crane_operator : undefined,
-      is_responsible_site_manager: is_responsible_site_manager !== undefined ? !!is_responsible_site_manager : undefined,
-      responsible_manager_id: responsible_manager_id !== undefined ? (responsible_manager_id || null) : undefined,
     })
-    .eq('id', id)
-    .eq('company_id', companyId)
     .select()
     .single();
 
   if (dbError) {
+    // 23505 here means the DB composite index caught a race-condition duplicate
+    // within this company.  Do not expose "in the system" — only "in this company".
     if (dbError.code === '23505') return NextResponse.json({ error: 'עובד עם מזהה זה כבר קיים בחברה' }, { status: 409 });
     return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
-  return NextResponse.json(data);
-}
-
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { context, error } = await requireCompanyAdmin();
-  if (error) return error;
-  const { companyId, username } = context;
-
-  const { id } = await params;
-  const body = await request.json();
-
-  // Verify worker belongs to this company before patching
-  const supabase = createServiceClient();
-  const { data: existing } = await supabase
-    .from('workers')
-    .select('id')
-    .eq('id', id)
-    .eq('company_id', companyId)
-    .maybeSingle();
-  if (!existing) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
-
-  const allowed = ['subcontractor_id', 'notes', 'phone', 'photo_url', 'is_active', 'project_name',
-    'father_name', 'birth_year', 'profession', 'address', 'is_crane_operator',
-    'is_responsible_site_manager', 'responsible_manager_id'] as const;
-  const updates: Record<string, unknown> = {};
-  for (const key of allowed) {
-    if (key in body) updates[key] = body[key] ?? null;
-  }
-
-  if ('is_archived' in body) {
-    updates.is_archived = !!body.is_archived;
-    updates.archived_at = body.is_archived ? new Date().toISOString() : null;
-    updates.archived_by = body.is_archived ? (username ?? null) : null;
-  }
-
-  if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: 'אין שדות לעדכון' }, { status: 400 });
-  }
-
-  const { data, error: dbError } = await supabase
-    .from('workers')
-    .update(updates)
-    .eq('id', id)
-    .eq('company_id', companyId)
-    .select()
-    .single();
-
-  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
-  return NextResponse.json(data);
-}
-
-export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { context, error } = await requireCompanyAdmin();
-  if (error) return error;
-  const { companyId } = context;
-
-  const { id } = await params;
-  const supabase = createServiceClient();
-
-  // Verify worker belongs to this company before deleting
-  const { data: existing } = await supabase
-    .from('workers')
-    .select('id')
-    .eq('id', id)
-    .eq('company_id', companyId)
-    .maybeSingle();
-  if (!existing) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
-
-  console.log(`[DELETE worker] companyId=${companyId} id=${id}`);
-
-  const { error: e1 } = await supabase
-    .from('workers')
-    .update({ responsible_manager_id: null })
-    .eq('responsible_manager_id', id)
-    .eq('company_id', companyId);
-  if (e1) {
-    console.error('[DELETE worker] failed to clear responsible_manager_id:', e1);
-    return NextResponse.json({ error: `שגיאה בניקוי שיוך מנהל עבודה: ${e1.message}` }, { status: 500 });
-  }
-
-  const { error: e2 } = await supabase
-    .from('subcontractors')
-    .update({ responsible_worker_id: null })
-    .eq('responsible_worker_id', id)
-    .eq('company_id', companyId);
-  if (e2) {
-    console.error('[DELETE worker] failed to clear subcontractors.responsible_worker_id:', e2);
-    return NextResponse.json({ error: `שגיאה בניקוי שיוך קבלן משנה: ${e2.message}` }, { status: 500 });
-  }
-
-  const { error: e3 } = await supabase.from('manager_licenses').delete().eq('worker_id', id);
-  if (e3) {
-    console.error('[DELETE worker] failed to delete manager_licenses:', e3);
-    return NextResponse.json({ error: `שגיאה במחיקת רישיונות מנהל: ${e3.message}` }, { status: 500 });
-  }
-
-  const { error: e4 } = await supabase.from('manager_insurances').delete().eq('worker_id', id);
-  if (e4) {
-    console.error('[DELETE worker] failed to delete manager_insurances:', e4);
-    return NextResponse.json({ error: `שגיאה במחיקת ביטוחי מנהל: ${e4.message}` }, { status: 500 });
-  }
-
-  const { error: e5 } = await supabase.from('professional_licenses').delete().eq('worker_id', id);
-  if (e5) {
-    console.error('[DELETE worker] failed to delete professional_licenses:', e5);
-    return NextResponse.json({ error: `שגיאה במחיקת רישיונות מקצועיים: ${e5.message}` }, { status: 500 });
-  }
-
-  const { error: e6 } = await supabase
-    .from('vehicles')
-    .update({ assigned_manager_id: null })
-    .eq('assigned_manager_id', id)
-    .eq('company_id', companyId);
-  if (e6) {
-    console.error('[DELETE worker] failed to null vehicles.assigned_manager_id:', e6);
-    return NextResponse.json({ error: `שגיאה בניתוק רכבים מהעובד: ${e6.message}` }, { status: 500 });
-  }
-
-  const { error: e7 } = await supabase
-    .from('workers')
-    .delete()
-    .eq('id', id)
-    .eq('company_id', companyId);
-  if (e7) {
-    console.error('[DELETE worker] failed to delete worker:', e7);
-    return NextResponse.json({ error: `שגיאה במחיקת העובד: ${e7.message}` }, { status: 500 });
-  }
-
-  console.log(`[DELETE worker] success companyId=${companyId} id=${id}`);
-  return NextResponse.json({ success: true });
+  return NextResponse.json(data, { status: 201 });
 }

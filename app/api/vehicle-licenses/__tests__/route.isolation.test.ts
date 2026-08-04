@@ -1,4 +1,4 @@
-/**
+﻿/**
  * F-02 — vehicle-licenses TOCTOU hardening
  * Verifies that PATCH and DELETE mutations include company_id in the WHERE clause,
  * and that cross-tenant operations are blocked.
@@ -10,10 +10,10 @@ const COMPANY_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const COMPANY_B = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const LICENSE_ID = 'lic00000-0000-0000-0000-000000000001';
 
-const authMock = vi.hoisted(() => ({ requireCompanyAdmin: vi.fn() }));
+const authMock = vi.hoisted(() => ({ requireCompanyAdminRole: vi.fn() }));
 
 vi.mock('@/lib/auth/company-context', () => ({
-  requireCompanyAdmin: authMock.requireCompanyAdmin,
+  requireCompanyAdminRole: authMock.requireCompanyAdminRole,
 }));
 
 // Sequential response mock: each .maybeSingle() / .single() pulls from the queue
@@ -54,7 +54,7 @@ beforeEach(() => {
 
 describe('F-02 — vehicle-licenses cross-tenant mutation hardening', () => {
   it('PATCH: Company B cannot update Company A license (pre-check blocks)', async () => {
-    authMock.requireCompanyAdmin.mockResolvedValueOnce({
+    authMock.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_B, userId: 'user-b' },
       error: null,
     });
@@ -70,7 +70,7 @@ describe('F-02 — vehicle-licenses cross-tenant mutation hardening', () => {
   });
 
   it('PATCH: Company A can update its own license; company_id is in WHERE clause twice', async () => {
-    authMock.requireCompanyAdmin.mockResolvedValueOnce({
+    authMock.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_A, userId: 'user-a' },
       error: null,
     });
@@ -93,7 +93,7 @@ describe('F-02 — vehicle-licenses cross-tenant mutation hardening', () => {
   });
 
   it('DELETE: Company B cannot delete Company A license (pre-check blocks)', async () => {
-    authMock.requireCompanyAdmin.mockResolvedValueOnce({
+    authMock.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_B, userId: 'user-b' },
       error: null,
     });
@@ -107,7 +107,7 @@ describe('F-02 — vehicle-licenses cross-tenant mutation hardening', () => {
   });
 
   it('DELETE: Company A can delete its own license; company_id is in WHERE clause twice', async () => {
-    authMock.requireCompanyAdmin.mockResolvedValueOnce({
+    authMock.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_A, userId: 'user-a' },
       error: null,
     });
