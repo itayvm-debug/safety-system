@@ -114,29 +114,9 @@ describe('POST /api/admin/companies', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 409 when slug already exists (draft)', async () => {
+  it('returns 409 when slug already exists', async () => {
     dbState.slugExists = true;
-    const res = await POST(req('POST', { name: 'חברה', slug: 'existing-slug', is_active: false }));
+    const res = await POST(req('POST', { name: 'חברה', slug: 'existing-slug' }));
     expect(res.status).toBe(409);
-  });
-
-  it('returns 400 when creating active company without first_admin_user_id', async () => {
-    const res = await POST(req('POST', { name: 'חברה חדשה', slug: 'new-company' }));
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toMatch(/מנהל ראשון/);
-  });
-
-  it('returns 201 when creating draft company (is_active: false) without first_admin_user_id', async () => {
-    dbState.slugExists = false;
-    dbState.insertResult = {
-      data: { id: 'new-id', name: 'חברה חדשה', slug: 'new-company', is_active: false },
-      error: null,
-    };
-    const res = await POST(req('POST', { name: 'חברה חדשה', slug: 'new-company', is_active: false }));
-    expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.slug).toBe('new-company');
-    expect(body.is_active).toBe(false);
   });
 });

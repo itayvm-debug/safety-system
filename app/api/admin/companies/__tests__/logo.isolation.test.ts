@@ -4,7 +4,7 @@
  * L1: POST with logo_url stores it in returned company
  * L2: POST without logo_url → logo_url: null
  * L3: PATCH with logo_url updates the column
- * L4: Activation invariant — company returned from full-flow POST is_active=true
+ * L4: Activation invariant — company returned from POST is_active=true
  * L5: Compensating cleanup — company deleted when member insert fails
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -13,9 +13,7 @@ import { NextRequest } from 'next/server';
 // ─── Fixture IDs ─────────────────────────────────────────────────────────────
 
 const COMPANY_ID = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
-const USER_ID    = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
-const LOGO_PATH  = 'company-logos/1234-abc.png';
-const LOGO_URL   = `https://cdn.example.com/${LOGO_PATH}`;
+const LOGO_URL   = 'https://cdn.example.com/company-logos/1234-abc.png';
 
 // ─── Auth mock ───────────────────────────────────────────────────────────────
 
@@ -60,7 +58,10 @@ import { PATCH as adminPatch } from '../[id]/route';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const platformAdminOk = { session: { userId: 'platform-admin', role: 'admin' as const }, error: null };
+const platformAdminOk = {
+  session: { userId: 'platform-admin', role: 'admin' as const, email: 'a@test.com', username: 'admin' },
+  error: null,
+};
 
 function postReq(body: Record<string, unknown>) {
   return new NextRequest('http://localhost/api/admin/companies', {
@@ -80,6 +81,16 @@ function patchReq(body: Record<string, unknown>) {
 
 const paramsId = { params: Promise.resolve({ id: COMPANY_ID }) };
 
+// Full 4-step queue helper for successful creation
+function successQueue(companyName = 'Logo Co', slug = 'logo-co', logoUrl?: string) {
+  return [
+    { data: null, error: null },
+    { data: { id: COMPANY_ID, name: companyName, slug, logo_url: logoUrl ?? null, is_active: false }, error: null },
+    { data: { id: 'mem-1', company_id: COMPANY_ID, user_id: 'platform-admin', role: 'owner' }, error: null },
+    { data: { id: COMPANY_ID, name: companyName, slug, logo_url: logoUrl ?? null, is_active: true }, error: null },
+  ];
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   dbQueue.reset();
@@ -90,18 +101,9 @@ beforeEach(() => {
 
 describe('L1: POST with logo_url stores it in returned company', () => {
   it('logo_url appears in 201 response body', async () => {
-    // Draft creation: no first admin
-    dbQueue.reset([
-      { data: null, error: null },  // slug check
-      {
-        data: { id: COMPANY_ID, name: 'Logo Co', slug: 'logo-co', logo_url: LOGO_URL, is_active: false },
-        error: null,
-      },
-    ]);
+    dbQueue.reset(successQueue('Logo Co', 'logo-co', LOGO_URL));
 
-    const res = await adminPost(postReq({
-      name: 'Logo Co', slug: 'logo-co', logo_url: LOGO_URL, is_active: false,
-    }));
+    const res = await adminPost(postReq({ name: 'Logo Co', slug: 'logo-co', logo_url: LOGO_URL }));
 
     expect(res.status).toBe(201);
     const body = await res.json();
@@ -113,14 +115,9 @@ describe('L1: POST with logo_url stores it in returned company', () => {
 
 describe('L2: POST without logo_url → logo_url: null', () => {
   it('logo_url is null when not provided', async () => {
-    dbQueue.reset([
-      { data: null, error: null },
-      { data: { id: COMPANY_ID, name: 'No Logo', slug: 'no-logo', logo_url: null, is_active: false }, error: null },
-    ]);
+    dbQueue.reset(successQueue('No Logo', 'no-logo'));
 
-    const res = await adminPost(postReq({
-      name: 'No Logo', slug: 'no-logo', is_active: false,
-    }));
+    const res = await adminPost(postReq({ name: 'No Logo', slug: 'no-logo' }));
 
     expect(res.status).toBe(201);
     const body = await res.json();
@@ -146,39 +143,22 @@ describe('L3: PATCH with logo_url updates the dedicated column', () => {
 // ─── L4: Activation invariant ────────────────────────────────────────────────
 
 describe('L4: Activation invariant — company activated only after membership succeeds', () => {
-  it('full flow POST returns is_active=true after all 5 steps', async () => {
+  it('POST returns is_active=true after all 4 steps (no profile lookup needed)', async () => {
+    // Steps: slug check → insert inactive → member insert (auto-owner) → activate
     dbQueue.reset([
-      { data: null,                                                                    error: null }, // slug check
-      { data: { id: COMPANY_ID, name: 'Act Co', slug: 'act-co', is_active: false },   error: null }, // insert inactive
-      { data: { id: USER_ID, is_active: true },                                        error: null }, // profile lookup
-      { data: { id: 'mem-1', company_id: COMPANY_ID, user_id: USER_ID, role: 'admin' }, error: null }, // member insert
-      { data: { id: COMPANY_ID, name: 'Act Co', slug: 'act-co', is_active: true },    error: null }, // activate
+      { data: null,                                                                    error: null },
+      { data: { id: COMPANY_ID, name: 'Act Co', slug: 'act-co', is_active: false },   error: null },
+      { data: { id: 'mem-1', company_id: COMPANY_ID, user_id: 'platform-admin', role: 'owner' }, error: null },
+      { data: { id: COMPANY_ID, name: 'Act Co', slug: 'act-co', is_active: true },    error: null },
     ]);
 
-    const res = await adminPost(postReq({
-      name: 'Act Co', slug: 'act-co', first_admin_user_id: USER_ID,
-    }));
+    const res = await adminPost(postReq({ name: 'Act Co', slug: 'act-co' }));
 
     expect(res.status).toBe(201);
     const body = await res.json();
     // Must be true — activation step was reached (membership exists)
     expect(body.is_active).toBe(true);
-  });
-
-  it('draft flow POST returns is_active=false without running membership or activation steps', async () => {
-    dbQueue.reset([
-      { data: null,                                                                    error: null },
-      { data: { id: COMPANY_ID, name: 'Draft Co', slug: 'draft-co', is_active: false }, error: null },
-    ]);
-
-    const res = await adminPost(postReq({
-      name: 'Draft Co', slug: 'draft-co', is_active: false,
-    }));
-
-    expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.is_active).toBe(false);
-    // Only 2 queue items consumed — membership and activation were skipped
+    // All 4 queue items consumed
     expect(dbQueue.queue.length).toBe(0);
   });
 });
@@ -187,22 +167,20 @@ describe('L4: Activation invariant — company activated only after membership s
 
 describe('L5: Compensating cleanup — company deleted when member insert fails', () => {
   it('returns 500 and company is deleted when member insert fails', async () => {
+    // Steps: slug check → insert inactive → member insert (fail) → compensating delete
     dbQueue.reset([
-      { data: null,                                                                    error: null }, // slug check
-      { data: { id: COMPANY_ID, name: 'Fail Co', slug: 'fail-co', is_active: false }, error: null }, // insert inactive
-      { data: { id: USER_ID, is_active: true },                                        error: null }, // profile lookup
-      { data: null, error: { message: 'duplicate key', code: '23505' } },                            // member insert fails
-      { data: null,                                                                    error: null }, // compensating delete
+      { data: null,                                                                    error: null },
+      { data: { id: COMPANY_ID, name: 'Fail Co', slug: 'fail-co', is_active: false }, error: null },
+      { data: null, error: { message: 'duplicate key', code: '23505' } },
+      { data: null,                                                                    error: null },
     ]);
 
-    const res = await adminPost(postReq({
-      name: 'Fail Co', slug: 'fail-co', first_admin_user_id: USER_ID,
-    }));
+    const res = await adminPost(postReq({ name: 'Fail Co', slug: 'fail-co' }));
 
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toMatch(/מנהל ראשון/);
-    // All 5 queue items consumed: company not left orphaned
+    expect(body.error).toMatch(/בעלים/);
+    // All 4 queue items consumed: company not left orphaned
     expect(dbQueue.queue.length).toBe(0);
   });
 });
