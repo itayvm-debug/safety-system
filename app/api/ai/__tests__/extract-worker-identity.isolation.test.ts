@@ -1,4 +1,4 @@
-/**
+﻿/**
  * F-01 — AI extract-worker-identity storage isolation
  * Verifies authorizeStorageObjectAccess is called before createSignedUrl,
  * and that cross-tenant access is blocked with a generic 404.
@@ -7,14 +7,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 const mocks = vi.hoisted(() => ({
-  requireCompanyAdmin: vi.fn(),
+  requireCompanyAdminRole: vi.fn(),
   normalizeStoragePath: vi.fn(),
   authorizeStorageObjectAccess: vi.fn(),
   createSignedUrl: vi.fn(),
 }));
 
 vi.mock('@/lib/auth/company-context', () => ({
-  requireCompanyAdmin: mocks.requireCompanyAdmin,
+  requireCompanyAdminRole: mocks.requireCompanyAdminRole,
 }));
 
 vi.mock('@/lib/storage/authorize', () => ({
@@ -49,8 +49,8 @@ beforeEach(() => {
 });
 
 describe('F-01 — extract-worker-identity storage isolation', () => {
-  it('returns auth error, never reaches storage, when requireCompanyAdmin fails', async () => {
-    mocks.requireCompanyAdmin.mockResolvedValueOnce({
+  it('returns auth error, never reaches storage, when requireCompanyAdminRole fails', async () => {
+    mocks.requireCompanyAdminRole.mockResolvedValueOnce({
       context: null,
       error: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }),
     });
@@ -62,7 +62,7 @@ describe('F-01 — extract-worker-identity storage isolation', () => {
   });
 
   it('returns 404 for traversal path without calling authorizeStorageObjectAccess', async () => {
-    mocks.requireCompanyAdmin.mockResolvedValueOnce({
+    mocks.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_A, userId: 'user-1' },
       error: null,
     });
@@ -75,7 +75,7 @@ describe('F-01 — extract-worker-identity storage isolation', () => {
   });
 
   it('returns generic 404 and does NOT call createSignedUrl on cross-tenant denial', async () => {
-    mocks.requireCompanyAdmin.mockResolvedValueOnce({
+    mocks.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_A, userId: 'user-1' },
       error: null,
     });
@@ -96,7 +96,7 @@ describe('F-01 — extract-worker-identity storage isolation', () => {
   });
 
   it('Company B cannot access Company A file via AI route', async () => {
-    mocks.requireCompanyAdmin.mockResolvedValueOnce({
+    mocks.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_B, userId: 'user-b' },
       error: null,
     });
@@ -112,7 +112,7 @@ describe('F-01 — extract-worker-identity storage isolation', () => {
   });
 
   it('authorizeStorageObjectAccess is called with the requesting company id, not from request body', async () => {
-    mocks.requireCompanyAdmin.mockResolvedValueOnce({
+    mocks.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_A, userId: 'user-1' },
       error: null,
     });
@@ -126,13 +126,13 @@ describe('F-01 — extract-worker-identity storage isolation', () => {
 
     expect(mocks.authorizeStorageObjectAccess).toHaveBeenCalledOnce();
     const callArg = mocks.authorizeStorageObjectAccess.mock.calls[0][0];
-    // companyId must come from requireCompanyAdmin context, not from the request body
+    // companyId must come from requireCompanyAdminRole context, not from the request body
     expect(callArg.companyId).toBe(COMPANY_A);
     expect(callArg.path).toBe('workers/company-a/id.jpg');
   });
 
   it('createSignedUrl is only called after authorization passes', async () => {
-    mocks.requireCompanyAdmin.mockResolvedValueOnce({
+    mocks.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_A, userId: 'user-1' },
       error: null,
     });

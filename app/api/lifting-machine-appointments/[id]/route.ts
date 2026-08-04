@@ -1,55 +1,80 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireCompanyAdmin, getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { PDFDocument } from 'pdf-lib';
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { context, error } = await getCurrentCompanyContext();
+export async function POST(request: NextRequest) {
+  const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
   const { companyId } = context;
 
-  const { id } = await params;
-  const supabase = createServiceClient();
-  const { data, error: dbError } = await supabase
-    .from('lifting_machine_appointments')
-    .select('*')
-    .eq('id', id)
-    .eq('company_id', companyId)
-    .maybeSingle();
-
-  if (dbError || !data) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
-  return NextResponse.json(data);
-}
-
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { context, error } = await requireCompanyAdmin();
-  if (error) return error;
-  const { companyId } = context;
-
-  const { id } = await params;
-  const supabase = createServiceClient();
-
-  // Ownership check
-  const { data: appt } = await supabase
-    .from('lifting_machine_appointments')
-    .select('company_id, operator_signature_url, appointer_signature_url, pdf_url')
-    .eq('id', id)
-    .eq('company_id', companyId)
-    .maybeSingle();
-
-  if (!appt) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
-
-  const toDelete = [appt.operator_signature_url, appt.appointer_signature_url, appt.pdf_url]
-    .filter(Boolean) as string[];
-  if (toDelete.length) {
-    await supabase.storage.from('worker-files').remove(toDelete);
+  const { appointment_id, overlay_image_b64 } = await request.json();
+  if (!appointment_id || !overlay_image_b64) {
+    return NextResponse.json(
+      { error: 'appointment_id ו-overlay_image_b64 נדרשים' },
+      { status: 400 }
+    );
   }
 
-  const { error: dbError } = await supabase
+  const supabase = createServiceClient();
+
+  // Verify appointment belongs to this company
+  const { data: appt } = await supabase
     .from('lifting_machine_appointments')
-    .delete()
-    .eq('id', id)
+    .select('id')
+    .eq('id', appointment_id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!appt) return NextResponse.json({ error: 'מינוי לא נמצא' }, { status: 404 });
+
+  // Decode the PNG captured by html2canvas
+  const base64Data = overlay_image_b64.replace(/^data:image\/png;base64,/, '');
+  const pngBytes = Buffer.from(base64Data, 'base64');
+
+  // Create a new PDF document (A4: 595 × 842 pts)
+  const pdfDoc = await PDFDocument.create();
+  const pngImage = await pdfDoc.embedPng(pngBytes);
+
+  const A4_W = 595, A4_H = 842;
+  const { width: imgW, height: imgH } = pngImage;
+  const scale = A4_W / imgW;
+  const drawW = A4_W;
+  const drawH = imgH * scale;
+
+  const pageH = Math.max(drawH, A4_H);
+  const page = pdfDoc.addPage([A4_W, pageH]);
+
+  page.drawImage(pngImage, {
+    x: 0,
+    y: pageH - drawH,
+    width: drawW,
+    height: drawH,
+  });
+
+  const pdfBytes = await pdfDoc.save();
+  const storagePath = `appointment-pdfs/${appointment_id}.pdf`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('worker-files')
+    .upload(storagePath, Buffer.from(pdfBytes), {
+      contentType: 'application/pdf',
+      upsert: true,
+    });
+
+  if (uploadError) {
+    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  }
+
+  const { error: updateError } = await supabase
+    .from('lifting_machine_appointments')
+    .update({ pdf_url: storagePath })
+    .eq('id', appointment_id)
     .eq('company_id', companyId);
 
-  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
-  return new NextResponse(null, { status: 204 });
+  if (updateError) {
+    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ pdf_url: storagePath });
 }

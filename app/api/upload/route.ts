@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireCompanyAdmin } from '@/lib/auth/company-context';
+import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { rateLimitUploadDb } from '@/lib/rate-limit/db';
 import { authorizeStorageObjectAccess } from '@/lib/storage/authorize';
 
@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   console.log('[upload] request received');
 
-  const { context, error } = await requireCompanyAdmin();
+  const { context, error } = await requireCompanyAdminRole();
   if (error) {
     console.log('[upload] auth failed');
     return error;
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const { context, error } = await requireCompanyAdmin();
+  const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
 
   const path = request.nextUrl.searchParams.get('path');

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { getCurrentCompanyContext, requireCompanyAdmin } from '@/lib/auth/company-context';
+import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 
 export async function GET(request: NextRequest) {
   const { context, error } = await getCurrentCompanyContext();
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { context, error } = await requireCompanyAdmin();
+  const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
   const { companyId } = context;
 

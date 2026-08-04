@@ -1,4 +1,4 @@
-/**
+﻿/**
  * F-02 — vehicle-insurances TOCTOU hardening
  * Verifies that PATCH and DELETE mutations include company_id in the WHERE clause,
  * and that cross-tenant operations are blocked.
@@ -10,10 +10,10 @@ const COMPANY_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const COMPANY_B = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const INS_ID = 'ins00000-0000-0000-0000-000000000001';
 
-const authMock = vi.hoisted(() => ({ requireCompanyAdmin: vi.fn() }));
+const authMock = vi.hoisted(() => ({ requireCompanyAdminRole: vi.fn() }));
 
 vi.mock('@/lib/auth/company-context', () => ({
-  requireCompanyAdmin: authMock.requireCompanyAdmin,
+  requireCompanyAdminRole: authMock.requireCompanyAdminRole,
 }));
 
 const dbState = vi.hoisted(() => ({
@@ -53,7 +53,7 @@ beforeEach(() => {
 
 describe('F-02 — vehicle-insurances cross-tenant mutation hardening', () => {
   it('PATCH: Company B cannot update Company A insurance', async () => {
-    authMock.requireCompanyAdmin.mockResolvedValueOnce({
+    authMock.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_B, userId: 'user-b' },
       error: null,
     });
@@ -69,7 +69,7 @@ describe('F-02 — vehicle-insurances cross-tenant mutation hardening', () => {
   });
 
   it('PATCH: Company A can update its own insurance; company_id is in WHERE clause twice', async () => {
-    authMock.requireCompanyAdmin.mockResolvedValueOnce({
+    authMock.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_A, userId: 'user-a' },
       error: null,
     });
@@ -91,7 +91,7 @@ describe('F-02 — vehicle-insurances cross-tenant mutation hardening', () => {
   });
 
   it('DELETE: Company B cannot delete Company A insurance', async () => {
-    authMock.requireCompanyAdmin.mockResolvedValueOnce({
+    authMock.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_B, userId: 'user-b' },
       error: null,
     });
@@ -105,7 +105,7 @@ describe('F-02 — vehicle-insurances cross-tenant mutation hardening', () => {
   });
 
   it('DELETE: Company A can delete its own insurance; company_id is in WHERE clause twice', async () => {
-    authMock.requireCompanyAdmin.mockResolvedValueOnce({
+    authMock.requireCompanyAdminRole.mockResolvedValueOnce({
       context: { companyId: COMPANY_A, userId: 'user-a' },
       error: null,
     });

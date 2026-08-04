@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireCompanyAdmin } from '@/lib/auth/company-context';
+import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { buildAllIssues } from '@/lib/documents/issues';
 import { buildWeeklyReportHtml } from '@/lib/email/weekly-report';
 
@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
 
 // ─── POST — שליחת דוח ידני ע"י אדמין מחובר ───────────────────────
 export async function POST(request: NextRequest) {
-  const { context, error } = await requireCompanyAdmin();
+  const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
 
   let testRecipient: string | undefined;

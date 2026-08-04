@@ -85,3 +85,10 @@ export async function requireAdmin(): Promise<AuthResult> {
 
   return { session, error: null };
 }
+
+/**
+ * Platform admin guard — source of truth: profiles.role='admin', DB re-checked.
+ * Does NOT require a company_members row.
+ * Use for all /api/admin/** routes.
+ */
+export const requirePlatformAdmin = requireAdmin;

@@ -52,15 +52,13 @@ export async function getCurrentCompanyContext(): Promise<CompanyContextResult> 
     };
   }
 
-  const { data: membership } = await supabase
+  const { data: memberships } = await supabase
     .from('company_members')
     .select('company_id, role, is_active')
     .eq('user_id', session.userId)
-    .eq('is_active', true)
-    .limit(1)
-    .single();
+    .eq('is_active', true);
 
-  if (!membership) {
+  if (!memberships || memberships.length === 0) {
     return {
       context: null,
       error: NextResponse.json(
@@ -69,6 +67,18 @@ export async function getCurrentCompanyContext(): Promise<CompanyContextResult> 
       ),
     };
   }
+
+  if (memberships.length > 1) {
+    return {
+      context: null,
+      error: NextResponse.json(
+        { error: 'משתמש משויך למספר חברות — נדרש מתג חברה שטרם הוטמע. פנה לתמיכה.' },
+        { status: 403 }
+      ),
+    };
+  }
+
+  const membership = memberships[0];
 
   const { data: company } = await supabase
     .from('companies')
@@ -99,14 +109,21 @@ export async function getCurrentCompanyContext(): Promise<CompanyContextResult> 
   };
 }
 
-/** Convenience: require admin platform role after resolving context. */
-export async function requireCompanyAdmin(): Promise<CompanyContextResult> {
+/**
+ * Active membership guard — validates session, active profile, and exactly one active company membership.
+ * Use for read-only operations accessible to any active company member.
+ * Equivalent to calling getCurrentCompanyContext() directly.
+ */
+export const requireCompanyMember = getCurrentCompanyContext;
+
+/** Require company-level admin role (company_members.role IN ['admin','owner']). */
+export async function requireCompanyAdminRole(): Promise<CompanyContextResult> {
   const result = await getCurrentCompanyContext();
   if (result.error) return result;
-  if (result.context.platformRole !== 'admin') {
+  if (!['admin', 'owner'].includes(result.context.companyRole)) {
     return {
       context: null,
-      error: NextResponse.json({ error: 'פעולה זו מחייבת הרשאת מנהל' }, { status: 403 }),
+      error: NextResponse.json({ error: 'פעולה זו מחייבת הרשאת מנהל חברה' }, { status: 403 }),
     };
   }
   return result;

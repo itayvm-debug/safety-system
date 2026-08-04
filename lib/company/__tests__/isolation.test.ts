@@ -166,20 +166,31 @@ function buildMockSupabase(opts: {
 }) {
   let callIdx = 0;
 
-  const makeChain = (result: unknown) => ({
-    select: vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
+  const makeChain = (result: unknown) => {
+    // company_members is now fetched as an array (no .single() / .limit(1)).
+    // Adding .then() to the inner chain so `await select().eq().eq()` resolves
+    // with { data: [result] | [], error: null } instead of the raw chain object.
+    const arrayResult = result !== null && result !== undefined ? [result] : [];
+    const innerEqChain = {
+      eq: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: result, error: null }) }),
+      limit: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: result, error: null }) }),
+      single: vi.fn().mockResolvedValue({ data: result, error: null }),
+      then: (
+        onfulfilled: ((v: unknown) => unknown) | null | undefined,
+        _onrejected?: ((v: unknown) => unknown) | null | undefined,
+      ) => Promise.resolve({ data: arrayResult, error: null }).then(onfulfilled ?? undefined),
+    };
+    return {
+      select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: result, error: null }) }),
+          eq: vi.fn().mockReturnValue(innerEqChain),
           limit: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: result, error: null }) }),
           single: vi.fn().mockResolvedValue({ data: result, error: null }),
         }),
-        limit: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: result, error: null }) }),
         single: vi.fn().mockResolvedValue({ data: result, error: null }),
       }),
-      single: vi.fn().mockResolvedValue({ data: result, error: null }),
-    }),
-  });
+    };
+  };
 
   const results = [opts.profile, opts.membership, opts.company];
 

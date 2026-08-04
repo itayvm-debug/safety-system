@@ -1,73 +1,74 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireCompanyAdmin } from '@/lib/auth/company-context';
+import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { context, error } = await requireCompanyAdmin();
+export async function GET(request: NextRequest) {
+  const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
 
-  const { id } = await params;
+  const heavyEquipmentId = request.nextUrl.searchParams.get('heavy_equipment_id');
+  if (!heavyEquipmentId) return NextResponse.json({ error: 'heavy_equipment_id נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
 
-  // Ownership check: direct company_id match on the insurance record
-  const { data: existing } = await supabase
-    .from('heavy_equipment_insurances')
+  // Verify parent equipment belongs to this company
+  const { data: parent } = await supabase
+    .from('heavy_equipment')
     .select('id')
-    .eq('id', id)
+    .eq('id', heavyEquipmentId)
     .eq('company_id', context.companyId)
     .maybeSingle();
 
-  if (!existing) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
-
-  const body = await request.json();
-  const allowed = ['file_url', 'expiry_date'] as const;
-  const updates: Record<string, unknown> = {};
-  for (const key of allowed) {
-    if (key in body) updates[key] = body[key] ?? null;
-  }
-
-  if (Object.keys(updates).length === 0) return NextResponse.json({ error: 'אין שדות לעדכון' }, { status: 400 });
+  if (!parent) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
 
   const { data, error: dbError } = await supabase
     .from('heavy_equipment_insurances')
-    .update(updates)
-    .eq('id', id)
+    .select('*')
+    .eq('heavy_equipment_id', heavyEquipmentId)
     .eq('company_id', context.companyId)
-    .select()
-    .single();
+    .order('insurance_type');
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
-export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { context, error } = await requireCompanyAdmin();
+export async function POST(request: NextRequest) {
+  const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
 
-  const { id } = await params;
+  const body = await request.json();
+  const { heavy_equipment_id, insurance_type, file_url, expiry_date } = body;
+
+  if (!heavy_equipment_id) return NextResponse.json({ error: 'heavy_equipment_id נדרש' }, { status: 400 });
+  if (!insurance_type?.trim()) return NextResponse.json({ error: 'סוג ביטוח נדרש' }, { status: 400 });
+
   const supabase = createServiceClient();
 
-  // Ownership check + fetch file for Storage cleanup
-  const { data: ins } = await supabase
-    .from('heavy_equipment_insurances')
-    .select('file_url')
-    .eq('id', id)
+  // Verify parent equipment belongs to this company
+  const { data: parent } = await supabase
+    .from('heavy_equipment')
+    .select('id')
+    .eq('id', heavy_equipment_id)
     .eq('company_id', context.companyId)
+    .maybeSingle();
+
+  if (!parent) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
+
+  const { data, error: dbError } = await supabase
+    .from('heavy_equipment_insurances')
+    .upsert(
+      {
+        heavy_equipment_id,
+        company_id: context.companyId,
+        insurance_type: insurance_type.trim(),
+        file_url: file_url || null,
+        expiry_date: expiry_date || null,
+      },
+      { onConflict: 'heavy_equipment_id,insurance_type' }
+    )
+    .select()
     .single();
 
-  if (!ins) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
-
-  if (ins.file_url) {
-    await supabase.storage.from('worker-files').remove([ins.file_url]);
-  }
-
-  const { error: dbError } = await supabase
-    .from('heavy_equipment_insurances')
-    .delete()
-    .eq('id', id)
-    .eq('company_id', context.companyId);
-
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
-  return NextResponse.json({ success: true });
+  return NextResponse.json(data, { status: 200 });
 }
