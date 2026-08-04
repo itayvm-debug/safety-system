@@ -114,9 +114,9 @@ describe('POST /api/admin/companies', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 409 when slug already exists', async () => {
+  it('returns 409 when slug already exists (draft)', async () => {
     dbState.slugExists = true;
-    const res = await POST(req('POST', { name: 'חברה', slug: 'existing-slug' }));
+    const res = await POST(req('POST', { name: 'חברה', slug: 'existing-slug', is_active: false }));
     expect(res.status).toBe(409);
   });
 

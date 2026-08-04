@@ -361,6 +361,7 @@ export interface Company {
   phone: string | null;
   contact_email: string | null;
   safety_email: string | null;
+  logo_url: string | null;
   settings: Record<string, unknown>;
   is_active: boolean;
   created_at: string;

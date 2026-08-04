@@ -18,6 +18,7 @@ const DEFAULT_COMPANY: Company = {
   phone: null,
   contact_email: null,
   safety_email: null,
+  logo_url: null,
   settings: {},
   is_active: true,
   created_at: '2024-01-01T00:00:00Z',
