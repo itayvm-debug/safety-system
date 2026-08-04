@@ -296,11 +296,13 @@ describe('T8: Company admin cannot grant elevated or invalid roles', () => {
 
 describe('T9: First admin assignment — company-level role only', () => {
   it('assigns first admin with company-level role — profiles.role never touched', async () => {
+    // Flow: slug check → company insert (inactive) → profile lookup → member insert → activate
     dbQueue.reset([
-      { data: null, error: null },
-      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: true }, error: null },
-      { data: { id: USER_ADMIN, is_active: true }, error: null },
-      { data: { id: 'mem-1', company_id: COMPANY_A, user_id: USER_ADMIN, role: 'admin' }, error: null },
+      { data: null,                                                                   error: null },  // slug check (maybeSingle)
+      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: false },   error: null },  // company insert inactive (single)
+      { data: { id: USER_ADMIN, is_active: true },                                   error: null },  // profile lookup (single)
+      { data: { id: 'mem-1', company_id: COMPANY_A, user_id: USER_ADMIN, role: 'admin' }, error: null }, // member insert (then)
+      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: true },    error: null },  // activate (single)
     ]);
 
     const res = await adminPost(
@@ -310,14 +312,17 @@ describe('T9: First admin assignment — company-level role only', () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.slug).toBe('new-co');
+    // Invariant: returned company is active — membership was created before activation
+    expect(body.is_active).toBe(true);
   });
 
   it('compensates by deleting company when first admin user not found → 404', async () => {
+    // Flow: slug check → company insert (inactive) → profile lookup (null) → compensating delete
     dbQueue.reset([
-      { data: null, error: null },
-      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: true }, error: null },
-      { data: null, error: null },  // profile not found
-      { data: null, error: null },  // company delete compensation
+      { data: null,                                                                   error: null },  // slug check (maybeSingle)
+      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: false },   error: null },  // company insert inactive (single)
+      { data: null,                                                                   error: null },  // profile not found (single)
+      { data: null,                                                                   error: null },  // compensating delete (then)
     ]);
 
     const res = await adminPost(
