@@ -153,26 +153,22 @@ describe('T1: Platform admin can list companies', () => {
   });
 });
 
-// ─── T2: Platform admin creates draft company (active requires first_admin_user_id) ─
+// ─── T2: Platform admin creates company — auto-assigned as first Owner ────────
 
-describe('T2: Platform admin can create draft company', () => {
-  it('POST /api/admin/companies with is_active=false → 201 (draft, no first admin needed)', async () => {
+describe('T2: Platform admin creates company (auto-assigned as first Owner)', () => {
+  it('POST /api/admin/companies → 201 active, platform admin auto-assigned as owner', async () => {
+    // Flow: slug check → insert inactive → member insert (owner) → activate
     dbQueue.reset([
-      { data: null, error: null },
-      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: false }, error: null },
+      { data: null,                                                                   error: null },
+      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: false },   error: null },
+      { data: { id: 'mem-1', company_id: COMPANY_A, user_id: 'platform-admin', role: 'owner' }, error: null },
+      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: true },    error: null },
     ]);
-    const res = await adminPost(adminReq('POST', { name: 'New Co', slug: 'new-co', is_active: false }));
+    const res = await adminPost(adminReq('POST', { name: 'New Co', slug: 'new-co' }));
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.slug).toBe('new-co');
-    expect(body.is_active).toBe(false);
-  });
-
-  it('POST /api/admin/companies without first_admin_user_id → 400 (active company rule)', async () => {
-    const res = await adminPost(adminReq('POST', { name: 'New Co', slug: 'new-co' }));
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toMatch(/מנהל ראשון/);
+    expect(body.is_active).toBe(true);
   });
 });
 
@@ -292,46 +288,41 @@ describe('T8: Company admin cannot grant elevated or invalid roles', () => {
   });
 });
 
-// ─── T9: New company's first admin receives company-level role only ───────────
+// ─── T9: Platform admin auto-assigned as first Owner — profiles.role untouched ─
 
-describe('T9: First admin assignment — company-level role only', () => {
-  it('assigns first admin with company-level role — profiles.role never touched', async () => {
-    // Flow: slug check → company insert (inactive) → profile lookup → member insert → activate
+describe('T9: First owner auto-assignment via session.userId', () => {
+  it('auto-assigns session user as owner — profiles.role never touched', async () => {
+    // Flow: slug check → insert inactive → member insert (owner, session.userId) → activate
     dbQueue.reset([
       { data: null,                                                                   error: null },  // slug check (maybeSingle)
-      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: false },   error: null },  // company insert inactive (single)
-      { data: { id: USER_ADMIN, is_active: true },                                   error: null },  // profile lookup (single)
-      { data: { id: 'mem-1', company_id: COMPANY_A, user_id: USER_ADMIN, role: 'admin' }, error: null }, // member insert (then)
+      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: false },   error: null },  // insert inactive (single)
+      { data: { id: 'mem-1', company_id: COMPANY_A, user_id: 'platform-admin', role: 'owner' }, error: null }, // member insert (then)
       { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: true },    error: null },  // activate (single)
     ]);
 
-    const res = await adminPost(
-      adminReq('POST', { name: 'New Co', slug: 'new-co', first_admin_user_id: USER_ADMIN })
-    );
+    const res = await adminPost(adminReq('POST', { name: 'New Co', slug: 'new-co' }));
 
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.slug).toBe('new-co');
-    // Invariant: returned company is active — membership was created before activation
+    // Invariant: returned company is active — membership confirmed before activation
     expect(body.is_active).toBe(true);
   });
 
-  it('compensates by deleting company when first admin user not found → 404', async () => {
-    // Flow: slug check → company insert (inactive) → profile lookup (null) → compensating delete
+  it('compensates by deleting company when member insert fails → 500', async () => {
+    // Flow: slug check → insert inactive → member insert (fails) → compensating delete
     dbQueue.reset([
       { data: null,                                                                   error: null },  // slug check (maybeSingle)
-      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: false },   error: null },  // company insert inactive (single)
-      { data: null,                                                                   error: null },  // profile not found (single)
+      { data: { id: COMPANY_A, slug: 'new-co', name: 'New Co', is_active: false },   error: null },  // insert inactive (single)
+      { data: null, error: { message: 'duplicate key', code: '23505' } },                            // member insert fails (then)
       { data: null,                                                                   error: null },  // compensating delete (then)
     ]);
 
-    const res = await adminPost(
-      adminReq('POST', { name: 'New Co', slug: 'new-co', first_admin_user_id: 'nonexistent-user' })
-    );
+    const res = await adminPost(adminReq('POST', { name: 'New Co', slug: 'new-co' }));
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toMatch(/מנהל ראשון/);
+    expect(body.error).toMatch(/בעלים/);
   });
 });
 

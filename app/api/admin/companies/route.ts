@@ -17,37 +17,22 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const { error } = await requireAdmin();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   try {
     const body = await request.json();
     const {
       name, name_en, slug, registration, address, phone,
-      contact_email, safety_email, first_admin_user_id,
-      is_active: isActiveInput, logo_url: logoUrl,
+      contact_email, safety_email, logo_url: logoUrl,
     } = body;
 
-    // Validate payload format before business-rule checks.
     if (!name?.trim()) {
       return NextResponse.json({ error: 'שדה חובה חסר: name' }, { status: 400 });
     }
 
     if (!slug?.trim()) {
       return NextResponse.json({ error: 'שדה חובה חסר: slug' }, { status: 400 });
-    }
-
-    const isDraft  = isActiveInput === false;
-    const hasAdmin = !!first_admin_user_id?.trim();
-
-    // Client must be explicit: either provide a first admin (full flow) or
-    // explicitly request a draft (is_active: false). Silent active creation
-    // without an admin is blocked — orphaned active companies have no admin.
-    if (!hasAdmin && !isDraft) {
-      return NextResponse.json(
-        { error: 'יש לבחור מנהל ראשון לחברה, או לשמור כטיוטה (is_active: false).' },
-        { status: 400 }
-      );
     }
 
     const normalizedSlug = slug.trim().toLowerCase().replace(/\s+/g, '-');
@@ -67,8 +52,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'slug כבר קיים במערכת' }, { status: 409 });
     }
 
-    // Always create inactive — activated below only after membership succeeds.
-    // This guarantees the invariant: active company ⟹ has at least one admin member.
+    // Always create inactive — activated only after membership succeeds.
+    // Invariant: active company ⟹ has at least one member.
     const { data: company, error: insertError } = await supabase
       .from('companies')
       .insert({
@@ -94,39 +79,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    if (!hasAdmin) {
-      // Explicit draft — return inactive company as-is.
-      return NextResponse.json(company, { status: 201 });
-    }
-
-    // ── Full flow: create membership then activate ────────────────────────────
-
-    const adminUserId = first_admin_user_id.trim();
-
-    const { data: adminProfile } = await supabase
-      .from('profiles')
-      .select('id, is_active')
-      .eq('id', adminUserId)
-      .single();
-
-    if (!adminProfile || !adminProfile.is_active) {
-      await supabase.from('companies').delete().eq('id', company.id);
-      return NextResponse.json(
-        { error: 'המשתמש שצוין כמנהל ראשון לא נמצא או אינו פעיל — החברה לא נוצרה' },
-        { status: 404 }
-      );
-    }
-
-    // The assigned user gets company_members.role='admin'.
-    // profiles.role (platform admin indicator) is NEVER modified here.
+    // Auto-assign the current platform admin as first Owner.
+    // Platform admins are allowed to belong to multiple companies.
+    // profiles.role is NEVER modified — only company_members.role is set here.
     const { error: memberError } = await supabase
       .from('company_members')
-      .insert({ company_id: company.id, user_id: adminUserId, role: 'admin', is_active: true });
+      .insert({ company_id: company.id, user_id: session.userId, role: 'owner', is_active: true });
 
     if (memberError) {
       await supabase.from('companies').delete().eq('id', company.id);
       return NextResponse.json(
-        { error: 'שגיאה בהוספת מנהל ראשון לחברה — החברה לא נוצרה' },
+        { error: 'שגיאה בהוספת בעלים ראשון לחברה — החברה לא נוצרה' },
         { status: 500 }
       );
     }
@@ -140,8 +103,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (activateError) {
-      // Membership exists but activation failed — company stays inactive.
-      // Platform admin can activate manually from company settings.
       return NextResponse.json({ error: 'שגיאה בהפעלת החברה — פנה לתמיכה' }, { status: 500 });
     }
 

@@ -106,24 +106,6 @@ export default function CompaniesClient({ initialCompanies }: Props) {
   );
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-type WizardStep = 'details' | 'admin' | 'success';
-
-interface DetailsForm {
-  name: string; name_en: string; slug: string; registration: string;
-  address: string; phone: string; contact_email: string; safety_email: string;
-}
-
-interface UserResult {
-  id: string;
-  full_name: string;
-  email: string;
-  username: string;
-  is_active: boolean;
-  active_membership_count: number;
-}
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function toSlug(text: string): string {
@@ -147,30 +129,11 @@ function validateLogoFile(file: File): string | null {
   return null;
 }
 
-// ─── Step Indicator ──────────────────────────────────────────────────────────
+// ─── Form types ───────────────────────────────────────────────────────────────
 
-function StepIndicator({ step }: { step: 'details' | 'admin' }) {
-  return (
-    <div className="flex items-center justify-center gap-3 px-6 py-3 border-b border-gray-100 text-sm select-none">
-      <div className="flex items-center gap-1.5">
-        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${step === 'details' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-600'}`}>
-          {step === 'admin' ? '✓' : '1'}
-        </span>
-        <span className={step === 'details' ? 'font-medium text-gray-900' : 'text-orange-600 text-sm'}>
-          פרטי החברה
-        </span>
-      </div>
-      <div className="flex-1 max-w-[3rem] h-px bg-gray-200" />
-      <div className="flex items-center gap-1.5">
-        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${step === 'admin' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
-          2
-        </span>
-        <span className={step === 'admin' ? 'font-medium text-gray-900' : 'text-gray-400 text-sm'}>
-          מנהל ראשון
-        </span>
-      </div>
-    </div>
-  );
+interface DetailsForm {
+  name: string; name_en: string; slug: string; registration: string;
+  address: string; phone: string; contact_email: string; safety_email: string;
 }
 
 // ─── Wizard ──────────────────────────────────────────────────────────────────
@@ -182,66 +145,29 @@ function CreateCompanyWizard({
   onClose: () => void;
   onCreated: (c: Company) => void;
 }) {
-  const [step, setStep]                     = useState<WizardStep>('details');
-  const [createdCompany, setCreatedCompany] = useState<Company | null>(null);
+  const [step, setStep]                         = useState<'details' | 'success'>('details');
+  const [createdCompany, setCreatedCompany]     = useState<Company | null>(null);
 
-  // ── Details (Step 1) ──────────────────────────────────────────────────────
   const [form, setForm] = useState<DetailsForm>({
     name: '', name_en: '', slug: '', registration: '',
     address: '', phone: '', contact_email: '', safety_email: '',
   });
-  const [slugEdited, setSlugEdited]         = useState(false);
-  const [logoFile, setLogoFile]             = useState<File | null>(null);
-  const [logoPreview, setLogoPreview]       = useState<string | null>(null);
-  const [isDragOver, setIsDragOver]         = useState(false);
+  const [slugEdited, setSlugEdited]             = useState(false);
+  const [logoFile, setLogoFile]                 = useState<File | null>(null);
+  const [logoPreview, setLogoPreview]           = useState<string | null>(null);
+  const [isDragOver, setIsDragOver]             = useState(false);
   const [uploadedLogoPath, setUploadedLogoPath] = useState<string | null>(null);
+  const [loading, setLoading]                   = useState(false);
+  const [error, setError]                       = useState('');
 
-  // ── Admin search (Step 2) ─────────────────────────────────────────────────
-  const [adminSearch, setAdminSearch]       = useState('');
-  const [adminResults, setAdminResults]     = useState<UserResult[]>([]);
-  const [adminSearching, setAdminSearching] = useState(false);
-  const [selectedAdmin, setSelectedAdmin]   = useState<UserResult | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoUrlRef   = useRef<string | null>(null);
 
-  // ── Shared ────────────────────────────────────────────────────────────────
-  const [loading, setLoading]               = useState(false);
-  const [error, setError]                   = useState('');
-
-  const fileInputRef  = useRef<HTMLInputElement>(null);
-  const logoUrlRef    = useRef<string | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Object URL cleanup on unmount
   useEffect(() => {
-    return () => {
-      if (logoUrlRef.current) URL.revokeObjectURL(logoUrlRef.current);
-    };
+    return () => { if (logoUrlRef.current) URL.revokeObjectURL(logoUrlRef.current); };
   }, []);
 
-  // Focus search input when entering Step 2
-  useEffect(() => {
-    if (step === 'admin') searchInputRef.current?.focus();
-  }, [step]);
-
-  // Debounced user search
-  useEffect(() => {
-    if (adminSearch.length < 2) { setAdminResults([]); return; }
-    const timer = setTimeout(async () => {
-      setAdminSearching(true);
-      try {
-        const res  = await fetch(`/api/admin/users/search?q=${encodeURIComponent(adminSearch)}`);
-        const data = await res.json() as UserResult[] | { error: string };
-        if (!res.ok) { setError((data as { error: string }).error ?? 'שגיאה בחיפוש'); return; }
-        setAdminResults(data as UserResult[]);
-      } catch {
-        setError('שגיאת תקשורת בחיפוש');
-      } finally {
-        setAdminSearching(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [adminSearch]);
-
-  // ── Logo handlers ─────────────────────────────────────────────────────────
+  // ── Logo ─────────────────────────────────────────────────────────────────
 
   function applyLogo(file: File) {
     const err = validateLogoFile(file);
@@ -251,7 +177,7 @@ function CreateCompanyWizard({
     logoUrlRef.current = url;
     setLogoFile(file);
     setLogoPreview(url);
-    setUploadedLogoPath(null); // new file = re-upload needed
+    setUploadedLogoPath(null);
     setError('');
   }
 
@@ -263,7 +189,7 @@ function CreateCompanyWizard({
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  // ── Slug helpers ──────────────────────────────────────────────────────────
+  // ── Slug ─────────────────────────────────────────────────────────────────
 
   function setName(value: string) {
     setForm(prev => ({
@@ -288,11 +214,10 @@ function CreateCompanyWizard({
     setForm(prev => ({ ...prev, [field]: value }));
   }
 
-  // ── Close (with logo cleanup) ─────────────────────────────────────────────
+  // ── Close (with orphaned-logo cleanup) ───────────────────────────────────
 
   function handleClose() {
     if (logoUrlRef.current) { URL.revokeObjectURL(logoUrlRef.current); logoUrlRef.current = null; }
-    // Clean up orphaned upload only if company wasn't successfully created
     if (uploadedLogoPath && step !== 'success') {
       fetch(`/api/admin/upload-logo?path=${encodeURIComponent(uploadedLogoPath)}`, { method: 'DELETE' })
         .catch(() => {});
@@ -300,18 +225,14 @@ function CreateCompanyWizard({
     onClose();
   }
 
-  // ── Submit (full or draft) ────────────────────────────────────────────────
+  // ── Submit ───────────────────────────────────────────────────────────────
 
-  async function handleSubmit(isDraft: boolean) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setError('');
-    if (!isDraft && !selectedAdmin) { setError('יש לבחור מנהל ראשון'); return; }
-    if (!isDraft && selectedAdmin && selectedAdmin.active_membership_count > 0) {
-      setError('המשתמש שנבחר כבר שייך לחברה פעילה אחרת.');
-      return;
-    }
     setLoading(true);
+
     try {
-      // Upload logo if file selected but not yet uploaded
       let logoPath = uploadedLogoPath;
       if (logoFile && !logoPath) {
         const fd = new FormData();
@@ -323,26 +244,18 @@ function CreateCompanyWizard({
         setUploadedLogoPath(logoPath);
       }
 
-      const payload: Record<string, unknown> = {
-        ...form,
-        ...(logoPath ? { logo_url: logoPath } : {}),
-      };
-
-      if (isDraft) {
-        payload.is_active = false;
-      } else {
-        payload.first_admin_user_id = selectedAdmin!.id;
-      }
-
       const res  = await fetch('/api/admin/companies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...form,
+          ...(logoPath ? { logo_url: logoPath } : {}),
+        }),
       });
       const data = await res.json() as Company & { error?: string };
       if (!res.ok) { setError(data.error ?? 'שגיאה ביצירה'); return; }
 
-      setUploadedLogoPath(null); // logo now stored in company — skip cleanup on close
+      setUploadedLogoPath(null); // logo belongs to company now — skip cleanup on close
       setCreatedCompany(data);
       setStep('success');
       onCreated(data);
@@ -368,9 +281,9 @@ function CreateCompanyWizard({
               <h2 className="font-semibold text-gray-900 text-base">
                 {step === 'success' ? 'החברה נוצרה' : 'חברה חדשה'}
               </h2>
-              {step !== 'success' && (
+              {step === 'details' && (
                 <p className="text-sm text-gray-500 mt-0.5 leading-snug">
-                  מלא את פרטי החברה ובחר מנהל ראשון.
+                  מלא את פרטי החברה. אתה תשויך אוטומטית כבעלים הראשון.
                 </p>
               )}
             </div>
@@ -384,15 +297,9 @@ function CreateCompanyWizard({
             </button>
           </div>
 
-          {/* Step indicator */}
-          {(step === 'details' || step === 'admin') && <StepIndicator step={step} />}
-
-          {/* ── Step 1: Company Details ── */}
+          {/* ── Details form ── */}
           {step === 'details' && (
-            <form
-              onSubmit={e => { e.preventDefault(); setStep('admin'); setError(''); }}
-              className="p-6 space-y-6"
-            >
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {/* Identity section */}
               <section aria-labelledby="section-identity">
                 <h3 id="section-identity" className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
@@ -443,7 +350,6 @@ function CreateCompanyWizard({
                     onChange={e => { const f = e.target.files?.[0]; if (f) applyLogo(f); }} />
                 </div>
 
-                {/* Name */}
                 <div className="mb-3">
                   <label htmlFor="f-name" className="block text-sm font-medium text-gray-700 mb-1">שם החברה <span aria-hidden="true">*</span></label>
                   <input id="f-name" type="text" required autoComplete="organization"
@@ -451,7 +357,6 @@ function CreateCompanyWizard({
                     placeholder="חברת הבנייה בע״מ" className={inputCls} />
                 </div>
 
-                {/* English name */}
                 <div className="mb-3">
                   <label htmlFor="f-name-en" className="block text-sm font-medium text-gray-700 mb-1">שם החברה באנגלית (אופציונלי)</label>
                   <input id="f-name-en" type="text" dir="ltr"
@@ -459,7 +364,6 @@ function CreateCompanyWizard({
                     placeholder="Construction Co Ltd" className={inputCls} />
                 </div>
 
-                {/* Slug */}
                 <div className="mb-3">
                   <label htmlFor="f-slug" className="block text-sm font-medium text-gray-700 mb-1">מזהה החברה במערכת <span aria-hidden="true">*</span></label>
                   <input id="f-slug" type="text" required dir="ltr"
@@ -468,7 +372,6 @@ function CreateCompanyWizard({
                   <p className="text-xs text-gray-400 mt-1">נוצר אוטומטית משם החברה וניתן לעריכה באנגלית בלבד.</p>
                 </div>
 
-                {/* Registration */}
                 <div>
                   <label htmlFor="f-reg" className="block text-sm font-medium text-gray-700 mb-1">ח.פ. / ע.מ.</label>
                   <input id="f-reg" type="text"
@@ -516,131 +419,22 @@ function CreateCompanyWizard({
               {error && <div role="alert" className={errorCls}>{error}</div>}
 
               <div className="flex gap-2 pt-1">
-                <button type="submit"
-                  className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors">
-                  המשך ←
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-orange-600 disabled:opacity-40 transition-colors"
+                >
+                  {loading ? 'יוצר...' : 'צור חברה'}
                 </button>
-                <button type="button" onClick={handleClose}
-                  className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm hover:bg-gray-50 transition-colors">
+                <button type="button" onClick={handleClose} disabled={loading}
+                  className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-40">
                   ביטול
                 </button>
               </div>
             </form>
           )}
 
-          {/* ── Step 2: First Administrator ── */}
-          {step === 'admin' && (
-            <form
-              onSubmit={e => { e.preventDefault(); handleSubmit(false); }}
-              className="p-6 space-y-4"
-            >
-              <p className="text-sm text-gray-600">
-                חפש משתמש קיים במערכת ובחר אותו כמנהל הראשון של החברה.
-                המשתמש יקבל הרשאת <span className="font-medium">חברה-מנהל</span> בלבד —
-                הרשאת פלטפורמה שלו לא תשתנה.
-              </p>
-
-              {/* Search input */}
-              <div>
-                <label htmlFor="admin-search" className="block text-sm font-medium text-gray-700 mb-1">חיפוש משתמש</label>
-                <input
-                  ref={searchInputRef}
-                  id="admin-search"
-                  type="search"
-                  value={adminSearch}
-                  onChange={e => { setAdminSearch(e.target.value); setSelectedAdmin(null); }}
-                  placeholder="חפש לפי שם, מייל או שם משתמש..."
-                  autoComplete="off"
-                  className={inputCls}
-                />
-                {adminSearch.length > 0 && adminSearch.length < 2 && (
-                  <p className="text-xs text-gray-400 mt-1">הכנס לפחות 2 תווים לחיפוש</p>
-                )}
-              </div>
-
-              {/* Results */}
-              <div className="min-h-[120px]">
-                {adminSearching && (
-                  <p className="text-sm text-gray-400 text-center py-6">מחפש...</p>
-                )}
-                {!adminSearching && adminSearch.length >= 2 && adminResults.length === 0 && (
-                  <p className="text-sm text-gray-400 text-center py-6">לא נמצאו משתמשים עבור &quot;{adminSearch}&quot;</p>
-                )}
-                {!adminSearching && adminResults.length > 0 && (
-                  <ul className="space-y-1.5 max-h-52 overflow-y-auto" role="listbox" aria-label="תוצאות חיפוש משתמשים">
-                    {adminResults.map(user => {
-                      const isSelected  = selectedAdmin?.id === user.id;
-                      const hasMembership = user.active_membership_count > 0;
-                      return (
-                        <li
-                          key={user.id}
-                          role="option"
-                          aria-selected={isSelected}
-                          onClick={() => setSelectedAdmin(isSelected ? null : user)}
-                          className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                            isSelected
-                              ? 'border-orange-400 bg-orange-50'
-                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-orange-500 bg-orange-500' : 'border-gray-300'}`}>
-                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white block" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{user.full_name}</p>
-                            <p className="text-xs text-gray-500 truncate">{user.email} · @{user.username}</p>
-                          </div>
-                          {hasMembership && (
-                            <span className="flex-shrink-0 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">
-                              שייך לחברה
-                            </span>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-
-              {/* Warning: selected user already has a membership */}
-              {selectedAdmin && selectedAdmin.active_membership_count > 0 && (
-                <div role="alert" className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2.5 text-sm">
-                  המשתמש כבר שייך לחברה פעילה אחרת. שיוך לחברות מרובות יתמך בגרסה עתידית עם מתג חברות. לחלופין, שמור כטיוטה ושייך מנהל לאחר הסרת החברות הקיימות.
-                </div>
-              )}
-
-              {error && <div role="alert" className={errorCls}>{error}</div>}
-
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="submit"
-                  disabled={!selectedAdmin || (selectedAdmin.active_membership_count > 0) || loading}
-                  className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-orange-600 disabled:opacity-40 transition-colors"
-                >
-                  {loading ? 'יוצר...' : 'צור חברה'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSubmit(true)}
-                  disabled={loading}
-                  className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-40 whitespace-nowrap"
-                  title="צור חברה ללא מנהל — ניתן להפעיל מאוחר יותר"
-                >
-                  שמור כטיוטה
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setError(''); setStep('details'); }}
-                  disabled={loading}
-                  className="px-3 py-2.5 border border-gray-300 rounded-xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-40"
-                >
-                  ← חזור
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* ── Step 3: Success summary ── */}
+          {/* ── Success ── */}
           {step === 'success' && createdCompany && (
             <div className="p-6 text-center space-y-4">
               <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto">
@@ -648,26 +442,16 @@ function CreateCompanyWizard({
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-900 text-lg">
-                  {createdCompany.is_active ? 'החברה נוצרה והופעלה!' : 'החברה נשמרה כטיוטה'}
-                </h3>
+                <h3 className="font-semibold text-gray-900 text-lg">החברה נוצרה והופעלה!</h3>
                 <p className="text-gray-500 text-sm mt-1">{createdCompany.name}</p>
                 {createdCompany.slug && (
                   <p className="text-xs text-gray-400 font-mono mt-0.5">/{createdCompany.slug}</p>
                 )}
               </div>
 
-              {createdCompany.is_active && selectedAdmin ? (
-                <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 text-right">
-                  <p className="text-xs text-gray-500 mb-0.5">מנהל ראשון</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedAdmin.full_name}</p>
-                  <p className="text-xs text-gray-500">{selectedAdmin.email}</p>
-                </div>
-              ) : !createdCompany.is_active ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
-                  נשמרה כטיוטה. ניתן להפעיל ולהוסיף מנהל מדף פרטי החברה.
-                </div>
-              ) : null}
+              <p className="text-sm text-gray-500">
+                שויכת כבעלים הראשון. ניתן להזמין את מנהל החברה הרשמי ולהגדיר את הרשאותיו מדף פרטי החברה.
+              </p>
 
               <div className="flex gap-2 pt-1">
                 <Link
