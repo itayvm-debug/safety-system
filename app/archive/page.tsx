@@ -7,7 +7,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function ArchivePage() {
   const ctxResult = await getCurrentCompanyContext();
-  if (ctxResult.error) redirect('/login');
+  if (ctxResult.error) {
+    if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
+    redirect('/login');
+  }
   const { companyId } = ctxResult.context;
 
   const supabase = createServiceClient();

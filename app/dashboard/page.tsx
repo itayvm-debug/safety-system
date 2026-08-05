@@ -161,7 +161,10 @@ function DashboardCard({
 
 export default async function DashboardPage() {
   const ctxResult = await getCurrentCompanyContext();
-  if (ctxResult.error) redirect('/login');
+  if (ctxResult.error) {
+    if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
+    redirect('/login');
+  }
   const { companyId, platformRole } = ctxResult.context;
   const isAdmin = platformRole === 'admin';
 

@@ -7,9 +7,12 @@ export const dynamic = 'force-dynamic';
 
 export default async function NewVehiclePage({ searchParams }: { searchParams: Promise<{ manager_id?: string }> }) {
   const { manager_id } = await searchParams;
-  const { context, error } = await getCurrentCompanyContext();
-  if (error) redirect('/login');
-  const { companyId } = context;
+  const ctxResult = await getCurrentCompanyContext();
+  if (ctxResult.error) {
+    if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
+    redirect('/login');
+  }
+  const { companyId } = ctxResult.context;
 
   const supabase = createServiceClient();
   const { data: workers } = await supabase

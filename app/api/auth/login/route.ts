@@ -6,6 +6,7 @@ import {
   ROLE_COOKIE_NAME,
   COOKIE_MAX_AGE,
 } from '@/lib/auth/session';
+import { ACTIVE_COMPANY_COOKIE_NAME, ACTIVE_COMPANY_MAX_AGE } from '@/lib/auth/active-company';
 import { createServiceClient } from '@/lib/supabase/server';
 import { rateLimitLoginDb } from '@/lib/rate-limit/db';
 import { getClientIp } from '@/lib/rate-limit';
@@ -98,6 +99,13 @@ export async function POST(request: NextRequest) {
       loginAt: Date.now(),
     });
 
+    // בדיקת חברים — auto-select עבור משתמש עם חברה אחת בלבד
+    const { data: memberships } = await service
+      .from('company_members')
+      .select('company_id')
+      .eq('user_id', profile.id)
+      .eq('is_active', true);
+
     // ה-DB הוא מקור האמת — שחזר consent cookie רק אם קיימת הסכמה לגרסה הנוכחית
     const { data: existingConsent } = await service
       .from('legal_acceptances')
@@ -144,6 +152,22 @@ export async function POST(request: NextRequest) {
         maxAge:   CONSENT_COOKIE_MAX_AGE,
         path:     '/',
       });
+    }
+
+    // Auto-select active company for single-membership users — skip /select-company entirely
+    // For 2+ memberships: clear any stale cookie so /select-company is shown
+    if (memberships && memberships.length === 1) {
+      response.cookies.set({
+        name:     ACTIVE_COMPANY_COOKIE_NAME,
+        value:    memberships[0].company_id,
+        httpOnly: true,
+        secure:   isProd,
+        sameSite: 'lax',
+        maxAge:   ACTIVE_COMPANY_MAX_AGE,
+        path:     '/',
+      });
+    } else {
+      response.cookies.set({ name: ACTIVE_COMPANY_COOKIE_NAME, value: '', maxAge: 0, path: '/', httpOnly: true, sameSite: 'lax' });
     }
 
     void auditLog({
