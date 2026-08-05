@@ -175,7 +175,6 @@ export default async function DashboardPage() {
     { data: vehiclesRaw },
     { data: heavyRaw },
     { data: liftingRaw },
-    { count: feedbackCount },
     { data: notesRaw },
     { data: subcontractorsRaw },
   ] = await Promise.all([
@@ -188,6 +187,7 @@ export default async function DashboardPage() {
     supabase
       .from('vehicles')
       .select(`*, vehicle_licenses(id,file_url,expiry_date), vehicle_insurances(id,insurance_type,file_url,expiry_date), assigned_manager:workers!vehicles_assigned_manager_id_fkey(id,full_name)`)
+      .eq('company_id', companyId)
       .eq('is_active', true)
       .eq('is_archived', false),
     supabase
@@ -203,18 +203,26 @@ export default async function DashboardPage() {
       .eq('is_active', true)
       .eq('is_archived', false),
     supabase
-      .from('site_feedback')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_handled', false),
-    supabase
       .from('entity_notes')
       .select('*')
+      .eq('company_id', companyId)
       .eq('status', 'needs_attention'),
     supabase
       .from('subcontractors')
       .select('id, name')
+      .eq('company_id', companyId)
       .eq('is_archived', false),
   ]);
+
+  // site_feedback is a platform-level table (no company_id). Only platform admins see the count.
+  let feedbackCount = 0;
+  if (isAdmin) {
+    const { count } = await supabase
+      .from('site_feedback')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_handled', false);
+    feedbackCount = count ?? 0;
+  }
 
   const workers = (workersRaw ?? []) as WorkerWithDocuments[];
   const vehicles = (vehiclesRaw ?? []) as Vehicle[];
