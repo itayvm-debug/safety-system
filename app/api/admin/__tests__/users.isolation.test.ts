@@ -86,7 +86,6 @@ vi.mock('@/lib/supabase/server', () => ({
       // with the configured insert result (for queries that don't call .single()).
       chain.then = (
         onfulfilled: ((v: unknown) => unknown) | null | undefined,
-        _onrejected?: ((v: unknown) => unknown) | null | undefined,
       ) => Promise.resolve(insertResults.get(table)).then(onfulfilled ?? undefined);
       return chain;
     },
