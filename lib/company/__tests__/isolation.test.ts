@@ -177,7 +177,6 @@ function buildMockSupabase(opts: {
       single: vi.fn().mockResolvedValue({ data: result, error: null }),
       then: (
         onfulfilled: ((v: unknown) => unknown) | null | undefined,
-        _onrejected?: ((v: unknown) => unknown) | null | undefined,
       ) => Promise.resolve({ data: arrayResult, error: null }).then(onfulfilled ?? undefined),
     };
     return {
