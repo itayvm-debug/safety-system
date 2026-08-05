@@ -14,7 +14,10 @@ export default async function IssuesPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const ctxResult = await getCurrentCompanyContext();
-  if (ctxResult.error) redirect('/login');
+  if (ctxResult.error) {
+    if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
+    redirect('/login');
+  }
   const { companyId } = ctxResult.context;
 
   const { status } = await searchParams;

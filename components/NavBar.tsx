@@ -1,12 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { getClientRole } from '@/lib/auth/client';
 import ExportWizard from '@/components/export/ExportWizard';
 import AlertsBell from '@/components/alerts/AlertsBell';
+
+interface CompanyOption {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  role: string;
+}
+
+interface SessionCompanies {
+  companies: CompanyOption[];
+  activeCompanyId: string | null;
+}
 
 const NAV_LINKS = [
   { href: '/issues', label: 'דורש טיפול', prefix: '/issues' },
@@ -24,17 +36,52 @@ export default function NavBar() {
   const [showExport, setShowExport] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [prevPath, setPrevPath] = useState(pathname);
+  const [sessionData, setSessionData] = useState<SessionCompanies | null>(null);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const switcherRef = useRef<HTMLDivElement>(null);
 
   // סגור תפריט מובייל בכל ניווט — derived-state pattern (no effect)
   if (prevPath !== pathname) {
     setPrevPath(pathname);
     setMobileOpen(false);
+    setSwitcherOpen(false);
+  }
+
+  useEffect(() => {
+    fetch('/api/session/companies')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setSessionData(data); })
+      .catch(() => {});
+  }, []);
+
+  // Close switcher on outside click
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
+        setSwitcherOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  async function switchCompany(companyId: string) {
+    setSwitcherOpen(false);
+    await fetch('/api/session/company', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company_id: companyId }),
+    });
+    window.location.replace('/dashboard');
   }
 
   async function handleSignOut() {
     await fetch('/api/auth/logout', { method: 'POST' });
     window.location.replace('/login');
   }
+
+  const activeCompany = sessionData?.companies.find(c => c.id === sessionData.activeCompanyId) ?? null;
+  const hasMultipleCompanies = (sessionData?.companies.length ?? 0) > 1;
 
   return (
     <>
@@ -51,6 +98,52 @@ export default function NavBar() {
               <p className="text-xs text-gray-500">ניהול בטיחות</p>
             </div>
           </Link>
+
+          {/* Company display + switcher */}
+          {activeCompany && (
+            <div className="relative shrink-0" ref={switcherRef}>
+              <button
+                onClick={() => hasMultipleCompanies && setSwitcherOpen(o => !o)}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-sm font-medium text-gray-700 ${hasMultipleCompanies ? 'hover:bg-gray-100 cursor-pointer' : 'cursor-default'} transition-colors`}
+                title={hasMultipleCompanies ? 'החלף חברה' : activeCompany.name}
+              >
+                <span className="max-w-[140px] truncate hidden xl:inline">{activeCompany.name}</span>
+                {hasMultipleCompanies && (
+                  <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 10.5L3.5 6h9L8 10.5z" />
+                  </svg>
+                )}
+              </button>
+
+              {switcherOpen && (
+                <div className="absolute top-full mt-1 right-0 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                  {sessionData?.companies.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => switchCompany(c.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-right hover:bg-gray-50 transition-colors ${c.id === sessionData.activeCompanyId ? 'font-semibold text-orange-600' : 'text-gray-700'}`}
+                    >
+                      <span className="flex-1 truncate">{c.name}</span>
+                      {c.id === sessionData.activeCompanyId && (
+                        <svg className="w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                  <div className="border-t border-gray-100 mt-1 pt-1">
+                    <Link
+                      href="/select-company"
+                      onClick={() => setSwitcherOpen(false)}
+                      className="flex items-center px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                    >
+                      כל החברות
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ניווט — flex-1 ממלא שטח פנוי, ללא גלילה */}
           <nav className="flex items-center flex-1 min-w-0">

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from './session';
+import { getActiveCompanyId } from './active-company';
 import { createServiceClient } from '@/lib/supabase/server';
 import { resolveCompanySettings, type ResolvedCompanySettings } from '@/lib/company/settings';
 import type { CompanyRole } from '@/types';
@@ -15,10 +16,22 @@ export interface CompanyContext {
   settings:      ResolvedCompanySettings;
 }
 
-type CompanyContextOk  = { context: CompanyContext; error: null };
-type CompanyContextErr = { context: null; error: NextResponse };
+export type CompanyContextErrorCode =
+  | 'NO_SESSION'
+  | 'INACTIVE_PROFILE'
+  | 'NO_MEMBERSHIP'
+  | 'NEEDS_COMPANY_SELECTION'
+  | 'INACTIVE_COMPANY'
+  | 'FORBIDDEN_ROLE';
+
+type CompanyContextOk  = { context: CompanyContext; error: null; code?: never };
+type CompanyContextErr = { context: null; error: NextResponse; code: CompanyContextErrorCode };
 
 export type CompanyContextResult = CompanyContextOk | CompanyContextErr;
+
+function err(code: CompanyContextErrorCode, status: number, message: string): CompanyContextErr {
+  return { context: null, error: NextResponse.json({ error: message }, { status }), code };
+}
 
 /**
  * Resolves the current authenticated user's company context.
@@ -26,15 +39,16 @@ export type CompanyContextResult = CompanyContextOk | CompanyContextErr;
  * Security contract:
  *   - Never trusts companyId from the request — always derived server-side from session + DB
  *   - Verifies session signature, profile.is_active, and active company membership
- *   - Three sequential DB queries: profiles → company_members → companies (all service_role)
+ *   - Membership resolution:
+ *       0 memberships → 403 NO_MEMBERSHIP
+ *       1 membership  → auto-selected (cookie not required)
+ *       2+ memberships + valid cookie → cookie company used
+ *       2+ memberships + no/invalid cookie → 403 NEEDS_COMPANY_SELECTION (caller redirects to /select-company)
  */
 export async function getCurrentCompanyContext(): Promise<CompanyContextResult> {
   const session = await getSession();
   if (!session) {
-    return {
-      context: null,
-      error: NextResponse.json({ error: 'לא מורשה — יש להתחבר תחילה' }, { status: 401 }),
-    };
+    return err('NO_SESSION', 401, 'לא מורשה — יש להתחבר תחילה');
   }
 
   const supabase = createServiceClient();
@@ -46,10 +60,7 @@ export async function getCurrentCompanyContext(): Promise<CompanyContextResult> 
     .single();
 
   if (!profile || !profile.is_active) {
-    return {
-      context: null,
-      error: NextResponse.json({ error: 'המשתמש הושבת. פנה למנהל המערכת.' }, { status: 403 }),
-    };
+    return err('INACTIVE_PROFILE', 403, 'המשתמש הושבת. פנה למנהל המערכת.');
   }
 
   const { data: memberships } = await supabase
@@ -59,26 +70,22 @@ export async function getCurrentCompanyContext(): Promise<CompanyContextResult> 
     .eq('is_active', true);
 
   if (!memberships || memberships.length === 0) {
-    return {
-      context: null,
-      error: NextResponse.json(
-        { error: 'אין שיוך חברה פעיל. פנה למנהל המערכת.' },
-        { status: 403 }
-      ),
-    };
+    return err('NO_MEMBERSHIP', 403, 'אין שיוך חברה פעיל. פנה למנהל המערכת.');
   }
 
-  if (memberships.length > 1) {
-    return {
-      context: null,
-      error: NextResponse.json(
-        { error: 'משתמש משויך למספר חברות — נדרש מתג חברה שטרם הוטמע. פנה לתמיכה.' },
-        { status: 403 }
-      ),
-    };
-  }
+  let membership: (typeof memberships)[number];
 
-  const membership = memberships[0];
+  if (memberships.length === 1) {
+    membership = memberships[0];
+  } else {
+    // 2+ memberships — require an active-company cookie to disambiguate
+    const activeId = await getActiveCompanyId();
+    const found = activeId ? memberships.find(m => m.company_id === activeId) : undefined;
+    if (!found) {
+      return err('NEEDS_COMPANY_SELECTION', 403, 'נדרש לבחור חברה פעילה. מועבר לדף בחירת חברה.');
+    }
+    membership = found;
+  }
 
   const { data: company } = await supabase
     .from('companies')
@@ -88,10 +95,7 @@ export async function getCurrentCompanyContext(): Promise<CompanyContextResult> 
     .single();
 
   if (!company) {
-    return {
-      context: null,
-      error: NextResponse.json({ error: 'החברה אינה פעילה. פנה למנהל המערכת.' }, { status: 403 }),
-    };
+    return err('INACTIVE_COMPANY', 403, 'החברה אינה פעילה. פנה למנהל המערכת.');
   }
 
   return {
@@ -110,9 +114,8 @@ export async function getCurrentCompanyContext(): Promise<CompanyContextResult> 
 }
 
 /**
- * Active membership guard — validates session, active profile, and exactly one active company membership.
+ * Active membership guard — validates session, active profile, and resolved company membership.
  * Use for read-only operations accessible to any active company member.
- * Equivalent to calling getCurrentCompanyContext() directly.
  */
 export const requireCompanyMember = getCurrentCompanyContext;
 
@@ -121,10 +124,7 @@ export async function requireCompanyAdminRole(): Promise<CompanyContextResult> {
   const result = await getCurrentCompanyContext();
   if (result.error) return result;
   if (!['admin', 'owner'].includes(result.context.companyRole)) {
-    return {
-      context: null,
-      error: NextResponse.json({ error: 'פעולה זו מחייבת הרשאת מנהל חברה' }, { status: 403 }),
-    };
+    return err('FORBIDDEN_ROLE', 403, 'פעולה זו מחייבת הרשאת מנהל חברה');
   }
   return result;
 }

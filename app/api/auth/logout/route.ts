@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE_NAME, ROLE_COOKIE_NAME, getSession } from '@/lib/auth/session';
+import { ACTIVE_COMPANY_COOKIE_NAME } from '@/lib/auth/active-company';
 import { CONSENT_COOKIE_NAME } from '@/lib/auth/consent';
 import { auditLog } from '@/lib/audit/log';
 
@@ -16,8 +17,9 @@ export async function POST(request: NextRequest) {
     });
   }
   const response = NextResponse.json({ success: true });
-  response.cookies.set({ name: SESSION_COOKIE_NAME,  value: '', ...EXPIRED_COOKIE, httpOnly: true });
-  response.cookies.set({ name: ROLE_COOKIE_NAME,     value: '', ...EXPIRED_COOKIE });
-  response.cookies.set({ name: CONSENT_COOKIE_NAME,  value: '', ...EXPIRED_COOKIE, httpOnly: true });
+  response.cookies.set({ name: SESSION_COOKIE_NAME,         value: '', ...EXPIRED_COOKIE, httpOnly: true });
+  response.cookies.set({ name: ROLE_COOKIE_NAME,            value: '', ...EXPIRED_COOKIE });
+  response.cookies.set({ name: CONSENT_COOKIE_NAME,         value: '', ...EXPIRED_COOKIE, httpOnly: true });
+  response.cookies.set({ name: ACTIVE_COMPANY_COOKIE_NAME,  value: '', ...EXPIRED_COOKIE, httpOnly: true });
   return response;
 }
