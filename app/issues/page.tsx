@@ -40,6 +40,7 @@ export default async function IssuesPage({
     supabase
       .from('vehicles')
       .select(`*, vehicle_licenses(id,file_url,expiry_date), vehicle_insurances(id,insurance_type,file_url,expiry_date), assigned_manager:workers!vehicles_assigned_manager_id_fkey(id,full_name)`)
+      .eq('company_id', companyId)
       .eq('is_active', true)
       .eq('is_archived', false),
     supabase
@@ -57,10 +58,12 @@ export default async function IssuesPage({
     supabase
       .from('entity_notes')
       .select('*')
+      .eq('company_id', companyId)
       .eq('status', 'needs_attention'),
     supabase
       .from('subcontractors')
       .select('id, name')
+      .eq('company_id', companyId)
       .eq('is_archived', false),
   ]);
 

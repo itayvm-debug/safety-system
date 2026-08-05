@@ -7,7 +7,7 @@ export default defineConfig({
     environment: 'node',
     include: [
       'lib/**/__tests__/**/*.test.ts',
-      'app/api/**/__tests__/**/*.test.ts',
+      'app/**/__tests__/**/*.test.ts',
     ],
     exclude: ['node_modules', 'tests'],
   },

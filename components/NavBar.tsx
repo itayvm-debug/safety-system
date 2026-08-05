@@ -90,9 +90,9 @@ export default function NavBar() {
         {/* ═══ דסקטופ (lg+) — שורה אחת ═══════════════════════════════ */}
         <div className="hidden lg:flex max-w-[1400px] mx-auto px-4 h-16 items-center gap-2">
 
-          {/* לוגו */}
+          {/* לוגו פלטפורמה */}
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-            <Image src="/logo.png" alt="לוגו חברה" width={36} height={36} className="object-contain" priority />
+            <Image src="/safedoc-logo.png" alt="SafeDoc" width={36} height={36} className="object-contain" priority />
             <div className="leading-tight hidden xl:block">
               <p className="font-bold text-gray-900 text-sm">SafeDoc</p>
               <p className="text-xs text-gray-500">ניהול בטיחות</p>
@@ -101,48 +101,66 @@ export default function NavBar() {
 
           {/* Company display + switcher */}
           {activeCompany && (
-            <div className="relative shrink-0" ref={switcherRef}>
-              <button
-                onClick={() => hasMultipleCompanies && setSwitcherOpen(o => !o)}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-sm font-medium text-gray-700 ${hasMultipleCompanies ? 'hover:bg-gray-100 cursor-pointer' : 'cursor-default'} transition-colors`}
-                title={hasMultipleCompanies ? 'החלף חברה' : activeCompany.name}
-              >
-                <span className="max-w-[140px] truncate hidden xl:inline">{activeCompany.name}</span>
-                {hasMultipleCompanies && (
-                  <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 10.5L3.5 6h9L8 10.5z" />
-                  </svg>
-                )}
-              </button>
+            <>
+              <div className="w-px h-6 bg-gray-200 shrink-0" aria-hidden="true" />
+              <div className="relative shrink-0" ref={switcherRef}>
+                <button
+                  onClick={() => hasMultipleCompanies && setSwitcherOpen(o => !o)}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm font-medium text-gray-700 ${hasMultipleCompanies ? 'hover:bg-gray-100 cursor-pointer' : 'cursor-default'} transition-colors`}
+                  title={hasMultipleCompanies ? 'החלף חברה' : activeCompany.name}
+                >
+                  {activeCompany.logo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={activeCompany.logo_url}
+                      alt=""
+                      width={24}
+                      height={24}
+                      className="w-6 h-6 rounded object-contain shrink-0"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded bg-orange-100 flex items-center justify-center shrink-0">
+                      <span className="text-orange-600 font-bold text-xs leading-none">{activeCompany.name.charAt(0)}</span>
+                    </div>
+                  )}
+                  <span className="max-w-[150px] truncate hidden xl:inline">{activeCompany.name}</span>
+                  {hasMultipleCompanies && (
+                    <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 10.5L3.5 6h9L8 10.5z" />
+                    </svg>
+                  )}
+                </button>
 
-              {switcherOpen && (
-                <div className="absolute top-full mt-1 right-0 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                  {sessionData?.companies.map(c => (
-                    <button
-                      key={c.id}
-                      onClick={() => switchCompany(c.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-right hover:bg-gray-50 transition-colors ${c.id === sessionData.activeCompanyId ? 'font-semibold text-orange-600' : 'text-gray-700'}`}
-                    >
-                      <span className="flex-1 truncate">{c.name}</span>
-                      {c.id === sessionData.activeCompanyId && (
-                        <svg className="w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                  <div className="border-t border-gray-100 mt-1 pt-1">
-                    <Link
-                      href="/select-company"
-                      onClick={() => setSwitcherOpen(false)}
-                      className="flex items-center px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
-                    >
-                      כל החברות
-                    </Link>
+                {switcherOpen && (
+                  <div className="absolute top-full mt-1 right-0 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                    {sessionData?.companies.map(c => (
+                      <button
+                        key={c.id}
+                        onClick={() => switchCompany(c.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-right hover:bg-gray-50 transition-colors ${c.id === sessionData.activeCompanyId ? 'font-semibold text-orange-600' : 'text-gray-700'}`}
+                      >
+                        <span className="flex-1 truncate">{c.name}</span>
+                        {c.id === sessionData.activeCompanyId && (
+                          <svg className="w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                    <div className="border-t border-gray-100 mt-1 pt-1">
+                      <Link
+                        href="/select-company"
+                        onClick={() => setSwitcherOpen(false)}
+                        className="flex items-center px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                      >
+                        כל החברות
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            </>
           )}
 
           {/* ניווט — flex-1 ממלא שטח פנוי, ללא גלילה */}
@@ -230,10 +248,15 @@ export default function NavBar() {
 
         {/* ═══ מובייל (<lg) — header קומפקטי ═══════════════════════════ */}
         <div className="flex lg:hidden px-4 h-14 items-center justify-between">
-          {/* לוגו (ימין ב-RTL — DOM ראשון) */}
+          {/* לוגו פלטפורמה (ימין ב-RTL — DOM ראשון) */}
           <Link href="/dashboard" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="לוגו חברה" width={32} height={32} className="object-contain" priority />
-            <p className="font-bold text-gray-900 text-sm">SafeDoc</p>
+            <Image src="/safedoc-logo.png" alt="SafeDoc" width={32} height={32} className="object-contain" priority />
+            <div>
+              <p className="font-bold text-gray-900 text-sm leading-none">SafeDoc</p>
+              {activeCompany && (
+                <p className="text-xs text-gray-400 leading-tight truncate max-w-[120px]">{activeCompany.name}</p>
+              )}
+            </div>
           </Link>
 
           {/* כפתורים (שמאל ב-RTL — DOM אחרון) */}
