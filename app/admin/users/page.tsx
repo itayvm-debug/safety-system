@@ -1,10 +1,15 @@
+import { redirect } from 'next/navigation';
+import { requirePlatformAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
 import UserManagementClient from './UserManagementClient';
 import { Profile } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function UsersPage() {
+export default async function PlatformUsersPage() {
+  const { error } = await requirePlatformAdmin();
+  if (error) redirect('/dashboard');
+
   const supabase = createServiceClient();
   const { data } = await supabase
     .from('profiles')

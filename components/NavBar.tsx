@@ -82,6 +82,7 @@ export default function NavBar() {
 
   const activeCompany = sessionData?.companies.find(c => c.id === sessionData.activeCompanyId) ?? null;
   const hasMultipleCompanies = (sessionData?.companies.length ?? 0) > 1;
+  const isCompanyAdmin = activeCompany?.role === 'admin' || activeCompany?.role === 'owner';
 
   return (
     <>
@@ -216,12 +217,20 @@ export default function NavBar() {
                 ארכיון
               </Link>
             )}
+            {(isAdmin || isCompanyAdmin) && (
+              <Link
+                href="/company/members"
+                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap"
+              >
+                משתמשי החברה
+              </Link>
+            )}
             {isAdmin && (
               <Link
                 href="/admin/users"
                 className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap"
               >
-                משתמשים
+                משתמשי הפלטפורמה
               </Link>
             )}
             {isAdmin && (
@@ -327,9 +336,14 @@ export default function NavBar() {
                   ארכיון
                 </Link>
               )}
+              {(isAdmin || isCompanyAdmin) && (
+                <Link href="/company/members" className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                  משתמשי החברה
+                </Link>
+              )}
               {isAdmin && (
                 <Link href="/admin/users" className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                  משתמשים
+                  משתמשי הפלטפורמה
                 </Link>
               )}
               {isAdmin && (
