@@ -126,6 +126,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   const onlineStatus = useOnlineStatus();
   const isOnline = onlineStatus !== 'offline';
   const [archivingWorker, setArchivingWorker] = useState(false);
+  const [archiveError, setArchiveError] = useState('');
   const [togglingActive, setTogglingActive] = useState(false);
   const [togglingCraneOp, setTogglingCraneOp] = useState(false);
   const [togglingManager, setTogglingManager] = useState(false);
@@ -188,6 +189,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
   async function handleArchiveWorker() {
     if (!confirm(`להעביר את ${worker.full_name} לארכיון?`)) return;
     setArchivingWorker(true);
+    setArchiveError('');
     const res = await fetch(`/api/workers/${worker.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -198,7 +200,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
       router.refresh();
     } else {
       const body = await res.json().catch(() => ({}));
-      alert(body?.error || 'שגיאה בארכיון');
+      setArchiveError(body?.error || 'שגיאה בארכיון');
       setArchivingWorker(false);
     }
   }
@@ -462,6 +464,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
             עריכה, מחיקה ושינוי סטטוס אינם זמינים במצב לא מקוון.
           </p>
         ) : (
+        <>
         <div className="flex flex-wrap gap-2 pt-1">
           <Link
             href={`/workers/${worker.id}/edit`}
@@ -488,6 +491,10 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
             {archivingWorker ? 'מעביר לארכיון...' : 'העבר לארכיון'}
           </button>
         </div>
+        {archiveError && (
+          <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">{archiveError}</p>
+        )}
+        </>
         )}
       </Section>
     </div>
@@ -747,6 +754,7 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState('');
+  const [fileUploadError, setFileUploadError] = useState('');
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
@@ -889,20 +897,21 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setFileUploadError('');
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', 'photos');
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
       const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) { alert(uploadData.error ?? 'שגיאה בהעלאת תמונה'); return; }
+      if (!uploadRes.ok) { setFileUploadError(uploadData.error ?? 'שגיאה בהעלאת תמונה'); return; }
       await fetch(`/api/workers/${worker.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photo_url: uploadData.path }),
       });
       router.refresh();
-    } catch { alert('שגיאה בהעלאת תמונה'); } finally { setUploading(false); }
+    } catch { setFileUploadError('שגיאה בהעלאת תמונה'); } finally { setUploading(false); }
   }
 
   return (
@@ -930,6 +939,11 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
           </svg>
         </button>
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
+        {fileUploadError && (
+          <div className="absolute top-full mt-1 right-0 z-10 bg-red-50 border border-red-200 rounded-lg px-2 py-1 text-xs text-red-600 whitespace-nowrap shadow-sm">
+            {fileUploadError}
+          </div>
+        )}
         </>)}
       </div>
 

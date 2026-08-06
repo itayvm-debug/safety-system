@@ -55,5 +55,5 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ companies, activeCompanyId });
+  return NextResponse.json({ companies, activeCompanyId, platformRole: session.role });
 }
