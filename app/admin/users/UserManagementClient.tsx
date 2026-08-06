@@ -9,7 +9,7 @@ interface Props {
   initialUsers: Profile[];
 }
 
-type Modal = 'create' | 'edit' | 'reset-password' | null;
+type Modal = 'edit' | 'reset-password' | null;
 
 function receivesReports(user: Profile): boolean {
   return user.role === 'admin' && user.is_active && !!user.report_email;
@@ -37,7 +37,6 @@ export default function UserManagementClient({ initialUsers }: Props) {
   function openReset(user: Profile) { setSelectedUser(user); setModal('reset-password'); }
   function closeModal() { setModal(null); setSelectedUser(null); }
 
-  function handleCreated(p: Profile) { setUsers(prev => [...prev, p]); closeModal(); }
   function handleUpdated(p: Profile) { setUsers(prev => prev.map(u => u.id === p.id ? p : u)); closeModal(); }
 
   const reportRecipients = users.filter(receivesReports).length;
@@ -88,9 +87,9 @@ export default function UserManagementClient({ initialUsers }: Props) {
       {/* כותרת */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">ניהול משתמשים</h1>
+          <h1 className="text-2xl font-bold text-gray-900">משתמשי הפלטפורמה</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {users.length} משתמשים
+            {users.length} חשבונות פלטפורמה
             {reportRecipients > 0 && (
               <span className="text-green-600"> · {reportRecipients} מקבלים דוחות שבועיים</span>
             )}
@@ -105,13 +104,6 @@ export default function UserManagementClient({ initialUsers }: Props) {
           >
             <span className="text-base leading-none">📧</span>
             {sendingReport ? 'שולח...' : 'שלח דוח בדיקה'}
-          </button>
-          <button
-            onClick={() => setModal('create')}
-            className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors"
-          >
-            <span className="text-lg leading-none">+</span>
-            צור משתמש
           </button>
         </div>
       </div>
@@ -170,9 +162,6 @@ export default function UserManagementClient({ initialUsers }: Props) {
       </div>
 
       {/* מודלים */}
-      {modal === 'create' && (
-        <CreateUserModal onClose={closeModal} onCreated={handleCreated} />
-      )}
       {modal === 'edit' && selectedUser && (
         <EditUserModal user={selectedUser} onClose={closeModal} onUpdated={handleUpdated} />
       )}
@@ -284,111 +273,6 @@ function UserRow({
         </div>
       </td>
     </tr>
-  );
-}
-
-// ─── מודל יצירת משתמש ─────────────────────────────────────────────
-function CreateUserModal({
-  onClose,
-  onCreated,
-}: {
-  onClose: () => void;
-  onCreated: (p: Profile) => void;
-}) {
-  const [form, setForm] = useState({
-    full_name: '',
-    username: '',
-    email: '',
-    password: '',
-    role: 'user' as UserRole,
-    job_title: '',
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  function set(field: string, value: string) {
-    setForm(prev => ({ ...prev, [field]: value }));
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? 'שגיאה ביצירה'); return; }
-      onCreated(data);
-    } catch {
-      setError('שגיאת תקשורת');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <ModalWrapper title="צור משתמש חדש" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="שם מלא *">
-          <input type="text" required value={form.full_name} onChange={e => set('full_name', e.target.value)}
-            placeholder="ישראל ישראלי"
-            className={inputCls} />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="שם משתמש *">
-            <input type="text" required value={form.username} onChange={e => set('username', e.target.value)}
-              placeholder="israel-israeli"
-              autoCapitalize="none" autoCorrect="off" dir="ltr"
-              className={inputCls} />
-            <p className="text-xs text-gray-400 mt-1">הכניסה תהיה עם שם זה</p>
-          </Field>
-          <Field label="הרשאה *">
-            <select value={form.role} onChange={e => set('role', e.target.value as UserRole)} className={inputCls}>
-              <option value="user">משתמש</option>
-              <option value="admin">מנהל (admin)</option>
-            </select>
-          </Field>
-        </div>
-
-        <Field label="מייל (אופציונלי)">
-          <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
-            placeholder={form.username ? `${form.username.toLowerCase()}@safedoc.local` : 'mail@example.com'}
-            dir="ltr"
-            className={inputCls} />
-          <p className="text-xs text-gray-400 mt-1">אם ריק, ייווצר מייל פנימי אוטומטי</p>
-        </Field>
-
-        <Field label="תפקיד עסקי">
-          <input type="text" value={form.job_title} onChange={e => set('job_title', e.target.value)}
-            placeholder="מנהל בטיחות"
-            className={inputCls} />
-        </Field>
-
-        <Field label="סיסמה ראשונית *">
-          <input type="password" required minLength={8} value={form.password} onChange={e => set('password', e.target.value)}
-            placeholder="לפחות 8 תווים"
-            className={inputCls} />
-        </Field>
-
-        {error && <ErrorBox>{error}</ErrorBox>}
-
-        <div className="flex gap-2 pt-1">
-          <button type="submit" disabled={loading}
-            className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-orange-600 disabled:opacity-50 transition-colors">
-            {loading ? 'יוצר...' : 'צור משתמש'}
-          </button>
-          <button type="button" onClick={onClose}
-            className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm hover:bg-gray-50 transition-colors">
-            ביטול
-          </button>
-        </div>
-      </form>
-    </ModalWrapper>
   );
 }
 
