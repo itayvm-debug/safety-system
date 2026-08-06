@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
+import { getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { WorkerWithDocuments } from '@/types';
 import WorkerDetail from '@/components/workers/WorkerDetail';
@@ -8,17 +9,22 @@ export const dynamic = 'force-dynamic';
 
 export default async function WorkerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  const { context, error } = await getCurrentCompanyContext();
+  if (error) redirect('/select-company');
+  const { companyId } = context;
+
   const supabase = createServiceClient();
 
-  const { data, error } = await supabase
+  const { data, error: fetchError } = await supabase
     .from('workers')
     .select(`*, documents(*), safety_briefings(*), subcontractor:subcontractors!workers_subcontractor_id_fkey(id, name)`)
     .eq('id', id)
+    .eq('company_id', companyId)
     .single();
 
-  if (error || !data) notFound();
+  if (fetchError || !data) notFound();
 
-  // queries נפרדים לטבלאות קשורות
   const workerCompanyId = data.company_id as string;
 
   const [
