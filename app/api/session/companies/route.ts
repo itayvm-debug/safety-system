@@ -55,5 +55,8 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ companies, activeCompanyId, platformRole: session.role });
+  return NextResponse.json(
+    { companies, activeCompanyId, platformRole: session.role },
+    { headers: { 'Cache-Control': 'no-store' } },
+  );
 }

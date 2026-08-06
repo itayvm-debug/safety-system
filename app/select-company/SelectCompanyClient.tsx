@@ -3,13 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-
-interface CompanyOption {
-  id: string;
-  name: string;
-  logo_url: string | null;
-  role: string;
-}
+import {
+  useSessionCompanies,
+  broadcastSessionCompaniesChanged,
+} from '@/lib/session/SessionCompaniesProvider';
 
 const ROLE_LABELS: Record<string, string> = {
   owner:  'בעלים',
@@ -43,12 +40,9 @@ function CompanyAvatar({ name, logoUrl }: { name: string; logoUrl: string | null
 }
 
 export default function SelectCompanyClient() {
-  const [companies, setCompanies]           = useState<CompanyOption[]>([]);
-  const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
-  const [platformRole, setPlatformRole]     = useState<string | null>(null);
-  const [loading, setLoading]               = useState(true);
-  const [selecting, setSelecting]           = useState<string | null>(null);
-  const [error, setError]                   = useState<string | null>(null);
+  const { companies, activeCompanyId, platformRole, loading, error } = useSessionCompanies();
+  const [selecting, setSelecting] = useState<string | null>(null);
+  const [selectError, setSelectError] = useState<string | null>(null);
 
   const selectCompany = useCallback(async (companyId: string) => {
     setSelecting(companyId);
@@ -59,37 +53,27 @@ export default function SelectCompanyClient() {
         body: JSON.stringify({ company_id: companyId }),
       });
       if (!res.ok) {
-        setError('שגיאה בבחירת החברה. נסה שנית.');
+        setSelectError('שגיאה בבחירת החברה. נסה שנית.');
         setSelecting(null);
         return;
       }
+      broadcastSessionCompaniesChanged();
       window.location.replace('/dashboard');
     } catch {
-      setError('שגיאת רשת. בדוק את החיבור ונסה שנית.');
+      setSelectError('שגיאת רשת. בדוק את החיבור ונסה שנית.');
       setSelecting(null);
     }
   }, []);
 
+  // Auto-redirect: 0 companies → login, 1 company → auto-select
   useEffect(() => {
-    fetch('/api/session/companies')
-      .then(r => r.json())
-      .then((data: { companies?: CompanyOption[]; activeCompanyId?: string | null; platformRole?: string | null }) => {
-        const list: CompanyOption[] = data.companies ?? [];
-        setCompanies(list);
-        setActiveCompanyId(data.activeCompanyId ?? null);
-        setPlatformRole(data.platformRole ?? null);
+    if (loading) return;
+    if (companies.length === 0) { window.location.replace('/login'); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (companies.length === 1) { void selectCompany(companies[0].id); }
+  }, [companies, loading, selectCompany]);
 
-        if (list.length === 0) { window.location.replace('/login'); return; }
-        if (list.length === 1) { void selectCompany(list[0].id); return; }
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('שגיאה בטעינת רשימת החברות. נסה לרענן את הדף.');
-        setLoading(false);
-      });
-  }, [selectCompany]);
-
-  if (loading) {
+  if (loading || (companies.length <= 1 && !error && !selectError)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -100,11 +84,13 @@ export default function SelectCompanyClient() {
     );
   }
 
-  if (error) {
+  const displayError = selectError ?? error;
+
+  if (displayError && companies.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
-          <p className="text-red-600 text-sm mb-4">{error}</p>
+          <p className="text-red-600 text-sm mb-4">{displayError}</p>
           <button onClick={() => window.location.reload()} className="text-sm text-orange-600 hover:underline">
             נסה שנית
           </button>
@@ -139,8 +125,11 @@ export default function SelectCompanyClient() {
         </div>
 
         <div className="p-4 space-y-2">
+          {displayError && (
+            <p className="text-sm text-red-600 px-1 pb-1">{displayError}</p>
+          )}
           {companies.map(company => {
-            const isActive   = company.id === activeCompanyId;
+            const isActive    = company.id === activeCompanyId;
             const isSelecting = selecting === company.id;
 
             return (
