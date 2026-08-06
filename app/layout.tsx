@@ -4,6 +4,7 @@ import './globals.css';
 import PwaRegistration from '@/components/pwa/PwaRegistration';
 import OfflineBanner from '@/components/offline/OfflineBanner';
 import SiteFooter from '@/components/SiteFooter';
+import { SessionCompaniesProvider } from '@/lib/session/SessionCompaniesProvider';
 
 const geist = Geist({ subsets: ['latin'] });
 
@@ -57,12 +58,14 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
       </head>
       <body className={`${geist.className} bg-gray-50 min-h-screen flex flex-col`}>
-        <div className="flex-1">
-          {children}
-        </div>
-        <SiteFooter />
-        <PwaRegistration />
-        <OfflineBanner />
+        <SessionCompaniesProvider>
+          <div className="flex-1">
+            {children}
+          </div>
+          <SiteFooter />
+          <PwaRegistration />
+          <OfflineBanner />
+        </SessionCompaniesProvider>
       </body>
     </html>
   );

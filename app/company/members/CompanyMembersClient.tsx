@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { CompanyRole } from '@/types';
+import { broadcastSessionCompaniesChanged } from '@/lib/session/SessionCompaniesProvider';
 
 interface MemberWithProfile {
   id: string;
@@ -191,6 +192,7 @@ function MemberRow({
       });
       if (res.ok) {
         onUpdated({ ...m, role: newRole });
+        broadcastSessionCompaniesChanged();
       } else {
         const d = await res.json().catch(() => ({}));
         setError(d.error ?? 'שגיאה בעדכון');
@@ -212,6 +214,7 @@ function MemberRow({
       });
       if (res.ok) {
         onUpdated({ ...m, is_active: !m.is_active });
+        broadcastSessionCompaniesChanged();
       } else {
         const d = await res.json().catch(() => ({}));
         setError(d.error ?? 'שגיאה בעדכון');
@@ -229,6 +232,7 @@ function MemberRow({
       if (res.ok) {
         setShowRemoveModal(false);
         onRemoved(m.id);
+        broadcastSessionCompaniesChanged();
       } else {
         const d = await res.json().catch(() => ({}));
         setError(d.error ?? 'שגיאה בהסרה');

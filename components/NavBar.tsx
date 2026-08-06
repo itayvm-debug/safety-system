@@ -7,18 +7,10 @@ import { usePathname } from 'next/navigation';
 import { getClientRole } from '@/lib/auth/client';
 import ExportWizard from '@/components/export/ExportWizard';
 import AlertsBell from '@/components/alerts/AlertsBell';
-
-interface CompanyOption {
-  id: string;
-  name: string;
-  logo_url: string | null;
-  role: string;
-}
-
-interface SessionCompanies {
-  companies: CompanyOption[];
-  activeCompanyId: string | null;
-}
+import {
+  useSessionCompanies,
+  broadcastSessionCompaniesChanged,
+} from '@/lib/session/SessionCompaniesProvider';
 
 const NAV_LINKS = [
   { href: '/issues', label: 'דורש טיפול', prefix: '/issues' },
@@ -36,9 +28,11 @@ export default function NavBar() {
   const [showExport, setShowExport] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [prevPath, setPrevPath] = useState(pathname);
-  const [sessionData, setSessionData] = useState<SessionCompanies | null>(null);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
+
+  const { companies, activeCompanyId } = useSessionCompanies();
 
   // סגור תפריט מובייל בכל ניווט — derived-state pattern (no effect)
   if (prevPath !== pathname) {
@@ -46,13 +40,6 @@ export default function NavBar() {
     setMobileOpen(false);
     setSwitcherOpen(false);
   }
-
-  useEffect(() => {
-    fetch('/api/session/companies')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setSessionData(data); })
-      .catch(() => {});
-  }, []);
 
   // Close switcher on outside click
   useEffect(() => {
@@ -67,11 +54,13 @@ export default function NavBar() {
 
   async function switchCompany(companyId: string) {
     setSwitcherOpen(false);
+    setSwitching(true);
     await fetch('/api/session/company', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ company_id: companyId }),
     });
+    broadcastSessionCompaniesChanged();
     window.location.replace('/dashboard');
   }
 
@@ -80,8 +69,8 @@ export default function NavBar() {
     window.location.replace('/login');
   }
 
-  const activeCompany = sessionData?.companies.find(c => c.id === sessionData.activeCompanyId) ?? null;
-  const hasMultipleCompanies = (sessionData?.companies.length ?? 0) > 1;
+  const activeCompany = companies.find(c => c.id === activeCompanyId) ?? null;
+  const hasMultipleCompanies = companies.length > 1;
   const isCompanyAdmin = activeCompany?.role === 'admin' || activeCompany?.role === 'owner';
 
   return (
@@ -135,14 +124,15 @@ export default function NavBar() {
 
                 {switcherOpen && (
                   <div className="absolute top-full mt-1 right-0 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                    {sessionData?.companies.map(c => (
+                    {companies.map(c => (
                       <button
                         key={c.id}
                         onClick={() => switchCompany(c.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-right hover:bg-gray-50 transition-colors ${c.id === sessionData.activeCompanyId ? 'font-semibold text-orange-600' : 'text-gray-700'}`}
+                        disabled={switching}
+                        className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-right hover:bg-gray-50 transition-colors ${c.id === activeCompanyId ? 'font-semibold text-orange-600' : 'text-gray-700'}`}
                       >
                         <span className="flex-1 truncate">{c.name}</span>
-                        {c.id === sessionData.activeCompanyId && (
+                        {c.id === activeCompanyId && (
                           <svg className="w-4 h-4 text-orange-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>

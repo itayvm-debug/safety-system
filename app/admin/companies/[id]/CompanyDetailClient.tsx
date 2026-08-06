@@ -6,6 +6,10 @@ import type { Company } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
+import {
+  useSessionCompanies,
+  broadcastSessionCompaniesChanged,
+} from '@/lib/session/SessionCompaniesProvider';
 
 interface Props {
   company: Company;
@@ -14,6 +18,7 @@ interface Props {
 
 export default function CompanyDetailClient({ company: initial, memberCount }: Props) {
   const router = useRouter();
+  const { refreshSessionCompanies } = useSessionCompanies();
   const [company, setCompany] = useState<Company>(initial);
   const [showEdit, setShowEdit] = useState(false);
   const [toggling, setToggling] = useState(false);
@@ -31,10 +36,20 @@ export default function CompanyDetailClient({ company: initial, memberCount }: P
       if (res.ok) {
         const updated = await res.json();
         setCompany(updated);
+        await refreshSessionCompanies();
+        broadcastSessionCompaniesChanged();
       }
     } finally {
       setToggling(false);
     }
+  }
+
+  async function handleUpdated(c: Company) {
+    setCompany(c);
+    setShowEdit(false);
+    await refreshSessionCompanies();
+    broadcastSessionCompaniesChanged();
+    router.refresh();
   }
 
   return (
@@ -116,7 +131,7 @@ export default function CompanyDetailClient({ company: initial, memberCount }: P
         <EditCompanyModal
           company={company}
           onClose={() => setShowEdit(false)}
-          onUpdated={(c) => { setCompany(c); setShowEdit(false); router.refresh(); }}
+          onUpdated={handleUpdated}
         />
       )}
     </div>
