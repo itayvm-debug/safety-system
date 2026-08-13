@@ -24,6 +24,7 @@ export default function VehicleDetail({ vehicle: initial, imageUrl: initialImage
   const [imageUrl, setImageUrl] = useState<string | null>(initialImageUrl);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [archiveError, setArchiveError] = useState('');
 
   const licenses = vehicle.vehicle_licenses ?? [];
   const insurances = vehicle.vehicle_insurances ?? [];
@@ -51,14 +52,25 @@ export default function VehicleDetail({ vehicle: initial, imageUrl: initialImage
   async function handleDelete() {
     if (!confirm(`להעביר את הרכב ${vehicle.vehicle_number} לארכיון?`)) return;
     setDeleting(true);
+    setArchiveError('');
     try {
       const res = await fetch(`/api/vehicles/${vehicle.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_archived: true }),
       });
-      if (res.ok) { router.push('/vehicles'); router.refresh(); }
-    } finally { setDeleting(false); }
+      if (res.ok) {
+        router.push('/vehicles');
+        router.refresh();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setArchiveError(d.error ?? 'שגיאה בהעברה לארכיון — נסה שנית');
+      }
+    } catch {
+      setArchiveError('שגיאת תקשורת — נסה שנית');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   if (editing) {
@@ -134,6 +146,9 @@ export default function VehicleDetail({ vehicle: initial, imageUrl: initialImage
             {deleting ? 'מעביר לארכיון...' : 'העבר לארכיון'}
           </button>
         </div>
+        {archiveError && (
+          <p className="text-xs text-red-600 mt-2">{archiveError}</p>
+        )}
       </div>
 
       {/* רישיון רכב */}

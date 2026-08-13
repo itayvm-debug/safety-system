@@ -24,6 +24,9 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
   const [localBriefings, setLocalBriefings] = useState<SafetyBriefing[]>(briefings);
   const [formOpen, setFormOpen] = useState(false);
   const [mode, setMode] = useState<Mode>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   // מיון לפי created_at (timestamp מדויק) ולא briefed_at (רק תאריך)
   // מבטיח שתמיד יוצג התדריך שנוצר אחרון, גם אם שניים נוצרו באותו יום
@@ -34,13 +37,20 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
   const status = getBriefingStatus(latestBriefing);
 
   async function handleDelete(id: string) {
-    if (!confirm('למחוק את רשומת התדריך?')) return;
+    setDeleting(true);
+    setDeleteError('');
     const res = await fetch('/api/safety-briefings', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ briefing_id: id }),
     });
-    if (res.ok) setLocalBriefings((prev) => prev.filter((b) => b.id !== id));
+    if (res.ok) {
+      setLocalBriefings((prev) => prev.filter((b) => b.id !== id));
+      setConfirmDelete(false);
+    } else {
+      setDeleteError('שגיאה במחיקה');
+    }
+    setDeleting(false);
   }
 
   function close() { setFormOpen(false); setMode(null); }
@@ -58,17 +68,28 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
           <p>תוקף עד: {format(parseISO(latestBriefing.expires_at), 'dd/MM/yyyy', { locale: he })}</p>
           {latestBriefing.conducted_by && <p>מדריך: {latestBriefing.conducted_by}</p>}
           {latestBriefing.language && <p>שפה: {BRIEFING_LANGUAGE_LABELS[latestBriefing.language]}</p>}
-          <div className="flex gap-3 mt-1 flex-wrap">
+          <div className="flex gap-3 mt-1 flex-wrap items-center">
             {latestBriefing.file_url && (
               <>
                 <FileActionButton fileUrl={latestBriefing.file_url} download={false} label="צפה ב-PDF" />
                 <FileActionButton fileUrl={latestBriefing.file_url} download={true} label="הורד PDF" />
               </>
             )}
-            <button onClick={() => handleDelete(latestBriefing.id)} className="text-xs text-red-400 hover:text-red-600">
-              מחק רשומה
-            </button>
+            {confirmDelete ? (
+              <span className="flex items-center gap-2 text-xs">
+                <span className="text-gray-600">למחוק את רשומת התדריך?</span>
+                <button onClick={() => setConfirmDelete(false)} disabled={deleting} className="text-gray-500 hover:text-gray-700">ביטול</button>
+                <button onClick={() => handleDelete(latestBriefing.id)} disabled={deleting} className="text-red-600 font-medium hover:text-red-800 disabled:opacity-50">
+                  {deleting ? 'מוחק...' : 'מחק'}
+                </button>
+              </span>
+            ) : (
+              <button onClick={() => setConfirmDelete(true)} className="text-xs text-red-400 hover:text-red-600">
+                מחק רשומה
+              </button>
+            )}
           </div>
+          {deleteError && <p className="text-xs text-red-600 mt-1">{deleteError}</p>}
         </div>
       ) : (
         <p className="text-sm text-gray-400 mb-3">טרם בוצע תדריך בטיחות</p>

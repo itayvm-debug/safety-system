@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { validateSubcontractorOwnership } from '@/lib/subcontractors/ownership';
 
 export async function GET() {
   const { context, error } = await requireCompanyAdminRole();
@@ -23,11 +24,15 @@ export async function POST(request: NextRequest) {
   if (error) return error;
 
   const body = await request.json();
-  const { description, license_number, subcontractor_id, project_name } = body;
+  const { description, license_number, subcontractor_id, project_name,
+          manufacturer, machine_identifier, safe_working_load, power_type } = body;
 
   if (!description?.trim()) return NextResponse.json({ error: 'תיאור נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
+
+  const subOwnership = await validateSubcontractorOwnership(context.companyId, subcontractor_id);
+  if (!subOwnership.valid) return subOwnership.error;
 
   // בדיקת כפילות על מספר רישוי — per-company (tenant-local)
   if (license_number?.trim()) {
@@ -48,6 +53,10 @@ export async function POST(request: NextRequest) {
       license_number: license_number?.trim() || null,
       subcontractor_id: subcontractor_id || null,
       project_name: project_name?.trim() || null,
+      manufacturer: manufacturer?.trim() || null,
+      machine_identifier: machine_identifier?.trim() || null,
+      safe_working_load: safe_working_load ?? null,
+      power_type: power_type?.trim() || null,
     })
     .select()
     .single();

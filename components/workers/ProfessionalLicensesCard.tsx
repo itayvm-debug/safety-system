@@ -70,6 +70,7 @@ function LicenseRow({
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const status = getDocumentStatus(license.file_url, license.expiry_date, true, true);
 
@@ -84,7 +85,6 @@ function LicenseRow({
   }
 
   async function handleDelete() {
-    if (!confirm(`למחוק את הרישיון "${license.license_type}"?`)) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/professional-licenses/${license.id}`, { method: 'DELETE' });
@@ -138,9 +138,19 @@ function LicenseRow({
           ) : (
             <span className="text-sm text-amber-600 font-medium">⚠ חסר מסמך</span>
           )}
-          <button onClick={handleDelete} disabled={deleting} className="text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
-            {deleting ? 'מוחק...' : 'מחק'}
-          </button>
+          {confirmDelete ? (
+            <span className="flex items-center gap-2">
+              <span className="text-xs text-gray-600">למחוק?</span>
+              <button onClick={() => setConfirmDelete(false)} disabled={deleting} className="text-xs text-gray-500 hover:text-gray-700">ביטול</button>
+              <button onClick={handleDelete} disabled={deleting} className="text-sm text-red-600 font-medium hover:text-red-800 disabled:opacity-50">
+                {deleting ? 'מוחק...' : 'מחק'}
+              </button>
+            </span>
+          ) : (
+            <button onClick={() => setConfirmDelete(true)} disabled={deleting} className="text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
+              מחק
+            </button>
+          )}
         </div>
       </div>
     </div>

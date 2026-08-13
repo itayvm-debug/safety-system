@@ -11,6 +11,12 @@ import {
 import type { WorkerWithDocuments, Vehicle, HeavyEquipment } from '@/types';
 import type { Issue } from '@/lib/documents/issues';
 
+// ─── Tenant branding ───────────────────────────────────────────
+export interface PdfBranding {
+  companyName: string;
+  logoUrl:     string | null;
+}
+
 // ─── Helper colors ─────────────────────────────────────────────
 function statusColor(label: string): string {
   if (label === 'תקין') return '#16a34a';
@@ -102,10 +108,15 @@ function buildHtmlShell(
   headers: string[],
   rows: string,
   count: number,
+  branding: PdfBranding,
   pageLabel?: string,
 ): string {
   const today = new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const headerCells = headers.map((h) => `<th>${h}</th>`).join('');
+  const initials    = branding.companyName.charAt(0);
+  const logoHtml    = branding.logoUrl
+    ? `<img src="${branding.logoUrl}" class="logo" />`
+    : `<div style="width:52px;height:52px;border-radius:8px;background:#fed7aa;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#ea580c">${initials}</div>`;
 
   return `<!DOCTYPE html>
 <html dir="rtl" lang="he">
@@ -144,8 +155,8 @@ function buildHtmlShell(
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px">
-        <div class="company" style="text-align:right"><h1>SafeDoc</h1><p>ניהול בטיחות · איתי ולדמן</p></div>
-        <img src="/logo.png" class="logo" />
+        <div class="company" style="text-align:right"><h1>${branding.companyName}</h1></div>
+        ${logoHtml}
       </div>
     </div>
     <div class="table-wrap">
@@ -154,7 +165,7 @@ function buildHtmlShell(
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <div class="footer">SafeDoc · איתי ולדמן · הופק ב-${today}</div>
+    <div class="footer">מופק באמצעות SafeDoc · הופק ב-${today}</div>
   </div>
 </body>
 </html>`;
@@ -167,19 +178,20 @@ function buildHtmlPages(
   rows: string[],
   count: number,
   rowsPerPage: number,
+  branding: PdfBranding,
 ): string[] {
   const totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
   const pages: string[] = [];
   for (let p = 0; p < totalPages; p++) {
     const pageRows = rows.slice(p * rowsPerPage, (p + 1) * rowsPerPage).join('');
     const pageLabel = totalPages > 1 ? `עמוד ${p + 1} מתוך ${totalPages}` : undefined;
-    pages.push(buildHtmlShell(title, headers, pageRows, count, pageLabel));
+    pages.push(buildHtmlShell(title, headers, pageRows, count, branding, pageLabel));
   }
   return pages;
 }
 
 // ─── עובדים ───────────────────────────────────────────────────
-export function buildWorkersHtml(workers: WorkerWithDocuments[], title: string): string[] {
+export function buildWorkersHtml(workers: WorkerWithDocuments[], title: string, branding: PdfBranding): string[] {
   const rows = workers.map((w) => {
     const docMap = new Map(w.documents.map((d) => [d.doc_type, d]));
     const visa = docMap.get('work_visa');
@@ -212,11 +224,11 @@ export function buildWorkersHtml(workers: WorkerWithDocuments[], title: string):
   });
 
   const headers = ['שם מלא', 'מספר מזהה', 'סוג', 'קבלן משנה', 'פרויקט', 'עבודה בגובה', 'אשרת עבודה', 'תדריך', 'סטטוס', 'פירוט ליקויים', 'פעיל'];
-  return buildHtmlPages(title, headers, rows, workers.length, 12);
+  return buildHtmlPages(title, headers, rows, workers.length, 12, branding);
 }
 
 // ─── רכבים ────────────────────────────────────────────────────
-export function buildVehiclesHtml(vehicles: Vehicle[], title: string): string[] {
+export function buildVehiclesHtml(vehicles: Vehicle[], title: string, branding: PdfBranding): string[] {
   const rows = vehicles.map((v) => {
     const lic = (v.vehicle_licenses ?? [])[0] ?? null;
     const mandatory = (v.vehicle_insurances ?? []).find((i) => i.insurance_type === 'ביטוח חובה');
@@ -238,11 +250,11 @@ export function buildVehiclesHtml(vehicles: Vehicle[], title: string): string[] 
   });
 
   const headers = ['סוג / דגם', 'מספר רכב', 'צבע', 'עובד משויך', 'פרויקט', 'רישיון — תוקף', 'ביטוח חובה — תוקף', 'סטטוס', 'פירוט ליקויים', 'פעיל'];
-  return buildHtmlPages(title, headers, rows, vehicles.length, 15);
+  return buildHtmlPages(title, headers, rows, vehicles.length, 15, branding);
 }
 
 // ─── כלי צמ"ה ─────────────────────────────────────────────────
-export function buildEquipmentHtml(equipment: HeavyEquipment[], title: string): string[] {
+export function buildEquipmentHtml(equipment: HeavyEquipment[], title: string, branding: PdfBranding): string[] {
   const rows = equipment.map((eq) => {
     const licLabel  = STATUS_LABELS[getDocumentStatus(eq.license_file_url, eq.license_expiry, true, true)];
     const insLabel  = STATUS_LABELS[getDocumentStatus(eq.insurance_file_url, eq.insurance_expiry, true, true)];
@@ -265,11 +277,11 @@ export function buildEquipmentHtml(equipment: HeavyEquipment[], title: string): 
   });
 
   const headers = ['תיאור', 'מספר רישוי', 'קבלן משנה', 'פרויקט', 'רישיון', 'ביטוח', 'תוקף רישיון', 'תוקף ביטוח', 'סטטוס', 'פירוט ליקויים', 'פעיל'];
-  return buildHtmlPages(title, headers, rows, equipment.length, 15);
+  return buildHtmlPages(title, headers, rows, equipment.length, 15, branding);
 }
 
 // ─── דורש טיפול ───────────────────────────────────────────────
-export function buildIssuesHtml(issues: Issue[], title: string): string[] {
+export function buildIssuesHtml(issues: Issue[], title: string, branding: PdfBranding): string[] {
   const ENTITY_LABELS: Record<Issue['entityType'], string> = {
     worker: 'עובד', vehicle: 'רכב', heavy_equipment: 'כלי צמ"ה', lifting_equipment: 'ציוד הרמה', subcontractor: 'קבלן משנה',
   };
@@ -290,7 +302,7 @@ export function buildIssuesHtml(issues: Issue[], title: string): string[] {
   });
 
   const headers = ['סוג ישות', 'שם', 'פירוט ליקוי', 'סטטוס', 'קבלן משנה', 'מנהל עבודה'];
-  return buildHtmlPages(title, headers, rows, issues.length, 20);
+  return buildHtmlPages(title, headers, rows, issues.length, 20, branding);
 }
 
 // ─── PDF generator — renders each page separately ──────────────
