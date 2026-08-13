@@ -32,7 +32,9 @@ export default function NavBar() {
   const [prevPath, setPrevPath] = useState(pathname);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
 
   const { companies, activeCompanyId } = useSessionCompanies();
 
@@ -41,6 +43,7 @@ export default function NavBar() {
     setPrevPath(pathname);
     setMobileOpen(false);
     setSwitcherOpen(false);
+    setMoreOpen(false);
   }
 
   // Close switcher on outside click
@@ -48,6 +51,9 @@ export default function NavBar() {
     function onClickOutside(e: MouseEvent) {
       if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
         setSwitcherOpen(false);
+      }
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
       }
     }
     document.addEventListener('mousedown', onClickOutside);
@@ -181,7 +187,7 @@ export default function NavBar() {
             {isAdmin && (
               <button
                 onClick={() => setShowExport(true)}
-                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden lg:inline-block whitespace-nowrap"
+                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap"
               >
                 יצוא
               </button>
@@ -193,10 +199,11 @@ export default function NavBar() {
             >
               משוב
             </Link>
+            {/* Secondary admin links — inline at 2xl+, collapsed into dropdown below 2xl */}
             {isAdmin && (
               <Link
                 href="/feedback"
-                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden xl:inline-block whitespace-nowrap"
+                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden 2xl:inline-block whitespace-nowrap"
               >
                 פניות
               </Link>
@@ -204,23 +211,15 @@ export default function NavBar() {
             {isAdmin && (
               <Link
                 href="/archive"
-                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap"
+                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden 2xl:inline-block whitespace-nowrap"
               >
                 ארכיון
-              </Link>
-            )}
-            {(isAdmin || isCompanyAdmin) && (
-              <Link
-                href="/company/members"
-                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap"
-              >
-                משתמשי החברה
               </Link>
             )}
             {isAdmin && (
               <Link
                 href="/admin/users"
-                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap"
+                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden 2xl:inline-block whitespace-nowrap"
               >
                 משתמשי הפלטפורמה
               </Link>
@@ -228,9 +227,66 @@ export default function NavBar() {
             {isAdmin && (
               <Link
                 href="/admin/companies"
-                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap"
+                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden 2xl:inline-block whitespace-nowrap"
               >
                 חברות
+              </Link>
+            )}
+            {/* More dropdown — visible at lg..xl (1024-1535px), hidden at 2xl+ where items show inline */}
+            {isAdmin && (
+              <div className="relative 2xl:hidden" ref={moreRef}>
+                <button
+                  onClick={() => setMoreOpen(o => !o)}
+                  className="text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                  aria-label="עוד אפשרויות"
+                  aria-expanded={moreOpen}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <circle cx="2" cy="8" r="1.5" />
+                    <circle cx="8" cy="8" r="1.5" />
+                    <circle cx="14" cy="8" r="1.5" />
+                  </svg>
+                </button>
+                {moreOpen && (
+                  <div className="absolute top-full mt-1 right-0 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                    <Link
+                      href="/feedback"
+                      onClick={() => setMoreOpen(false)}
+                      className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      פניות
+                    </Link>
+                    <Link
+                      href="/archive"
+                      onClick={() => setMoreOpen(false)}
+                      className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      ארכיון
+                    </Link>
+                    <Link
+                      href="/admin/users"
+                      onClick={() => setMoreOpen(false)}
+                      className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      משתמשי הפלטפורמה
+                    </Link>
+                    <Link
+                      href="/admin/companies"
+                      onClick={() => setMoreOpen(false)}
+                      className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      חברות
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+            {(isAdmin || isCompanyAdmin) && (
+              <Link
+                href="/company/members"
+                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap"
+              >
+                משתמשי החברה
               </Link>
             )}
             {!isAdmin && (
