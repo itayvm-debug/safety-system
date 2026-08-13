@@ -10,13 +10,13 @@ export async function GET(request: NextRequest) {
   const workerId = request.nextUrl.searchParams.get('worker_id');
   const supabase = createServiceClient();
 
-  const query = supabase
+  let query = supabase
     .from('lifting_machine_appointments')
     .select('*')
     .eq('company_id', companyId)
     .order('appointment_date', { ascending: false });
 
-  if (workerId) query.eq('worker_id', workerId);
+  if (workerId) query = query.eq('worker_id', workerId);
 
   const { data, error: dbError } = await query;
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
