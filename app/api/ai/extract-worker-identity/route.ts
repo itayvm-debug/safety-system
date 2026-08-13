@@ -13,11 +13,6 @@ export async function POST(request: NextRequest) {
   if (authError) return authError;
   const { companyId, userId } = context;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ success: false, error: 'ai_unavailable' });
-  }
-
   let body: { path?: string; document_type?: string };
   try {
     body = await request.json();
@@ -29,13 +24,21 @@ export async function POST(request: NextRequest) {
   if (!rawPath) return NextResponse.json({ error: 'path נדרש' }, { status: 400 });
 
   // Step 2: Validate and normalize the path (rejects traversal, control chars, double-encoded)
+  // Must run before the API key guard so invalid paths are always rejected, even when
+  // ANTHROPIC_API_KEY is absent — preventing the early return from masking path attacks.
   const path = normalizeStoragePath(rawPath);
   if (!path) {
     // Return generic not-found — don't reveal why path is invalid
     return NextResponse.json({ success: false, error: 'file_not_found' }, { status: 404 });
   }
 
-  // Step 3: Authorize — verify the path belongs to this company before creating a signed URL.
+  // Step 3: Reject early if AI is unavailable — path has already been validated above.
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ success: false, error: 'ai_unavailable' });
+  }
+
+  // Step 4: Authorize — verify the path belongs to this company before creating a signed URL.
   // Uses the same authorization chain as /api/signed-url. The service client is passed so
   // authorizeStorageObjectAccess can query the DB with service-role privileges.
   const supabase = createServiceClient();
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'file_not_found' }, { status: 404 });
   }
 
-  // Step 4: Authorization succeeded — only now create the signed URL.
+  // Step 5: Authorization succeeded — only now create the signed URL.
   const { data: signedData, error: signedError } = await supabase.storage
     .from('worker-files')
     .createSignedUrl(path, 60);
