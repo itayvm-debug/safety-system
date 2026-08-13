@@ -1,46 +1,110 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { validateSubcontractorOwnership } from '@/lib/subcontractors/ownership';
 
-export async function GET() {
-  const { context, error } = await requireCompanyAdminRole();
+type Params = { params: Promise<{ id: string }> };
+
+const SELECT_LE = '*, subcontractor:subcontractors(id, name)';
+
+export async function GET(_request: NextRequest, { params }: Params) {
+  const { context, error } = await getCurrentCompanyContext();
   if (error) return error;
   const { companyId } = context;
+  const { id } = await params;
 
   const supabase = createServiceClient();
   const { data, error: dbError } = await supabase
     .from('lifting_equipment')
-    .select('*, subcontractor:subcontractors(id, name)')
+    .select(SELECT_LE)
+    .eq('id', id)
     .eq('company_id', companyId)
-    .eq('is_archived', false)
-    .order('description');
+    .single();
+
+  if (dbError || !data) return NextResponse.json({ error: 'ציוד לא נמצא' }, { status: 404 });
+  return NextResponse.json(data);
+}
+
+export async function PATCH(request: NextRequest, { params }: Params) {
+  const { context, error } = await requireCompanyAdminRole();
+  if (error) return error;
+  const { companyId } = context;
+  const { id } = await params;
+
+  const supabase = createServiceClient();
+  const { data: existing } = await supabase
+    .from('lifting_equipment')
+    .select('id')
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!existing) return NextResponse.json({ error: 'ציוד לא נמצא' }, { status: 404 });
+
+  const body = await request.json();
+  const {
+    description,
+    subcontractor_id,
+    project_name,
+    is_active,
+    is_archived,
+    image_url,
+    inspection_file_url,
+    inspection_expiry,
+  } = body;
+
+  if (subcontractor_id !== undefined) {
+    const subOwnership = await validateSubcontractorOwnership(companyId, subcontractor_id);
+    if (!subOwnership.valid) return subOwnership.error;
+  }
+
+  const updates: Record<string, unknown> = {};
+  if (description         !== undefined) updates.description         = description;
+  if (subcontractor_id    !== undefined) updates.subcontractor_id    = subcontractor_id;
+  if (project_name        !== undefined) updates.project_name        = project_name;
+  if (is_active           !== undefined) updates.is_active           = is_active;
+  if (is_archived         !== undefined) {
+    updates.is_archived = is_archived;
+    if (is_archived) updates.archived_at = new Date().toISOString();
+  }
+  if (image_url           !== undefined) updates.image_url           = image_url;
+  if (inspection_file_url !== undefined) updates.inspection_file_url = inspection_file_url;
+  if (inspection_expiry   !== undefined) updates.inspection_expiry   = inspection_expiry;
+
+  const { data, error: dbError } = await supabase
+    .from('lifting_equipment')
+    .update(updates)
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .select(SELECT_LE)
+    .single();
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
-export async function POST(request: NextRequest) {
+export async function DELETE(_request: NextRequest, { params }: Params) {
   const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
   const { companyId } = context;
-
-  const body = await request.json();
-  const { description, subcontractor_id, project_name } = body;
-
-  if (!description?.trim()) return NextResponse.json({ error: 'תיאור נדרש' }, { status: 400 });
+  const { id } = await params;
 
   const supabase = createServiceClient();
-  const { data, error: dbError } = await supabase
+  const { data: existing } = await supabase
     .from('lifting_equipment')
-    .insert({
-      company_id: companyId,
-      description: description.trim(),
-      subcontractor_id: subcontractor_id || null,
-      project_name: project_name?.trim() || null,
-    })
-    .select()
-    .single();
+    .select('id')
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!existing) return NextResponse.json({ error: 'ציוד לא נמצא' }, { status: 404 });
+
+  const { error: dbError } = await supabase
+    .from('lifting_equipment')
+    .delete()
+    .eq('id', id)
+    .eq('company_id', companyId);
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
+  return NextResponse.json({ success: true });
 }

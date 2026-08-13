@@ -1,80 +1,137 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireCompanyAdminRole } from '@/lib/auth/company-context';
-import { PDFDocument } from 'pdf-lib';
+import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 
-export async function POST(request: NextRequest) {
+type Params = { params: Promise<{ id: string }> };
+
+export async function GET(_request: NextRequest, { params }: Params) {
+  const { context, error } = await getCurrentCompanyContext();
+  if (error) return error;
+  const { companyId } = context;
+  const { id } = await params;
+
+  const supabase = createServiceClient();
+  const { data, error: dbError } = await supabase
+    .from('lifting_machine_appointments')
+    .select('*')
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .single();
+
+  if (dbError || !data) return NextResponse.json({ error: 'מינוי לא נמצא' }, { status: 404 });
+  return NextResponse.json(data);
+}
+
+export async function PATCH(request: NextRequest, { params }: Params) {
   const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
   const { companyId } = context;
-
-  const { appointment_id, overlay_image_b64 } = await request.json();
-  if (!appointment_id || !overlay_image_b64) {
-    return NextResponse.json(
-      { error: 'appointment_id ו-overlay_image_b64 נדרשים' },
-      { status: 400 }
-    );
-  }
+  const { id } = await params;
 
   const supabase = createServiceClient();
-
-  // Verify appointment belongs to this company
-  const { data: appt } = await supabase
+  const { data: existing } = await supabase
     .from('lifting_machine_appointments')
     .select('id')
-    .eq('id', appointment_id)
+    .eq('id', id)
     .eq('company_id', companyId)
     .maybeSingle();
 
-  if (!appt) return NextResponse.json({ error: 'מינוי לא נמצא' }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: 'מינוי לא נמצא' }, { status: 404 });
 
-  // Decode the PNG captured by html2canvas
-  const base64Data = overlay_image_b64.replace(/^data:image\/png;base64,/, '');
-  const pngBytes = Buffer.from(base64Data, 'base64');
+  const body = await request.json();
+  const {
+    worker_id,
+    equipment_id,
+    machine_name,
+    manufacturer,
+    machine_identifier,
+    safe_working_load,
+    power_type,
+    appointer_name,
+    appointer_role,
+    appointer_phone,
+    appointer_address,
+    appointer_zip,
+    appointment_date,
+    operator_signature_url,
+    appointer_signature_url,
+    pdf_url,
+    machines,
+  } = body;
 
-  // Create a new PDF document (A4: 595 × 842 pts)
-  const pdfDoc = await PDFDocument.create();
-  const pngImage = await pdfDoc.embedPng(pngBytes);
-
-  const A4_W = 595, A4_H = 842;
-  const { width: imgW, height: imgH } = pngImage;
-  const scale = A4_W / imgW;
-  const drawW = A4_W;
-  const drawH = imgH * scale;
-
-  const pageH = Math.max(drawH, A4_H);
-  const page = pdfDoc.addPage([A4_W, pageH]);
-
-  page.drawImage(pngImage, {
-    x: 0,
-    y: pageH - drawH,
-    width: drawW,
-    height: drawH,
-  });
-
-  const pdfBytes = await pdfDoc.save();
-  const storagePath = `appointment-pdfs/${appointment_id}.pdf`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('worker-files')
-    .upload(storagePath, Buffer.from(pdfBytes), {
-      contentType: 'application/pdf',
-      upsert: true,
-    });
-
-  if (uploadError) {
-    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  if (worker_id !== undefined && worker_id !== null) {
+    const { data: w } = await supabase
+      .from('workers')
+      .select('id')
+      .eq('id', worker_id)
+      .eq('company_id', companyId)
+      .maybeSingle();
+    if (!w) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
   }
 
-  const { error: updateError } = await supabase
+  if (equipment_id !== undefined && equipment_id !== null) {
+    const { data: e } = await supabase
+      .from('heavy_equipment')
+      .select('id')
+      .eq('id', equipment_id)
+      .eq('company_id', companyId)
+      .maybeSingle();
+    if (!e) return NextResponse.json({ error: 'ציוד לא נמצא' }, { status: 404 });
+  }
+
+  const updates: Record<string, unknown> = {};
+  if (worker_id             !== undefined) updates.worker_id             = worker_id;
+  if (equipment_id          !== undefined) updates.equipment_id          = equipment_id;
+  if (machine_name          !== undefined) updates.machine_name          = machine_name;
+  if (manufacturer          !== undefined) updates.manufacturer          = manufacturer;
+  if (machine_identifier    !== undefined) updates.machine_identifier    = machine_identifier;
+  if (safe_working_load     !== undefined) updates.safe_working_load     = safe_working_load;
+  if (power_type            !== undefined) updates.power_type            = power_type;
+  if (appointer_name        !== undefined) updates.appointer_name        = appointer_name;
+  if (appointer_role        !== undefined) updates.appointer_role        = appointer_role;
+  if (appointer_phone       !== undefined) updates.appointer_phone       = appointer_phone;
+  if (appointer_address     !== undefined) updates.appointer_address     = appointer_address;
+  if (appointer_zip         !== undefined) updates.appointer_zip         = appointer_zip;
+  if (appointment_date      !== undefined) updates.appointment_date      = appointment_date;
+  if (operator_signature_url  !== undefined) updates.operator_signature_url  = operator_signature_url;
+  if (appointer_signature_url !== undefined) updates.appointer_signature_url = appointer_signature_url;
+  if (pdf_url               !== undefined) updates.pdf_url               = pdf_url;
+  if (machines              !== undefined) updates.machines              = machines;
+
+  const { data, error: dbError } = await supabase
     .from('lifting_machine_appointments')
-    .update({ pdf_url: storagePath })
-    .eq('id', appointment_id)
+    .update(updates)
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .select()
+    .single();
+
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+  return NextResponse.json(data);
+}
+
+export async function DELETE(_request: NextRequest, { params }: Params) {
+  const { context, error } = await requireCompanyAdminRole();
+  if (error) return error;
+  const { companyId } = context;
+  const { id } = await params;
+
+  const supabase = createServiceClient();
+  const { data: existing } = await supabase
+    .from('lifting_machine_appointments')
+    .select('id')
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!existing) return NextResponse.json({ error: 'מינוי לא נמצא' }, { status: 404 });
+
+  const { error: dbError } = await supabase
+    .from('lifting_machine_appointments')
+    .delete()
+    .eq('id', id)
     .eq('company_id', companyId);
 
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ pdf_url: storagePath });
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+  return NextResponse.json({ success: true });
 }

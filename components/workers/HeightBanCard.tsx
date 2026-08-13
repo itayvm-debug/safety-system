@@ -22,13 +22,17 @@ interface Props {
 export default function HeightBanCard({ worker, restrictions, onRestrictionAdded, onRestrictionDeleted }: Props) {
   const [localRestrictions, setLocalRestrictions] = useState<HeightRestriction[]>(restrictions);
   const [formOpen, setFormOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const latest = [...localRestrictions].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )[0] ?? null;
 
   async function handleDelete(id: string) {
-    if (!confirm('למחוק את רשומת האיסור?')) return;
+    setDeleting(true);
+    setDeleteError('');
     const res = await fetch('/api/height-restrictions', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -36,8 +40,12 @@ export default function HeightBanCard({ worker, restrictions, onRestrictionAdded
     });
     if (res.ok) {
       setLocalRestrictions((prev) => prev.filter((r) => r.id !== id));
+      setConfirmDelete(false);
       onRestrictionDeleted?.(id);
+    } else {
+      setDeleteError('שגיאה במחיקה');
     }
+    setDeleting(false);
   }
 
   function close() { setFormOpen(false); }
@@ -65,12 +73,24 @@ export default function HeightBanCard({ worker, restrictions, onRestrictionAdded
             {latest.file_url && (
               <ViewFileButton fileUrl={latest.file_url} label="צפה ב-PDF" />
             )}
-            <button
-              onClick={() => handleDelete(latest.id)}
-              className="text-sm text-red-400 hover:text-red-600 px-3 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              מחק
-            </button>
+            {confirmDelete ? (
+              <span className="flex items-center gap-2">
+                <span className="text-xs text-gray-600">למחוק את רשומת האיסור?</span>
+                <button onClick={() => setConfirmDelete(false)} disabled={deleting} className="text-xs text-gray-500 hover:text-gray-700">ביטול</button>
+                <button onClick={() => handleDelete(latest.id)} disabled={deleting}
+                  className="text-sm text-red-600 font-medium px-3 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                  {deleting ? 'מוחק...' : 'מחק'}
+                </button>
+              </span>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="text-sm text-red-400 hover:text-red-600 px-3 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                מחק
+              </button>
+            )}
+            {deleteError && <p className="text-xs text-red-600">{deleteError}</p>}
           </div>
         </div>
       )}

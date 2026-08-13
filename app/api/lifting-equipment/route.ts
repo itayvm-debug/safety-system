@@ -30,6 +30,17 @@ export async function POST(request: NextRequest) {
   if (!description?.trim()) return NextResponse.json({ error: 'תיאור נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
+
+  if (subcontractor_id) {
+    const { data: sub } = await supabase
+      .from('subcontractors')
+      .select('id')
+      .eq('id', subcontractor_id)
+      .eq('company_id', companyId)
+      .maybeSingle();
+    if (!sub) return NextResponse.json({ error: 'קבלן לא נמצא' }, { status: 404 });
+  }
+
   const { data, error: dbError } = await supabase
     .from('lifting_equipment')
     .insert({

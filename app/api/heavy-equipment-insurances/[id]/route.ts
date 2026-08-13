@@ -1,74 +1,85 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 
-export async function GET(request: NextRequest) {
-  const { context, error } = await requireCompanyAdminRole();
+type Params = { params: Promise<{ id: string }> };
+
+export async function GET(_request: NextRequest, { params }: Params) {
+  const { context, error } = await getCurrentCompanyContext();
   if (error) return error;
-
-  const heavyEquipmentId = request.nextUrl.searchParams.get('heavy_equipment_id');
-  if (!heavyEquipmentId) return NextResponse.json({ error: 'heavy_equipment_id נדרש' }, { status: 400 });
+  const { companyId } = context;
+  const { id } = await params;
 
   const supabase = createServiceClient();
-
-  // Verify parent equipment belongs to this company
-  const { data: parent } = await supabase
-    .from('heavy_equipment')
-    .select('id')
-    .eq('id', heavyEquipmentId)
-    .eq('company_id', context.companyId)
-    .maybeSingle();
-
-  if (!parent) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
-
   const { data, error: dbError } = await supabase
     .from('heavy_equipment_insurances')
     .select('*')
-    .eq('heavy_equipment_id', heavyEquipmentId)
-    .eq('company_id', context.companyId)
-    .order('insurance_type');
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .single();
+
+  if (dbError || !data) return NextResponse.json({ error: 'ביטוח לא נמצא' }, { status: 404 });
+  return NextResponse.json(data);
+}
+
+export async function PATCH(request: NextRequest, { params }: Params) {
+  const { context, error } = await requireCompanyAdminRole();
+  if (error) return error;
+  const { companyId } = context;
+  const { id } = await params;
+
+  const supabase = createServiceClient();
+  const { data: existing } = await supabase
+    .from('heavy_equipment_insurances')
+    .select('id')
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!existing) return NextResponse.json({ error: 'ביטוח לא נמצא' }, { status: 404 });
+
+  const body = await request.json();
+  const { file_url, expiry_date, insurance_type } = body;
+
+  const updates: Record<string, unknown> = {};
+  if (insurance_type !== undefined) updates.insurance_type = insurance_type;
+  if (file_url       !== undefined) updates.file_url       = file_url;
+  if (expiry_date    !== undefined) updates.expiry_date    = expiry_date;
+
+  const { data, error: dbError } = await supabase
+    .from('heavy_equipment_insurances')
+    .update(updates)
+    .eq('id', id)
+    .eq('company_id', companyId)
+    .select()
+    .single();
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
-export async function POST(request: NextRequest) {
+export async function DELETE(_request: NextRequest, { params }: Params) {
   const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
-
-  const body = await request.json();
-  const { heavy_equipment_id, insurance_type, file_url, expiry_date } = body;
-
-  if (!heavy_equipment_id) return NextResponse.json({ error: 'heavy_equipment_id נדרש' }, { status: 400 });
-  if (!insurance_type?.trim()) return NextResponse.json({ error: 'סוג ביטוח נדרש' }, { status: 400 });
+  const { companyId } = context;
+  const { id } = await params;
 
   const supabase = createServiceClient();
-
-  // Verify parent equipment belongs to this company
-  const { data: parent } = await supabase
-    .from('heavy_equipment')
+  const { data: existing } = await supabase
+    .from('heavy_equipment_insurances')
     .select('id')
-    .eq('id', heavy_equipment_id)
-    .eq('company_id', context.companyId)
+    .eq('id', id)
+    .eq('company_id', companyId)
     .maybeSingle();
 
-  if (!parent) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: 'ביטוח לא נמצא' }, { status: 404 });
 
-  const { data, error: dbError } = await supabase
+  const { error: dbError } = await supabase
     .from('heavy_equipment_insurances')
-    .upsert(
-      {
-        heavy_equipment_id,
-        company_id: context.companyId,
-        insurance_type: insurance_type.trim(),
-        file_url: file_url || null,
-        expiry_date: expiry_date || null,
-      },
-      { onConflict: 'heavy_equipment_id,insurance_type' }
-    )
-    .select()
-    .single();
+    .delete()
+    .eq('id', id)
+    .eq('company_id', companyId);
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
-  return NextResponse.json(data, { status: 200 });
+  return NextResponse.json({ success: true });
 }

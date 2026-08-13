@@ -24,7 +24,9 @@ const NAV_LINKS = [
 
 export default function NavBar() {
   const pathname = usePathname();
-  const [isAdmin] = useState(() => getClientRole() === 'admin');
+  const [isAdmin, setIsAdmin] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setIsAdmin(getClientRole() === 'admin'); }, []);
   const [showExport, setShowExport] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [prevPath, setPrevPath] = useState(pathname);

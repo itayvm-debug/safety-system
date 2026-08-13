@@ -127,6 +127,7 @@ function ManagerFileRow({
   const [opening, setOpening] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const status = getDocumentStatus(fileUrl, expiryDate, required, true);
 
@@ -153,7 +154,6 @@ function ManagerFileRow({
   }
 
   async function handleDelete() {
-    if (!confirm(`למחוק את "${label}"?`)) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/${apiPath}/${id}`, { method: 'DELETE' });
@@ -186,9 +186,19 @@ function ManagerFileRow({
               {opening ? 'פותח...' : 'צפה'}
             </button>
           )}
-          <button onClick={handleDelete} disabled={deleting} className="text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
-            {deleting ? '...' : 'מחק'}
-          </button>
+          {confirmDelete ? (
+            <span className="flex items-center gap-2">
+              <span className="text-xs text-gray-600">למחוק?</span>
+              <button onClick={() => setConfirmDelete(false)} disabled={deleting} className="text-xs text-gray-500 hover:text-gray-700">ביטול</button>
+              <button onClick={handleDelete} disabled={deleting} className="text-sm text-red-600 font-medium hover:text-red-800 disabled:opacity-50">
+                {deleting ? '...' : 'מחק'}
+              </button>
+            </span>
+          ) : (
+            <button onClick={() => setConfirmDelete(true)} disabled={deleting} className="text-sm text-red-400 hover:text-red-600 disabled:opacity-50">
+              מחק
+            </button>
+          )}
         </div>
       </div>
     </div>

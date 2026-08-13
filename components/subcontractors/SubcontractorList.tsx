@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -31,7 +31,10 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
 
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Inline confirmation state (replaces window.confirm — B-UI-01)
+  const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
+  const [archiveError, setArchiveError] = useState<Record<string, string>>({});
+  const [archivingId, setArchivingId] = useState<string | null>(null);
 
   async function handleAdd() {
     if (!addForm.name.trim()) { setAddError('שם קבלן נדרש'); return; }
@@ -93,20 +96,34 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
     }
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`להעביר את "${name}" לארכיון?`)) return;
-    setDeletingId(id);
+  // B-UI-01: no window.confirm — user clicks "ארכיון" → inline confirm row appears
+  function requestArchive(id: string) {
+    setConfirmArchiveId(id);
+    setArchiveError((prev) => ({ ...prev, [id]: '' }));
+  }
+
+  async function confirmArchive(id: string) {
+    setArchivingId(id);
+    setArchiveError((prev) => ({ ...prev, [id]: '' }));
     try {
       const res = await fetch(`/api/subcontractors/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_archived: true }),
       });
-      if (!res.ok) { alert('שגיאה'); return; }
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        // B-UI-02: inline error, not window.alert
+        setArchiveError((prev) => ({ ...prev, [id]: json.error ?? 'שגיאה בהעברה לארכיון' }));
+        return;
+      }
       setList((prev) => prev.filter((s) => s.id !== id));
+      setConfirmArchiveId(null);
       router.refresh();
+    } catch {
+      setArchiveError((prev) => ({ ...prev, [id]: 'שגיאת תקשורת' }));
     } finally {
-      setDeletingId(null);
+      setArchivingId(null);
     }
   }
 
@@ -190,6 +207,34 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
                     onChanged={(worker) => handleResponsibleWorkerChanged(sub.id, worker)}
                   />
                 </div>
+
+                {/* B-UI-01: inline confirmation instead of window.confirm */}
+                {confirmArchiveId === sub.id && (
+                  <div className="mt-3 pt-3 border-t border-orange-100 bg-orange-50 rounded-lg px-3 py-2">
+                    <p className="text-sm text-gray-700 mb-2">
+                      להעביר את &quot;{sub.name}&quot; לארכיון?
+                    </p>
+                    {archiveError[sub.id] && (
+                      <p className="text-sm text-red-600 mb-2">{archiveError[sub.id]}</p>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => confirmArchive(sub.id)}
+                        disabled={archivingId === sub.id}
+                        className="px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+                      >
+                        {archivingId === sub.id ? 'מעביר...' : 'העבר לארכיון'}
+                      </button>
+                      <button
+                        onClick={() => { setConfirmArchiveId(null); setArchiveError((prev) => ({ ...prev, [sub.id]: '' })); }}
+                        disabled={archivingId === sub.id}
+                        className="px-3 py-1 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                      >
+                        ביטול
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex gap-2 shrink-0 mr-3 flex-wrap justify-end">
                 <button
@@ -200,11 +245,11 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
                 </button>
                 <EntityNotesButton entityType="subcontractor" entityId={sub.id} />
                 <button
-                  onClick={() => handleDelete(sub.id, sub.name)}
-                  disabled={deletingId === sub.id}
+                  onClick={() => requestArchive(sub.id)}
+                  disabled={archivingId === sub.id}
                   className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
-                  {deletingId === sub.id ? 'מעביר...' : 'ארכיון'}
+                  {archivingId === sub.id ? 'מעביר...' : 'ארכיון'}
                 </button>
               </div>
             </div>
@@ -226,6 +271,7 @@ function ResponsibleWorkerSelector({
   const [workers, setWorkers] = useState<{ id: string; full_name: string }[]>([]);
   const [selectedId, setSelectedId] = useState<string>(sub.responsible_worker_id ?? '');
   const [saving, setSaving] = useState(false);
+  const [workerError, setWorkerError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -240,20 +286,32 @@ function ResponsibleWorkerSelector({
     }
   }
 
+  // B-UI-03: revert optimistic state on failure; update only after confirmed success
   async function handleChange(newId: string) {
+    const prevId = selectedId;
     setSelectedId(newId);
     setSaving(true);
+    setWorkerError('');
     try {
-      await fetch(`/api/subcontractors/${sub.id}`, {
+      const res = await fetch(`/api/subcontractors/${sub.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ responsible_worker_id: newId || null }),
       });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setSelectedId(prevId);
+        setWorkerError(json.error ?? 'שגיאה בשמירה');
+        return;
+      }
       const chosen = workers.find((w) => w.id === newId) ?? null;
       onChanged(chosen);
+      setOpen(false);
+    } catch {
+      setSelectedId(prevId);
+      setWorkerError('שגיאת תקשורת');
     } finally {
       setSaving(false);
-      setOpen(false);
     }
   }
 
@@ -263,38 +321,43 @@ function ResponsibleWorkerSelector({
     null;
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-500 whitespace-nowrap">עובד אחראי:</span>
-      {open ? (
-        <select
-          autoFocus
-          value={selectedId}
-          onChange={(e) => handleChange(e.target.value)}
-          onBlur={() => setOpen(false)}
-          className="flex-1 border border-green-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-        >
-          <option value="">— ללא עובד אחראי —</option>
-          {workers.map((w) => (
-            <option key={w.id} value={w.id}>{w.full_name}</option>
-          ))}
-          {loaded && workers.length === 0 && (
-            <option disabled value="">אין עובדים משויכים לקבלן זה</option>
-          )}
-        </select>
-      ) : (
-        <button
-          onClick={() => { setOpen(true); loadWorkers(); }}
-          className={`text-sm hover:underline transition-colors ${
-            currentName
-              ? 'text-green-700 font-medium hover:text-green-800'
-              : 'text-gray-400 hover:text-green-600'
-          }`}
-        >
-          {saving ? 'שומר...' : currentName ?? 'לחץ לשיוך'}
-        </button>
-      )}
-      {currentName && !open && (
-        <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">אחראי</span>
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500 whitespace-nowrap">עובד אחראי:</span>
+        {open ? (
+          <select
+            autoFocus
+            value={selectedId}
+            onChange={(e) => handleChange(e.target.value)}
+            onBlur={() => { if (!saving) setOpen(false); }}
+            className="flex-1 border border-green-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+          >
+            <option value="">— ללא עובד אחראי —</option>
+            {workers.map((w) => (
+              <option key={w.id} value={w.id}>{w.full_name}</option>
+            ))}
+            {loaded && workers.length === 0 && (
+              <option disabled value="">אין עובדים משויכים לקבלן זה</option>
+            )}
+          </select>
+        ) : (
+          <button
+            onClick={() => { setOpen(true); loadWorkers(); }}
+            className={`text-sm hover:underline transition-colors ${
+              currentName
+                ? 'text-green-700 font-medium hover:text-green-800'
+                : 'text-gray-400 hover:text-green-600'
+            }`}
+          >
+            {saving ? 'שומר...' : currentName ?? 'לחץ לשיוך'}
+          </button>
+        )}
+        {currentName && !open && (
+          <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">אחראי</span>
+        )}
+      </div>
+      {workerError && (
+        <p className="text-xs text-red-600 mr-16">{workerError}</p>
       )}
     </div>
   );

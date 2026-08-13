@@ -54,10 +54,13 @@ function Section({
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <button
-        type="button"
+      {/* div[role=button] avoids the HTML constraint that <button> cannot nest <button> */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 text-right hover:bg-gray-50 transition-colors"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}
+        className="w-full flex items-center justify-between px-5 py-4 text-right hover:bg-gray-50 transition-colors cursor-pointer"
       >
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-gray-900">{title}</span>
@@ -81,7 +84,7 @@ function Section({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
-      </button>
+      </div>
       {open && (
         <div className="px-5 pb-5 pt-2 border-t border-gray-100">{children}</div>
       )}

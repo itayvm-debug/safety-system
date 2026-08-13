@@ -229,6 +229,7 @@ describe('T10: Spoofed broadcast payload cannot grant company access', () => {
     const postedMessages: unknown[] = [];
 
     class MockBC {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       constructor(_channel: string) {}
       postMessage(msg: unknown) { postedMessages.push(msg); }
       close() {}

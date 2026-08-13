@@ -1,7 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
-import { addYears, parseISO } from 'date-fns';
 
 export async function POST(request: NextRequest) {
   const { context, error } = await requireCompanyAdminRole();
@@ -32,8 +31,8 @@ export async function POST(request: NextRequest) {
 
   if (!worker) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
 
-  const briefedDate = parseISO(briefed_at);
-  const expiresAt = addYears(briefedDate, 1).toISOString().split('T')[0];
+  const [year, month, day] = briefed_at.split('-');
+  const expiresAt = `${parseInt(year) + 1}-${month}-${day}`;
 
   const { data, error: dbError } = await supabase
     .from('safety_briefings')

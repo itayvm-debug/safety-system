@@ -103,6 +103,7 @@ export default function EntityNotesButton({ entityType, entityId, disabled }: Pr
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const attentionCount = notes.filter((n) => n.status === 'needs_attention').length;
@@ -155,7 +156,7 @@ export default function EntityNotesButton({ entityType, entityId, disabled }: Pr
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('למחוק את ההערה?')) return;
+    setConfirmDeleteId(null);
     setDeletingId(id);
     try {
       const res = await fetch(`/api/entity-notes/${id}`, { method: 'DELETE' });
@@ -238,13 +239,24 @@ export default function EntityNotesButton({ entityType, entityId, disabled }: Pr
                             className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100">
                             עריכה
                           </button>
-                          <button
-                            onClick={() => handleDelete(note.id)}
-                            disabled={deletingId === note.id}
-                            className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 disabled:opacity-40"
-                          >
-                            {deletingId === note.id ? '...' : 'מחק'}
-                          </button>
+                          {confirmDeleteId === note.id ? (
+                            <span className="flex items-center gap-1">
+                              <button onClick={() => setConfirmDeleteId(null)} disabled={deletingId === note.id}
+                                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100">ביטול</button>
+                              <button onClick={() => handleDelete(note.id)} disabled={deletingId === note.id}
+                                className="text-xs text-red-600 font-medium hover:text-red-800 px-2 py-1 rounded hover:bg-red-50 disabled:opacity-40">
+                                {deletingId === note.id ? '...' : 'מחק'}
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteId(note.id)}
+                              disabled={deletingId === note.id}
+                              className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 disabled:opacity-40"
+                            >
+                              מחק
+                            </button>
+                          )}
                         </div>
                       </div>
                       <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.content}</p>

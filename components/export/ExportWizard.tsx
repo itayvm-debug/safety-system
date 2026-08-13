@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { WorkerWithDocuments, Vehicle, HeavyEquipment, LiftingEquipment } from '@/types';
 import { getWorkerStatus, getVehicleStatus, getHeavyEquipmentStatus } from '@/lib/documents/status';
 import { getEffectiveSubcontractor } from '@/lib/workers/subcontractor';
@@ -18,6 +18,7 @@ import {
   buildIssuesHtml,
   generatePdf,
 } from '@/lib/export/generatePdf';
+import { useSessionCompanies } from '@/lib/session/SessionCompaniesProvider';
 
 // ─── Types ────────────────────────────────────────────────────
 type ReportType = 'workers' | 'managers' | 'vehicles' | 'equipment' | 'issues';
@@ -47,6 +48,12 @@ interface Props {
 }
 
 export default function ExportWizard({ onClose }: Props) {
+  const { companies, activeCompanyId } = useSessionCompanies();
+  const branding = useMemo(() => {
+    const active = companies.find(c => c.id === activeCompanyId) ?? null;
+    return { companyName: active?.name ?? 'SafeDoc', logoUrl: active?.logo_url ?? null };
+  }, [companies, activeCompanyId]);
+
   const [step, setStep] = useState(0);
   const [reportType, setReportType] = useState<ReportType>('workers');
   const [format, setFormat] = useState<ExportFormat>('excel');
@@ -146,7 +153,7 @@ export default function ExportWizard({ onClose }: Props) {
     if (format === 'excel') {
       generateWorkersExcel(filtered, title);
     } else {
-      const pages = buildWorkersHtml(filtered, title);
+      const pages = buildWorkersHtml(filtered, title, branding);
       await generatePdf(pages, `${title}_${today()}.pdf`);
     }
   }
@@ -176,7 +183,7 @@ export default function ExportWizard({ onClose }: Props) {
     if (format === 'excel') {
       generateVehiclesExcel(filtered);
     } else {
-      const pages = buildVehiclesHtml(filtered, 'רכבים');
+      const pages = buildVehiclesHtml(filtered, 'רכבים', branding);
       await generatePdf(pages, `רכבים_${today()}.pdf`);
     }
   }
@@ -201,7 +208,7 @@ export default function ExportWizard({ onClose }: Props) {
     if (format === 'excel') {
       generateEquipmentExcel(filtered);
     } else {
-      const pages = buildEquipmentHtml(filtered, 'כלי צמ&quot;ה');
+      const pages = buildEquipmentHtml(filtered, 'כלי צמ"ה', branding);
       await generatePdf(pages, `כלי_צמה_${today()}.pdf`);
     }
   }
@@ -254,7 +261,7 @@ export default function ExportWizard({ onClose }: Props) {
     if (format === 'excel') {
       generateIssuesExcel(issues, statusTitle);
     } else {
-      const pages = buildIssuesHtml(issues, statusTitle);
+      const pages = buildIssuesHtml(issues, statusTitle, branding);
       await generatePdf(pages, `${statusTitle}_${today()}.pdf`);
     }
   }

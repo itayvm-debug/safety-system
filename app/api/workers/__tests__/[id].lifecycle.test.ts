@@ -69,6 +69,9 @@ vi.mock('@/lib/supabase/server', () => ({
     chain.single = vi.fn(() =>
       Promise.resolve({ data: dbTracker.returnData, error: dbTracker.returnError })
     );
+    chain.maybeSingle = vi.fn(() =>
+      Promise.resolve({ data: dbTracker.returnData, error: dbTracker.returnError })
+    );
     chain.order  = vi.fn(() => chain);
     return chain;
   },

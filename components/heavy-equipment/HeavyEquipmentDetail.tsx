@@ -42,6 +42,9 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
+  const [archiveError, setArchiveError] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [toggleError, setToggleError] = useState('');
 
   const overallStatus = getHeavyEquipmentStatus({ ...eq, heavy_equipment_insurances: insurances });
   const hasPending = Object.keys(pendingExpiry).length > 0;
@@ -58,6 +61,7 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
 
   async function handleSaveExpiry() {
     setSavingExpiry(true);
+    setSaveError('');
     try {
       const res = await fetch(`/api/heavy-equipment/${eq.id}`, {
         method: 'PATCH',
@@ -71,12 +75,16 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
         setPendingExpiry({});
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        setSaveError(data.error ?? 'שגיאה בשמירה — נסה שנית');
       }
-    } finally { setSavingExpiry(false); }
+    } catch { setSaveError('שגיאת תקשורת — נסה שנית'); }
+    finally { setSavingExpiry(false); }
   }
 
   async function handleToggleActive() {
     setTogglingActive(true);
+    setToggleError('');
     try {
       const res = await fetch(`/api/heavy-equipment/${eq.id}`, {
         method: 'PATCH',
@@ -87,20 +95,27 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
       if (res.ok) {
         setEq(data);
         setInsurances(data.heavy_equipment_insurances ?? []);
+      } else {
+        setToggleError(data.error ?? 'שגיאה — נסה שנית');
       }
-    } finally { setTogglingActive(false); }
+    } catch { setToggleError('שגיאת תקשורת — נסה שנית'); }
+    finally { setTogglingActive(false); }
   }
 
   async function handleDelete() {
     if (!confirm(`להעביר את "${eq.description}" לארכיון?`)) return;
     setDeleting(true);
-    const res = await fetch(`/api/heavy-equipment/${eq.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_archived: true }),
-    });
-    if (res.ok) { router.push('/heavy-equipment'); router.refresh(); }
-    else { alert('שגיאה'); setDeleting(false); }
+    setArchiveError('');
+    try {
+      const res = await fetch(`/api/heavy-equipment/${eq.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_archived: true }),
+      });
+      if (res.ok) { router.push('/heavy-equipment'); router.refresh(); }
+      else { const d = await res.json().catch(() => ({})); setArchiveError(d.error ?? 'שגיאה בהעברה לארכיון — נסה שנית'); }
+    } catch { setArchiveError('שגיאת תקשורת — נסה שנית'); }
+    finally { setDeleting(false); }
   }
 
   function updateInsurance(updated: HeavyEquipmentInsurance) {
@@ -166,6 +181,9 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
             {deleting ? 'מעביר לארכיון...' : 'העבר לארכיון'}
           </button>
         </div>
+        {(archiveError || toggleError) && (
+          <p className="text-xs text-red-600 mt-2">{archiveError || toggleError}</p>
+        )}
       </div>
 
       {/* מסמכים: רישיון + תסקיר */}
@@ -233,16 +251,18 @@ export default function HeavyEquipmentDetail({ equipment }: Props) {
       </div>
 
       {/* שמירת תאריכים (רישיון / תסקיר) */}
-      {(hasPending || saveSuccess) && (
+      {(hasPending || saveSuccess || saveError) && (
         <div className="fixed bottom-0 inset-x-0 z-20 bg-white border-t border-gray-200 shadow-lg px-4 py-3">
           <div className="max-w-2xl mx-auto flex items-center gap-3">
             {saveSuccess
               ? <p className="text-sm text-green-600 font-medium">✓ נשמר בהצלחה</p>
-              : <p className="text-sm text-gray-500">{Object.keys(pendingExpiry).length} שינויים ממתינים</p>
+              : saveError
+                ? <p className="text-sm text-red-600">{saveError}</p>
+                : <p className="text-sm text-gray-500">{Object.keys(pendingExpiry).length} שינויים ממתינים</p>
             }
             {hasPending && (
               <div className="flex gap-2 mr-auto">
-                <button onClick={() => setPendingExpiry({})} className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 text-gray-600">ביטול</button>
+                <button onClick={() => { setPendingExpiry({}); setSaveError(''); }} className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 text-gray-600">ביטול</button>
                 <button onClick={handleSaveExpiry} disabled={savingExpiry} className="px-6 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50">
                   {savingExpiry ? 'שומר...' : 'שמור שינויים'}
                 </button>
@@ -460,6 +480,7 @@ function EquipmentImageUploader({
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   useEffect(() => {
     if (!imageUrl) return;
@@ -476,7 +497,7 @@ function EquipmentImageUploader({
       fd.append('file', file, filename); fd.append('folder', 'equipment');
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
       const ud = await uploadRes.json();
-      if (!uploadRes.ok) { alert(ud.error ?? 'שגיאה'); return; }
+      if (!uploadRes.ok) { setUploadError(ud.error ?? 'שגיאה בהעלאת הקובץ'); return; }
 
       const res = await fetch(`/api/heavy-equipment/${equipmentId}`, {
         method: 'PATCH',
@@ -490,7 +511,7 @@ function EquipmentImageUploader({
         fetch(`/api/signed-url?path=${encodeURIComponent(ud.path)}`)
           .then((r) => r.json())
           .then((d) => { if (d.url) setImgSrc(d.url); });
-      } else { alert(data.error ?? 'שגיאה'); }
+      } else { setUploadError(data.error ?? 'שגיאה בשמירת התמונה'); }
     } finally { setUploading(false); }
   }
 
@@ -506,7 +527,8 @@ function EquipmentImageUploader({
 
   return (
     <>
-      <div className="relative w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+      <div className="flex-shrink-0">
+        <div className="relative w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center">
         {imgSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -550,6 +572,8 @@ function EquipmentImageUploader({
           </svg>
         </button>
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUpload} />
+        </div>
+        {uploadError && <p className="text-xs text-red-600 mt-1 text-center">{uploadError}</p>}
       </div>
 
       {cameraOpen && (
