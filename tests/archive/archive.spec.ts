@@ -276,7 +276,11 @@ test('AR-19 - restore via UI: worker reappears in /workers list', async ({ authP
 
   try {
     await page.goto('/workers');
-    await page.waitForSelector('text=Internal QA', { timeout: 15_000 });
+    await page.waitForFunction(
+      () => (document.querySelector('header')?.textContent ?? '').includes('Internal QA'),
+      null,
+      { timeout: 15_000 },
+    );
     await page.waitForSelector(`a[href="/workers/${id}"]`, { timeout: 15_000 });
     const link = page.locator(`a[href="/workers/${id}"]`);
     await expect(link).toBeVisible();

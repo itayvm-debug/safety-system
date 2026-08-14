@@ -39,7 +39,13 @@ export const test = base.extend<{
     // waiting for that text proves the fetch completed and enables the safety
     // guard below — without blocking on the slower workers/alerts fetches.
     await page.goto('/workers');
-    await page.waitForSelector('text=Internal QA', { timeout: 15_000 });
+    // Use DOM textContent (not visible-text selector) so the check works even
+    // when the company name span is hidden by CSS at narrower breakpoints.
+    await page.waitForFunction(
+      () => (document.querySelector('header')?.textContent ?? '').includes('Internal QA'),
+      null,
+      { timeout: 15_000 },
+    );
 
     // Safety: abort if active company text suggests Company A
     const headerText = await page.locator('header, nav').first().textContent().catch(() => '');

@@ -91,7 +91,7 @@ export default function NavBar() {
           {/* לוגו פלטפורמה */}
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
             <Image src="/safedoc-logo.png" alt="SafeDoc" width={36} height={36} className="object-contain" priority />
-            <div className="leading-tight hidden xl:block">
+            <div className="leading-tight hidden 2xl:block">
               <p className="font-bold text-gray-900 text-sm">SafeDoc</p>
               <p className="text-xs text-gray-500">ניהול בטיחות</p>
             </div>
@@ -122,7 +122,7 @@ export default function NavBar() {
                       <span className="text-orange-600 font-bold text-xs leading-none">{activeCompany.name.charAt(0)}</span>
                     </div>
                   )}
-                  <span className="max-w-[150px] truncate hidden xl:inline">{activeCompany.name}</span>
+                  <span className="max-w-[80px] 2xl:max-w-[150px] truncate hidden xl:inline">{activeCompany.name}</span>
                   {hasMultipleCompanies && (
                     <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" viewBox="0 0 16 16" fill="currentColor">
                       <path d="M8 10.5L3.5 6h9L8 10.5z" />
@@ -199,42 +199,9 @@ export default function NavBar() {
             >
               משוב
             </Link>
-            {/* Secondary admin links — inline at 2xl+, collapsed into dropdown below 2xl */}
+            {/* More dropdown — always visible on desktop for admin; contains secondary links */}
             {isAdmin && (
-              <Link
-                href="/feedback"
-                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden 2xl:inline-block whitespace-nowrap"
-              >
-                פניות
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                href="/archive"
-                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden 2xl:inline-block whitespace-nowrap"
-              >
-                ארכיון
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                href="/admin/users"
-                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden 2xl:inline-block whitespace-nowrap"
-              >
-                משתמשי הפלטפורמה
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                href="/admin/companies"
-                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors hidden 2xl:inline-block whitespace-nowrap"
-              >
-                חברות
-              </Link>
-            )}
-            {/* More dropdown — visible at lg..xl (1024-1535px), hidden at 2xl+ where items show inline */}
-            {isAdmin && (
-              <div className="relative 2xl:hidden" ref={moreRef}>
+              <div className="relative" ref={moreRef}>
                 <button
                   onClick={() => setMoreOpen(o => !o)}
                   className="text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
