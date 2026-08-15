@@ -75,14 +75,17 @@ export async function DELETE(request: NextRequest) {
 
   if (!worker) return NextResponse.json({ error: 'הגבלה לא נמצאה' }, { status: 404 });
 
-  if (rec.file_url)      await supabase.storage.from('worker-files').remove([rec.file_url]);
-  if (rec.signature_url) await supabase.storage.from('worker-files').remove([rec.signature_url]);
-
+  // Delete DB record first — if this fails, storage stays intact (no broken references)
   const { error: dbError } = await supabase
     .from('height_restrictions')
     .delete()
     .eq('id', restriction_id);
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+
+  // Storage cleanup is non-fatal; record is already deleted
+  if (rec.file_url)      await supabase.storage.from('worker-files').remove([rec.file_url]).catch(() => undefined);
+  if (rec.signature_url) await supabase.storage.from('worker-files').remove([rec.signature_url]).catch(() => undefined);
+
   return NextResponse.json({ success: true });
 }

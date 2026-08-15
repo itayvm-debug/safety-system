@@ -133,6 +133,7 @@ function MemberRow({
   onRemoved: (id: string) => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [removeError, setRemoveError] = useState('');
 
   async function handleRoleChange(newRole: CompanyRole) {
     setLoading(true);
@@ -151,12 +152,13 @@ function MemberRow({
   async function handleRemove() {
     if (!confirm(`להסיר את ${m.profile?.full_name ?? 'החבר'} מהחברה?`)) return;
     setLoading(true);
+    setRemoveError('');
     try {
       const res = await fetch(`/api/admin/companies/${companyId}/members/${m.id}`, { method: 'DELETE' });
       if (res.ok) onRemoved(m.id);
       else {
-        const data = await res.json();
-        alert(data.error ?? 'שגיאה בהסרה');
+        const data = await res.json().catch(() => ({}));
+        setRemoveError(data.error ?? 'שגיאה בהסרה');
       }
     } finally {
       setLoading(false);
@@ -198,6 +200,7 @@ function MemberRow({
         >
           הסר
         </button>
+        {removeError && <p className="text-xs text-red-500 mt-1 whitespace-nowrap">{removeError}</p>}
       </td>
     </tr>
   );

@@ -102,10 +102,7 @@ export async function DELETE(request: NextRequest) {
 
   if (!doc) return NextResponse.json({ error: 'מסמך לא נמצא' }, { status: 404 });
 
-  if (doc.file_url) {
-    await supabase.storage.from('worker-files').remove([doc.file_url]);
-  }
-
+  // Delete DB record first — if this fails, storage stays intact (no broken references)
   const { error: dbError } = await supabase
     .from('documents')
     .delete()
@@ -113,5 +110,11 @@ export async function DELETE(request: NextRequest) {
     .eq('company_id', companyId);
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+
+  // Storage cleanup is non-fatal; record is already deleted
+  if (doc.file_url) {
+    await supabase.storage.from('worker-files').remove([doc.file_url]).catch(() => undefined);
+  }
+
   return NextResponse.json({ success: true });
 }

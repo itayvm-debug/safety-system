@@ -15,9 +15,11 @@ const OTHER_USER    = 'user-ot-0000-0000-0000-000000000099';
 // Track which .in() calls were made per table and what the full select returned
 const queryLog = vi.hoisted(() => ({
   inCalls: {} as Record<string, Array<{ field: string; values: string[] }>>,
+  orderCalls: {} as Record<string, string[]>,
   tablesQueried: [] as string[],
   reset() {
     this.inCalls = {};
+    this.orderCalls = {};
     this.tablesQueried = [];
   },
 }));
@@ -43,7 +45,11 @@ vi.mock('@/lib/supabase/server', () => ({
         queryLog.inCalls[table].push({ field, values });
         return self;
       });
-      chain.order = vi.fn(() => self);
+      chain.order = vi.fn((col: string) => {
+        if (!queryLog.orderCalls[table]) queryLog.orderCalls[table] = [];
+        queryLog.orderCalls[table].push(col);
+        return self;
+      });
       chain.limit = vi.fn(() => Promise.resolve({
         data: tableData.get(table),
         error: null,
@@ -121,6 +127,27 @@ describe('F-04 — export legal_acceptances filtered to company members', () => 
     expect(firstCall.field).toBe('user_id');
     expect(firstCall.values).toContain(MEMBER_USER_1);
     expect(firstCall.values).not.toContain(OTHER_USER);
+  });
+});
+
+describe('F-08 — documents export uses uploaded_at sort column (not created_at)', () => {
+  it('documents table is ordered by uploaded_at', async () => {
+    tableData.set('documents', [{ id: 'doc-1', doc_type: 'id_document' }]);
+    await exportAllTables(COMPANY_A);
+
+    const cols = queryLog.orderCalls['documents'] ?? [];
+    expect(cols).toContain('uploaded_at');
+    expect(cols).not.toContain('created_at');
+  });
+
+  it('documents rows are included in export result (not skipped)', async () => {
+    tableData.set('documents', [{ id: 'doc-1', doc_type: 'id_document' }]);
+    const results = await exportAllTables(COMPANY_A);
+
+    const docResult = results.find(r => r.table === 'documents');
+    expect(docResult).toBeDefined();
+    expect(docResult?.rowCount).toBe(1);
+    expect(docResult?.rows[0]).toMatchObject({ id: 'doc-1' });
   });
 });
 

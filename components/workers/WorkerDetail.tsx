@@ -210,13 +210,15 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
 
   async function handleToggleActive() {
     setTogglingActive(true);
+    setArchiveError('');
     try {
-      await fetch(`/api/workers/${worker.id}`, {
+      const res = await fetch(`/api/workers/${worker.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !worker.is_active }),
       });
-      router.refresh();
+      if (res.ok) router.refresh();
+      else setArchiveError('שגיאה בעדכון סטטוס העובד');
     } finally {
       setTogglingActive(false);
     }
@@ -1208,9 +1210,9 @@ function DocumentCard({
         {!isOnline && !hasFile && <span className="text-sm text-gray-400">לא הועלה קובץ</span>}
 
         <div className="flex items-center gap-2 flex-wrap">
-          {hasFile && (
+          {hasFile && isOnline && (
             <button
-              onClick={isOnline ? handleViewDocument : () => alert('הקובץ עצמו דורש חיבור לאינטרנט.\nבמצב לא מקוון ניתן לצפות בפרטי המסמך בלבד.')}
+              onClick={handleViewDocument}
               disabled={opening}
               className="flex items-center gap-1.5 text-sm text-orange-500 hover:text-orange-600 disabled:opacity-50">
               {opening ? <span className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" /> :
@@ -1220,6 +1222,9 @@ function DocumentCard({
                 </svg>}
               {opening ? 'פותח...' : 'צפה'}
             </button>
+          )}
+          {hasFile && !isOnline && (
+            <span className="text-sm text-gray-400">הצגת קבצים דורשת חיבור לאינטרנט</span>
           )}
           {isOnline && hasFile && (
             <button onClick={handleDeleteDocument} disabled={deleting}
