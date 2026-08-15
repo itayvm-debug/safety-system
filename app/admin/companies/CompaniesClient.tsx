@@ -63,7 +63,7 @@ export default function CompaniesClient({ initialCompanies }: Props) {
                         {c.logo_url && (
                           <div className="w-7 h-7 rounded-md border border-gray-100 overflow-hidden bg-gray-50 flex-shrink-0">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={c.logo_url} alt="" className="w-full h-full object-contain" aria-hidden="true" />
+                            <img src={c.logo_url.startsWith('/') || c.logo_url.startsWith('http') ? c.logo_url : `/${c.logo_url}`} alt="" className="w-full h-full object-contain" aria-hidden="true" />
                           </div>
                         )}
                         <div>

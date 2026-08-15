@@ -110,7 +110,7 @@ export default function NavBar() {
                   {activeCompany.logo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={activeCompany.logo_url}
+                      src={activeCompany.logo_url.startsWith('/') || activeCompany.logo_url.startsWith('http') ? activeCompany.logo_url : `/${activeCompany.logo_url}`}
                       alt=""
                       width={24}
                       height={24}
