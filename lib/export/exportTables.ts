@@ -7,6 +7,12 @@ export interface TableExport {
   exportedAt: string;
 }
 
+// Tables that use a column other than `created_at` for stable export ordering.
+// documents uses uploaded_at (no created_at column exists in the schema).
+const TABLE_SORT_COLUMN: Record<string, string> = {
+  documents: 'uploaded_at',
+};
+
 // Company-scoped tables: filtered by company_id.
 // Phase 2 Batch 2 added subcontractors + vehicles.
 // Phase 2 Batch 3 added vehicle_licenses + vehicle_insurances.
@@ -51,11 +57,12 @@ export async function exportAllTables(companyId: string): Promise<TableExport[]>
   const results: TableExport[] = [];
 
   for (const table of COMPANY_SCOPED_TABLES) {
+    const sortCol = TABLE_SORT_COLUMN[table] ?? 'created_at';
     const { data, error } = await supabase
       .from(table)
       .select('*')
       .eq('company_id', companyId)
-      .order('created_at' as never, { ascending: true })
+      .order(sortCol as never, { ascending: true })
       .limit(100_000);
 
     if (error) {
@@ -81,11 +88,12 @@ export async function exportAllTables(companyId: string): Promise<TableExport[]>
       continue;
     }
 
+    const sortCol = TABLE_SORT_COLUMN[table] ?? 'created_at';
     const { data, error } = await supabase
       .from(table)
       .select('*')
       .in('worker_id', workerIds)
-      .order('created_at' as never, { ascending: true })
+      .order(sortCol as never, { ascending: true })
       .limit(100_000);
 
     if (error) {

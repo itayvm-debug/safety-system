@@ -27,40 +27,46 @@ export async function GET() {
     );
   }
 
-  const tables = await exportAllTables(context.companyId);
+  let tables, zipBuffer: Buffer, filename: string;
+  try {
+    tables = await exportAllTables(context.companyId);
 
-  const fileBuffers = new Map<string, Buffer>();
-  for (const t of tables) {
-    fileBuffers.set(`${t.table}.jsonl`, toJsonl(t.rows));
+    const fileBuffers = new Map<string, Buffer>();
+    for (const t of tables) {
+      fileBuffers.set(`${t.table}.jsonl`, toJsonl(t.rows));
+    }
+
+    const manifest = buildManifest(tables, fileBuffers);
+    const manifestBuf = Buffer.from(JSON.stringify(manifest, null, 2), 'utf8');
+    fileBuffers.set('manifest.json', manifestBuf);
+
+    const entries = [
+      { name: 'manifest.json', data: manifestBuf },
+      ...[...fileBuffers.entries()]
+        .filter(([name]) => name !== 'manifest.json')
+        .map(([name, data]) => ({ name, data })),
+    ];
+    zipBuffer = buildZip(entries);
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    filename = `safedoc-export-${dateStr}.zip`;
+
+    void auditLog({
+      user_id:    context.userId,
+      user_email: context.email,
+      action:     'system_export_created',
+      metadata: {
+        company_id: context.companyId,
+        tables:     manifest.totalTables,
+        totalRows:  manifest.totalRows,
+        filename,
+        sizeBytes:  zipBuffer.length,
+      },
+    });
+  } catch (err) {
+    console.error('[export] ZIP build failed:', err);
+    return NextResponse.json({ error: 'שגיאה ביצירת קובץ הייצוא' }, { status: 500 });
   }
-
-  const manifest = buildManifest(tables, fileBuffers);
-  const manifestBuf = Buffer.from(JSON.stringify(manifest, null, 2), 'utf8');
-  fileBuffers.set('manifest.json', manifestBuf);
-
-  const entries = [
-    { name: 'manifest.json', data: manifestBuf },
-    ...[...fileBuffers.entries()]
-      .filter(([name]) => name !== 'manifest.json')
-      .map(([name, data]) => ({ name, data })),
-  ];
-  const zipBuffer = buildZip(entries);
-
-  const dateStr = new Date().toISOString().slice(0, 10);
-  const filename = `safedoc-export-${dateStr}.zip`;
-
-  void auditLog({
-    user_id:    context.userId,
-    user_email: context.email,
-    action:     'system_export_created',
-    metadata: {
-      company_id: context.companyId,
-      tables:     manifest.totalTables,
-      totalRows:  manifest.totalRows,
-      filename,
-      sizeBytes:  zipBuffer.length,
-    },
-  });
 
   return new NextResponse(zipBuffer as unknown as BodyInit, {
     status: 200,

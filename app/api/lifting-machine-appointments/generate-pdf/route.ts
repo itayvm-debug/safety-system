@@ -73,6 +73,8 @@ export async function POST(request: NextRequest) {
     .eq('company_id', companyId);
 
   if (updateError) {
+    // PDF was written to storage but DB update failed — remove the orphan
+    await supabase.storage.from('worker-files').remove([storagePath]).catch(() => undefined);
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 

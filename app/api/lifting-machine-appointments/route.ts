@@ -121,7 +121,14 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+  if (dbError) {
+    // Clean up orphaned signature files that were uploaded before the DB insert failed
+    const orphans = [operatorSigUrl, appointerSigUrl].filter((p): p is string => p !== null);
+    if (orphans.length > 0) {
+      await supabase.storage.from('worker-files').remove(orphans).catch(() => undefined);
+    }
+    return NextResponse.json({ error: dbError.message }, { status: 500 });
+  }
 
   void username; // used for audit context if needed
   return NextResponse.json(data, { status: 201 });
