@@ -47,8 +47,11 @@ export const test = base.extend<{
       { timeout: 15_000 },
     );
 
-    // Safety: abort if active company text suggests Company A
-    const headerText = await page.locator('header, nav').first().textContent().catch(() => '');
+    // Safety: abort if active company text suggests Company A.
+    // Use evaluate() (same query as waitForFunction above) to avoid a race where
+    // page.locator('header, nav').first() might resolve to a different element or
+    // snapshot a momentarily empty re-render between the two async Playwright trips.
+    const headerText = await page.evaluate(() => document.querySelector('header')?.textContent ?? '');
     if (
       headerText &&
       !headerText.includes('Internal QA') &&

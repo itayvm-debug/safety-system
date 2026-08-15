@@ -131,7 +131,7 @@ function CompanyAvatar({ company, size = 'md' }: { company: CompanyInfo; size?: 
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={company.logo_url}
+        src={company.logo_url.startsWith('/') || company.logo_url.startsWith('http') ? company.logo_url : `/${company.logo_url}`}
         alt=""
         className={`${dim} rounded-lg object-contain shrink-0 border border-gray-100`}
         onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
