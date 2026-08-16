@@ -1,5 +1,24 @@
 import type { Issue } from '@/lib/documents/issues';
 
+// ── Subject builder (exported so callers and tests can verify the format) ────
+
+export function buildWeeklyReportSubject(companyName: string): string {
+  const dateStr = new Date().toLocaleDateString('he-IL', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  });
+  return `SafeDoc — דוח סטטוס שבועי — ${companyName} — ${dateStr}`;
+}
+
+// ── HTML escape (company name may contain &, <, >, " ) ───────────────────────
+
+function escHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const LABEL: Record<string, string> = {
@@ -91,7 +110,7 @@ function buildCategorySection(cat: Category, issues: Issue[], appUrl: string): s
 
 // ── Main export ──────────────────────────────────────────────────────────────
 
-export function buildWeeklyReportHtml(issues: Issue[], appUrl: string): string {
+export function buildWeeklyReportHtml(issues: Issue[], appUrl: string, companyName: string): string {
   const urgentTotal   = issues.filter((i) => isUrgent(i.status)).length;
   const expiringTotal = issues.filter((i) => i.status === 'expiring_soon').length;
   const total = urgentTotal + expiringTotal;
@@ -101,7 +120,7 @@ export function buildWeeklyReportHtml(issues: Issue[], appUrl: string): string {
   });
 
   if (urgentTotal === 0 && expiringTotal === 0) {
-    return buildAllClearHtml(dateStr, appUrl);
+    return buildAllClearHtml(dateStr, appUrl, companyName);
   }
 
   const sections = CATEGORIES.map((cat) => buildCategorySection(cat, issues, appUrl)).join('');
@@ -131,6 +150,7 @@ export function buildWeeklyReportHtml(issues: Issue[], appUrl: string): string {
 <tr><td style="background:#ea580c;border-radius:14px 14px 0 0;padding:24px;text-align:center">
 <div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.5px">SafeDoc</div>
 <div style="font-size:12px;color:#fed7aa;margin-top:3px">דוח סטטוס שבועי</div>
+<div style="font-size:15px;font-weight:700;color:#fff;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.35)">חברה: ${escHtml(companyName)}</div>
 </td></tr>
 
 <tr><td style="background:#fff;border-right:1px solid #e5e7eb;border-left:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
@@ -160,7 +180,7 @@ ${sections}
 
 // ── All-clear variant ────────────────────────────────────────────────────────
 
-function buildAllClearHtml(dateStr: string, appUrl: string): string {
+function buildAllClearHtml(dateStr: string, appUrl: string, companyName: string): string {
   return `<!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head>
@@ -175,6 +195,7 @@ function buildAllClearHtml(dateStr: string, appUrl: string): string {
 <tr><td style="background:#ea580c;border-radius:14px 14px 0 0;padding:24px;text-align:center">
 <div style="font-size:28px;font-weight:800;color:#fff">SafeDoc</div>
 <div style="font-size:12px;color:#fed7aa;margin-top:3px">דוח סטטוס שבועי</div>
+<div style="font-size:15px;font-weight:700;color:#fff;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.35)">חברה: ${escHtml(companyName)}</div>
 </td></tr>
 <tr><td style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 14px 14px;padding:40px 28px;text-align:center">
 <div style="font-size:48px;margin-bottom:12px">&#x2705;</div>

@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { buildAllIssues } from '@/lib/documents/issues';
-import { buildWeeklyReportHtml } from '@/lib/email/weekly-report';
+import { buildWeeklyReportHtml, buildWeeklyReportSubject } from '@/lib/email/weekly-report';
 
 async function fetchCompanyData(companyId: string) {
   const supabase = createServiceClient();
@@ -88,6 +88,7 @@ interface ReportResult {
 
 async function runReportForCompany(
   companyId: string,
+  companyName: string,
   testRecipient?: string
 ): Promise<ReportResult> {
   const apiKey    = process.env.RESEND_API_KEY;
@@ -99,13 +100,13 @@ async function runReportForCompany(
 
   const { workers, vehicles, heavyEquipment, liftingEquipment } = await fetchCompanyData(companyId);
   const issues = buildAllIssues(workers, vehicles, heavyEquipment, liftingEquipment);
-  const html = buildWeeklyReportHtml(issues, appUrl);
+  const html = buildWeeklyReportHtml(issues, appUrl, companyName);
 
   const recipients = testRecipient
     ? [testRecipient]
     : (await fetchCompanyAdminRecipients(companyId)).map(r => r.report_email);
 
-  console.log('[weekly-report] companyId:', companyId, 'recipients:', recipients, 'issues:', issues.length);
+  console.log('[weekly-report] companyId:', companyId, 'companyName:', companyName, 'recipients:', recipients, 'issues:', issues.length);
 
   if (recipients.length === 0) {
     return { sent_count: 0, failed_count: 0, recipients: [], issues_count: issues.length, resend_id: null, errors: [] };
@@ -116,7 +117,7 @@ async function runReportForCompany(
   const { data, error } = await resend.emails.send({
     from: `SafeDoc <${fromEmail}>`,
     to: recipients,
-    subject: `דוח סטטוס שבועי SafeDoc — ${new Date().toLocaleDateString('he-IL')}`,
+    subject: buildWeeklyReportSubject(companyName),
     html,
   });
 
@@ -150,7 +151,7 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceClient();
   const { data: companies } = await supabase
     .from('companies')
-    .select('id')
+    .select('id, name')
     .eq('is_active', true);
 
   if (!companies?.length) {
@@ -158,7 +159,7 @@ export async function GET(request: NextRequest) {
   }
 
   const results = await Promise.allSettled(
-    companies.map(c => runReportForCompany(c.id))
+    companies.map(c => runReportForCompany(c.id, c.name))
   );
 
   const totalSent  = results.reduce((acc, r) => acc + (r.status === 'fulfilled' ? r.value.sent_count  : 0), 0);
@@ -182,7 +183,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await runReportForCompany(context.companyId, testRecipient);
+    const supabase = createServiceClient();
+    const { data: company } = await supabase
+      .from('companies')
+      .select('name')
+      .eq('id', context.companyId)
+      .single();
+    const companyName = company?.name ?? context.companyId;
+
+    const result = await runReportForCompany(context.companyId, companyName, testRecipient);
     const ok = result.failed_count === 0 && result.sent_count > 0;
     return NextResponse.json({ ok, ...result }, { status: result.errors.length > 0 ? 500 : 200 });
   } catch (err) {
