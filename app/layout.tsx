@@ -8,11 +8,41 @@ import { SessionCompaniesProvider } from '@/lib/session/SessionCompaniesProvider
 
 const geist = Geist({ subsets: ['latin'] });
 
-// ─── PWA + SEO metadata ────────────────────────────────────────
+// Absolute base URL — used for OG image so crawlers get a fully-qualified URL.
+// Falls back to the production Vercel deployment when NEXT_PUBLIC_APP_URL is unset.
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ?? 'https://safety-system-henna.vercel.app';
+
+// ─── PWA + SEO + Open Graph metadata ──────────────────────────
 export const metadata: Metadata = {
   title: 'SafeDoc — ניהול מסמכי בטיחות',
-  description: 'מערכת לניהול מסמכי בטיחות של עובדים באתר בנייה',
+  description: 'מערכת SafeDoc לניהול מסמכי בטיחות ורישיונות עובדים באתרי הבנייה',
   manifest: '/manifest.json',
+
+  // Open Graph — controls WhatsApp / Telegram / Facebook link previews
+  openGraph: {
+    type: 'website',
+    locale: 'he_IL',
+    siteName: 'SafeDoc',
+    title: 'SafeDoc — ניהול מסמכי בטיחות',
+    description: 'מערכת SafeDoc לניהול מסמכי בטיחות ורישיונות עובדים באתרי הבנייה',
+    images: [
+      {
+        url: `${APP_URL}/icons/icon-512.png`,
+        width: 512,
+        height: 512,
+        alt: 'SafeDoc',
+      },
+    ],
+  },
+
+  // Twitter / X card
+  twitter: {
+    card: 'summary',
+    title: 'SafeDoc — ניהול מסמכי בטיחות',
+    description: 'מערכת SafeDoc לניהול מסמכי בטיחות ורישיונות עובדים באתרי הבנייה',
+    images: [`${APP_URL}/icons/icon-512.png`],
+  },
 
   // iOS PWA
   appleWebApp: {
