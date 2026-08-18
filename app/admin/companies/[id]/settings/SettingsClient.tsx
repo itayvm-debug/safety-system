@@ -3,20 +3,28 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { ResolvedCompanySettings } from '@/lib/company/settings';
+import { broadcastSessionCompaniesChanged } from '@/lib/session/SessionCompaniesProvider';
 
 interface Props {
   companyId: string;
   companyName: string;
   initialSettings: ResolvedCompanySettings;
+  initialLogoUrl: string | null;
 }
 
-export default function SettingsClient({ companyId, companyName, initialSettings }: Props) {
+export default function SettingsClient({ companyId, companyName, initialSettings, initialLogoUrl }: Props) {
   const [settings, setSettings] = useState(initialSettings);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
   const [error, setError] = useState('');
 
-  // Local draft for edits
+  // Logo state
+  const [logoUrl, setLogoUrl] = useState<string | null>(initialLogoUrl);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState('');
+  const [logoSuccess, setLogoSuccess] = useState('');
+
+  // Local draft for branding edits
   const [draft, setDraft] = useState({
     primaryColor: settings.branding.primaryColor,
     secondaryColor: settings.branding.secondaryColor,
@@ -25,6 +33,82 @@ export default function SettingsClient({ companyId, companyName, initialSettings
   });
 
   const [featuresDraft, setFeaturesDraft] = useState({ ...settings.features });
+
+  // Construct the URL used for logo preview — storage paths get a leading /
+  const logoDisplayUrl = logoUrl
+    ? (logoUrl.startsWith('/') || logoUrl.startsWith('http') ? logoUrl : `/${logoUrl}`)
+    : null;
+
+  async function uploadLogo(file: File) {
+    setLogoUploading(true);
+    setLogoError('');
+    setLogoSuccess('');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const upRes = await fetch('/api/admin/upload-logo', { method: 'POST', body: form });
+      const upData = await upRes.json() as { path?: string; error?: string };
+      if (!upRes.ok) {
+        setLogoError(upData.error ?? 'שגיאה בהעלאת לוגו');
+        return;
+      }
+
+      const storagePath = upData.path!;
+      const patchRes = await fetch(`/api/admin/companies/${companyId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logo_url: storagePath }),
+      });
+      if (!patchRes.ok) {
+        const patchData = await patchRes.json() as { error?: string };
+        setLogoError(patchData.error ?? 'שגיאה בשמירת לוגו');
+        return;
+      }
+
+      setLogoUrl(storagePath);
+      setLogoSuccess('לוגו עודכן!');
+      setTimeout(() => setLogoSuccess(''), 3000);
+      broadcastSessionCompaniesChanged();
+    } catch {
+      setLogoError('שגיאת תקשורת');
+    } finally {
+      setLogoUploading(false);
+    }
+  }
+
+  async function removeLogo() {
+    if (!logoUrl) return;
+    setLogoUploading(true);
+    setLogoError('');
+    setLogoSuccess('');
+    try {
+      // Only attempt storage deletion for managed company-logos/ paths
+      const storagePath = logoUrl.startsWith('/') ? logoUrl.slice(1) : logoUrl;
+      if (storagePath.startsWith('company-logos/')) {
+        await fetch(`/api/admin/upload-logo?path=${encodeURIComponent(storagePath)}`, { method: 'DELETE' });
+      }
+
+      const patchRes = await fetch(`/api/admin/companies/${companyId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logo_url: null }),
+      });
+      if (!patchRes.ok) {
+        const patchData = await patchRes.json() as { error?: string };
+        setLogoError(patchData.error ?? 'שגיאה בהסרת לוגו');
+        return;
+      }
+
+      setLogoUrl(null);
+      setLogoSuccess('לוגו הוסר');
+      setTimeout(() => setLogoSuccess(''), 3000);
+      broadcastSessionCompaniesChanged();
+    } catch {
+      setLogoError('שגיאת תקשורת');
+    } finally {
+      setLogoUploading(false);
+    }
+  }
 
   async function saveBranding(e: React.FormEvent) {
     e.preventDefault();
@@ -46,7 +130,7 @@ export default function SettingsClient({ companyId, companyName, initialSettings
         }),
       });
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json() as { error?: string };
         setError(data.error ?? 'שגיאה בשמירה');
         return;
       }
@@ -69,7 +153,7 @@ export default function SettingsClient({ companyId, companyName, initialSettings
         body: JSON.stringify({ settings: { features: featuresDraft } }),
       });
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json() as { error?: string };
         setError(data.error ?? 'שגיאה בשמירה');
         return;
       }
@@ -119,7 +203,69 @@ export default function SettingsClient({ companyId, companyName, initialSettings
 
       {/* Branding */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-gray-900 mb-4">מיתוג (Branding)</h2>
+        <h2 className="font-semibold text-gray-900 mb-5">מיתוג (Branding)</h2>
+
+        {/* ── Logo section ───────────────────────────────────────── */}
+        <div className="mb-5 pb-5 border-b border-gray-100">
+          <p className="text-sm font-medium text-gray-700 mb-3">לוגו חברה</p>
+          <div className="flex items-start gap-4 flex-wrap">
+
+            {/* Preview */}
+            <div className="w-16 h-16 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+              {logoDisplayUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoDisplayUrl} alt="לוגו חברה" className="w-full h-full object-contain" />
+              ) : (
+                <span className="text-gray-400 text-[10px] text-center leading-tight px-1">אין לוגו</span>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex flex-col gap-2">
+              <label
+                className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                  logoUploading
+                    ? 'opacity-50 cursor-not-allowed border-gray-200 text-gray-400'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                }`}
+              >
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml"
+                  className="sr-only"
+                  disabled={logoUploading}
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) void uploadLogo(file);
+                    e.target.value = '';
+                  }}
+                />
+                {logoUploading ? 'מעלה...' : logoDisplayUrl ? 'החלף לוגו' : 'העלה לוגו'}
+              </label>
+
+              {logoDisplayUrl && (
+                <button
+                  type="button"
+                  disabled={logoUploading}
+                  onClick={() => void removeLogo()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  הסר לוגו
+                </button>
+              )}
+
+              <p className="text-xs text-gray-400">PNG, JPG, SVG — עד 2MB</p>
+            </div>
+
+            {/* Inline status */}
+            <div className="flex flex-col justify-center gap-1">
+              {logoError && <p className="text-sm text-red-600">{logoError}</p>}
+              {logoSuccess && <p className="text-sm text-green-600 font-medium">{logoSuccess}</p>}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Branding form ──────────────────────────────────────── */}
         <form onSubmit={saveBranding} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">שם תצוגה</label>

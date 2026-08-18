@@ -13,7 +13,7 @@ export default async function CompanySettingsPage({ params }: Props) {
 
   const { data: company } = await supabase
     .from('companies')
-    .select('id, name, settings')
+    .select('id, name, settings, logo_url')
     .eq('id', companyId)
     .single();
 
@@ -26,6 +26,7 @@ export default async function CompanySettingsPage({ params }: Props) {
       companyId={companyId}
       companyName={company.name}
       initialSettings={resolved}
+      initialLogoUrl={(company as { logo_url?: string | null }).logo_url ?? null}
     />
   );
 }
