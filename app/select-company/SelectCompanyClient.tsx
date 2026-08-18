@@ -107,14 +107,13 @@ export default function SelectCompanyClient() {
       {/* Platform brand header */}
       <div className="text-center mb-6">
         <Image
-          src="/safedoc-logo.png"
+          src="/branding/safedoc-logo-full.png"
           alt="SafeDoc"
-          width={56}
-          height={56}
-          className="object-contain mx-auto mb-3"
+          width={220}
+          height={75}
+          className="object-contain mx-auto mb-2"
         />
-        <h1 className="text-xl font-bold text-gray-900 tracking-tight">SafeDoc</h1>
-        <p className="text-sm text-gray-500 mt-0.5">ניהול מסמכים, כשירויות ובטיחות במקום אחד</p>
+        <p className="text-sm text-gray-500">ניהול מסמכים, כשירויות ובטיחות במקום אחד</p>
       </div>
 
       {/* Selection card */}

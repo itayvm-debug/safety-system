@@ -28,10 +28,10 @@ export const metadata: Metadata = {
     description: 'מערכת SafeDoc לניהול מסמכי בטיחות ורישיונות עובדים באתרי הבנייה',
     images: [
       {
-        url: `${APP_URL}/icons/icon-512.png`,
-        width: 512,
-        height: 512,
-        alt: 'SafeDoc',
+        url: `${APP_URL}/branding/safedoc-brand-illustration.png`,
+        width: 1200,
+        height: 1200,
+        alt: 'SafeDoc — ניהול מסמכי בטיחות',
       },
     ],
   },
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     card: 'summary',
     title: 'SafeDoc — ניהול מסמכי בטיחות',
     description: 'מערכת SafeDoc לניהול מסמכי בטיחות ורישיונות עובדים באתרי הבנייה',
-    images: [`${APP_URL}/icons/icon-512.png`],
+    images: [`${APP_URL}/branding/safedoc-brand-illustration.png`],
   },
 
   // iOS PWA

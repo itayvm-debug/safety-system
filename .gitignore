@@ -54,3 +54,6 @@ backups/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Brand asset source / working files (production assets live in public/branding/)
+/SafeDoc LOGO/

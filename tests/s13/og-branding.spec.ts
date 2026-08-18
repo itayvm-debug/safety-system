@@ -66,7 +66,7 @@ test.describe('S13-OG: Link Preview Branding', () => {
     expect(ogImage!).toMatch(/^https?:\/\//);
 
     // Must point to a SafeDoc brand asset
-    expect(ogImage!).toMatch(/\/icons\/icon-512\.png/);
+    expect(ogImage!).toMatch(/\/branding\/safedoc-brand-illustration\.png/);
   });
 
   // ── S13-OG-4: og:image URL is absolute ────────────────────────────────
@@ -96,7 +96,7 @@ test.describe('S13-OG: Link Preview Branding', () => {
 
     const twImage = extractMetaContent(html, 'twitter:image');
     expect(twImage, 'twitter:image must be present').not.toBeNull();
-    expect(twImage!).toMatch(/\/icons\/icon-512\.png/);
+    expect(twImage!).toMatch(/\/branding\/safedoc-brand-illustration\.png/);
     expect(twImage!).not.toMatch(/company-logo\.png/);
     expect(twImage!).not.toMatch(/\/logo\.png($|\?)/);
   });
