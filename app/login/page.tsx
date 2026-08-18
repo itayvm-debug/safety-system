@@ -47,7 +47,7 @@ export default function LoginPage() {
       ──────────────────────────────────────────────────────── */}
       <div
         className="absolute inset-0 hidden lg:block bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/branding/safedoc-hero.png')" }}
+        style={{ backgroundImage: "url('/branding/safedoc-entrance-screen.png')" }}
         aria-hidden="true"
       >
         {/* Overlay כהה לקריאות */}
@@ -73,14 +73,16 @@ export default function LoginPage() {
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <Image
-                src="/branding/safedoc-logo-full.png"
+                src="/branding/safedoc-app-icon.png"
                 alt="SafeDoc"
-                width={200}
-                height={70}
+                width={60}
+                height={60}
                 className="object-contain"
                 priority
               />
             </div>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">SafeDoc</h1>
+            <p className="text-sm text-gray-500 mt-1">ניהול מסמכי בטיחות</p>
           </div>
 
           {/* טופס */}

@@ -20,6 +20,7 @@ const BRAND_ASSETS = [
   '/branding/safedoc-logo-full.png',
   '/branding/safedoc-brand-illustration.png',
   '/branding/safedoc-hero.png',
+  '/branding/safedoc-entrance-screen.png',
 ];
 
 const PWA_ICONS = [
@@ -66,19 +67,24 @@ test.describe('S14-CL: Company logos preserved', () => {
 // ── 3: Login page uses correct brand assets ───────────────────────────────────
 
 test.describe('S14-LOGIN: Login page branding', () => {
-  test('S14-LOGIN-1: login page uses safedoc-logo-full, not old safedoc-logo.png', async ({ request }) => {
+  test('S14-LOGIN-1: login page uses approved entrance screen background', async ({ request }) => {
     const res = await request.get('/login');
     expect(res.ok()).toBe(true);
     const html = await res.text();
-    expect(html).toContain('safedoc-logo-full.png');
+    // Approved entrance screen (construction site / tablet scene)
+    expect(html).toContain('safedoc-entrance-screen.png');
+    // Must NOT use deleted old assets
     expect(html).not.toContain('/safedoc-logo.png');
+    expect(html).not.toContain('login-hero.png');
+    // safedoc-hero is NOT used on /login (it is available for other surfaces)
+    expect(html).not.toContain('safedoc-hero.png');
   });
 
-  test('S14-LOGIN-2: login page desktop hero uses safedoc-hero, not old login-hero.png', async ({ request }) => {
+  test('S14-LOGIN-2: login page card uses safedoc-app-icon and SafeDoc title', async ({ request }) => {
     const res = await request.get('/login');
     const html = await res.text();
-    expect(html).toContain('safedoc-hero.png');
-    expect(html).not.toContain('login-hero.png');
+    expect(html).toContain('safedoc-app-icon.png');
+    expect(html).toContain('SafeDoc');
   });
 });
 
