@@ -104,7 +104,7 @@ export default function NavBar() {
 
           {/* לוגו פלטפורמה */}
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-            <Image src="/safedoc-logo.png" alt="SafeDoc" width={36} height={36} className="object-contain" priority />
+            <Image src="/branding/safedoc-app-icon.png" alt="SafeDoc" width={36} height={36} className="object-contain" priority />
             <div className="leading-tight hidden 2xl:block">
               <p className="font-bold text-gray-900 text-sm">SafeDoc</p>
               <p className="text-xs text-gray-500">ניהול בטיחות</p>
@@ -304,7 +304,7 @@ export default function NavBar() {
         <div className="flex lg:hidden px-4 h-14 items-center justify-between">
           {/* לוגו פלטפורמה (ימין ב-RTL — DOM ראשון) */}
           <Link href="/dashboard" className="flex items-center gap-2">
-            <Image src="/safedoc-logo.png" alt="SafeDoc" width={32} height={32} className="object-contain" priority />
+            <Image src="/branding/safedoc-app-icon.png" alt="SafeDoc" width={32} height={32} className="object-contain" priority />
             <div>
               <p className="font-bold text-gray-900 text-sm leading-none">SafeDoc</p>
               {activeCompany && (

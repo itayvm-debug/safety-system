@@ -53,7 +53,7 @@ export default function LegalConsentPage() {
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-8">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <Image src="/logo.png" alt="SafeDoc" width={48} height={48} className="object-contain" priority />
+            <Image src="/branding/safedoc-app-icon.png" alt="SafeDoc" width={48} height={48} className="object-contain" priority />
           </div>
           <h1 className="text-xl font-bold text-gray-900">{LEGAL.productName}</h1>
           <p className="text-sm text-gray-500 mt-1">לפני שתמשיך, יש לאשר את התנאים הבאים</p>

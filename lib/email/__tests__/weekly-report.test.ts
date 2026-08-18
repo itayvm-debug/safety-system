@@ -23,6 +23,7 @@ const APP_URL = 'https://app.example.com';
 
 function makeIssue(overrides: Partial<Issue> = {}): Issue {
   return {
+    id:         'issue-1',
     entityType: 'worker',
     entityId:   'w-1',
     entityName: 'ישראל ישראלי',
