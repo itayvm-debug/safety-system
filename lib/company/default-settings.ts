@@ -30,4 +30,5 @@ export const DEFAULT_COMPANY_SETTINGS: ResolvedCompanySettings = {
     showEmployeeNumber:  false,
     showProjectSelector: true,
   },
+  briefingTemplates: {},
 };

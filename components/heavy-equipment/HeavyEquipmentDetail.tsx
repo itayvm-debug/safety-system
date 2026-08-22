@@ -382,7 +382,7 @@ function InsuranceRow({
       {error && <p className="text-xs text-red-600 mb-1">{error}</p>}
       <div className="space-y-2">
         <FileUploadZone
-          folder="equipment"
+          folder="heavy-equipment"
           onUploaded={handleFileUploaded}
           currentFileName={insurance.file_url ? 'קובץ קיים' : undefined}
         />
@@ -494,7 +494,7 @@ function EquipmentImageUploader({
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.append('file', file, filename); fd.append('folder', 'equipment');
+      fd.append('file', file, filename); fd.append('folder', 'heavy-equipment');
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
       const ud = await uploadRes.json();
       if (!uploadRes.ok) { setUploadError(ud.error ?? 'שגיאה בהעלאת הקובץ'); return; }
@@ -698,7 +698,7 @@ function EquipmentFileCard({
 
       <div className="space-y-2">
         <FileUploadZone
-          folder="equipment"
+          folder="heavy-equipment"
           onUploaded={handleFileUploaded}
           currentFileName={fileUrl ? 'קובץ קיים' : undefined}
         />

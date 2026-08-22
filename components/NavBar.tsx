@@ -286,7 +286,7 @@ export default function NavBar() {
                 משתמשי החברה
               </Link>
             )}
-            {!isAdmin && (
+            {!isCompanyAdmin && (
               <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full whitespace-nowrap">
                 צפייה בלבד
               </span>
@@ -431,7 +431,7 @@ export default function NavBar() {
                   חברות
                 </Link>
               )}
-              {!isAdmin && (
+              {!isCompanyAdmin && (
                 <div className="px-3 py-2">
                   <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">צפייה בלבד</span>
                 </div>
