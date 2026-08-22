@@ -165,8 +165,9 @@ export default async function DashboardPage() {
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');
   }
-  const { companyId, platformRole } = ctxResult.context;
+  const { companyId, platformRole, companyRole } = ctxResult.context;
   const isAdmin = platformRole === 'admin';
+  const canManage = companyRole !== 'member';
 
   const supabase = createServiceClient();
 
@@ -260,7 +261,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="mb-8">
         <span className="text-xs font-medium text-orange-500 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-100">
-          {isAdmin ? 'ניהול' : 'צפייה בלבד'}
+          {canManage ? 'ניהול' : 'צפייה בלבד'}
         </span>
         <h1 className="text-3xl font-bold text-gray-900 mt-4 mb-1">SafeDoc</h1>
         <p className="text-sm text-gray-500">מערכת ניהול מסמכי בטיחות לעובדים וכלים</p>

@@ -27,6 +27,7 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // מיון לפי created_at (timestamp מדויק) ולא briefed_at (רק תאריך)
   // מבטיח שתמיד יוצג התדריך שנוצר אחרון, גם אם שניים נוצרו באותו יום
@@ -56,6 +57,8 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
   function close() { setFormOpen(false); setMode(null); }
 
   return (
+    <>
+    {previewUrl && <DocumentPreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />}
     <div className="bg-white rounded-xl border border-gray-200 p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-medium text-gray-900">תדריך בטיחות</h3>
@@ -71,7 +74,7 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
           <div className="flex gap-3 mt-1 flex-wrap items-center">
             {latestBriefing.file_url && (
               <>
-                <FileActionButton fileUrl={latestBriefing.file_url} download={false} label="צפה ב-PDF" />
+                <FileActionButton fileUrl={latestBriefing.file_url} download={false} label="צפה ב-PDF" onPreview={setPreviewUrl} />
                 <FileActionButton fileUrl={latestBriefing.file_url} download={true} label="הורד PDF" />
               </>
             )}
@@ -127,6 +130,7 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
         <ExternalModeForm workerId={worker.id} onClose={close} onSaved={(b) => { setLocalBriefings((prev) => [b, ...prev]); close(); }} />
       )}
     </div>
+    </>
   );
 }
 
@@ -147,6 +151,8 @@ function SystemBriefingFlow({
   const [conductedBy, setConductedBy] = useState('');
   const [signatureDataUrl, setSignatureDataUrl] = useState('');
   const [error, setError] = useState('');
+  const [resolvedTemplateUrl, setResolvedTemplateUrl] = useState('');
+  const [templateLoading, setTemplateLoading] = useState(false);
 
   const missingFields = [
     !language && 'יש לבחור שפה',
@@ -156,6 +162,27 @@ function SystemBriefingFlow({
 
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
+
+  async function resolveTemplateAndAdvance() {
+    if (!language) { setError('יש לבחור שפה'); return; }
+    if (!conductedBy.trim()) { setError('יש להזין שם מבצע'); return; }
+    setError('');
+    setTemplateLoading(true);
+    try {
+      const res = await fetch(`/api/briefing-template?language=${language}`);
+      const d = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !d.url) {
+        setError(d.error ?? 'שגיאה בטעינת תבנית התדריך');
+        return;
+      }
+      setResolvedTemplateUrl(d.url);
+      setStep('briefing');
+    } catch {
+      setError('שגיאת תקשורת בטעינת תבנית');
+    } finally {
+      setTemplateLoading(false);
+    }
+  }
 
   async function handleFinish() {
     if (missingFields.length > 0) {
@@ -177,6 +204,7 @@ function SystemBriefingFlow({
           conductedBy,
           signatureDataUrl,
           briefedAt,
+          templateUrl: resolvedTemplateUrl,
         });
       } catch (pdfErr) {
         setError(`שגיאה ביצירת PDF: ${pdfErr instanceof Error ? pdfErr.message : String(pdfErr)}`);
@@ -257,15 +285,11 @@ function SystemBriefingFlow({
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex gap-2">
             <button
-              onClick={() => {
-                if (!language) { setError('יש לבחור שפה'); return; }
-                if (!conductedBy.trim()) { setError('יש להזין שם מבצע'); return; }
-                setError('');
-                setStep('briefing');
-              }}
-              className="px-4 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600"
+              onClick={() => void resolveTemplateAndAdvance()}
+              disabled={templateLoading}
+              className="px-4 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 disabled:opacity-50"
             >
-              המשך לתדריך ←
+              {templateLoading ? 'טוען...' : 'המשך לתדריך ←'}
             </button>
             <button onClick={onClose} className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50">ביטול</button>
           </div>
@@ -273,9 +297,9 @@ function SystemBriefingFlow({
       )}
 
       {/* שלב 2: הצגת PDF המקורי */}
-      {step === 'briefing' && language && (
+      {step === 'briefing' && resolvedTemplateUrl && (
         <PdfViewer
-          src={`/briefing-templates/${language}.pdf`}
+          src={resolvedTemplateUrl}
           onContinue={() => setStep('sign')}
           onBack={() => setStep('language')}
         />
@@ -573,19 +597,20 @@ async function generateBriefingPDF({
   conductedBy,
   signatureDataUrl,
   briefedAt,
+  templateUrl,
 }: {
   worker: WorkerWithDocuments;
   language: BriefingLanguage;
   conductedBy: string;
   signatureDataUrl: string;
   briefedAt: string;
+  templateUrl: string;
 }): Promise<Blob> {
   const { PDFDocument } = await import('pdf-lib');
 
-  // טוען template PDF לפי שפה
-  const templateRes = await fetch(`/briefing-templates/${language}.pdf`);
+  const templateRes = await fetch(templateUrl);
   if (!templateRes.ok) {
-    throw new Error(`קובץ תבנית לא נמצא: ${language}.pdf (${templateRes.status})`);
+    throw new Error(`קובץ תבנית לא נמצא: ${templateUrl} (${templateRes.status})`);
   }
   const templateBytes = await templateRes.arrayBuffer();
 
@@ -617,8 +642,41 @@ async function generateBriefingPDF({
   return new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' });
 }
 
+// ─── מודל תצוגת מסמך מובנה ──────────────────────────────────────
+function DocumentPreviewModal({ url, onClose }: { url: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-black/70"
+      onClick={onClose}
+    >
+      <div className="flex items-center justify-between px-4 py-2 bg-gray-900 text-white shrink-0" onClick={e => e.stopPropagation()}>
+        <span className="text-sm font-medium">תצוגת מסמך</span>
+        <button
+          onClick={onClose}
+          className="text-white hover:text-gray-300 text-xl leading-none px-2"
+          aria-label="סגור"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="flex-1 overflow-hidden" onClick={e => e.stopPropagation()}>
+        <iframe
+          src={url}
+          className="w-full h-full border-0"
+          title="תצוגת מסמך"
+        />
+      </div>
+    </div>
+  );
+}
+
 // ─── כפתור פעולה על קובץ (צפייה / הורדה) ──────────────────────
-function FileActionButton({ fileUrl, download, label }: { fileUrl: string; download: boolean; label: string }) {
+function FileActionButton({ fileUrl, download, label, onPreview }: {
+  fileUrl: string;
+  download: boolean;
+  label: string;
+  onPreview?: (url: string) => void;
+}) {
   const [loading, setLoading] = useState(false);
   async function handleClick() {
     setLoading(true);
@@ -627,7 +685,13 @@ function FileActionButton({ fileUrl, download, label }: { fileUrl: string; downl
       if (download) params.set('download', '1');
       const res = await fetch(`/api/signed-url?${params}`);
       const d = await res.json();
-      if (d.url) window.open(d.url, '_blank');
+      if (d.url) {
+        if (!download && onPreview) {
+          onPreview(d.url);
+        } else {
+          window.open(d.url, '_blank');
+        }
+      }
     } finally { setLoading(false); }
   }
   return (

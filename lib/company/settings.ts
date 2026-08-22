@@ -1,5 +1,13 @@
 import { z } from 'zod';
 import { DEFAULT_COMPANY_SETTINGS } from './default-settings';
+import type { BriefingLanguage } from '@/types';
+
+const BRIEFING_LANGUAGES = ['hebrew', 'arabic', 'english', 'russian', 'thai'] as const;
+
+const CompanyBriefingTemplatesSchema = z.record(
+  z.enum(BRIEFING_LANGUAGES),
+  z.string(),
+).optional();
 
 const CompanyBrandingSchema = z.object({
   displayName:    z.string().optional(),
@@ -34,9 +42,10 @@ const CompanyUiSchema = z.object({
 });
 
 export const CompanySettingsSchema = z.object({
-  branding: CompanyBrandingSchema.optional(),
-  features: CompanyFeaturesSchema.optional(),
-  ui:       CompanyUiSchema.optional(),
+  branding:          CompanyBrandingSchema.optional(),
+  features:          CompanyFeaturesSchema.optional(),
+  ui:                CompanyUiSchema.optional(),
+  briefingTemplates: CompanyBriefingTemplatesSchema,
 });
 
 export type CompanySettings = z.infer<typeof CompanySettingsSchema>;
@@ -74,9 +83,10 @@ export interface CompanyUi {
 }
 
 export interface ResolvedCompanySettings {
-  branding: CompanyBranding;
-  features: CompanyFeatures;
-  ui:       CompanyUi;
+  branding:          CompanyBranding;
+  features:          CompanyFeatures;
+  ui:                CompanyUi;
+  briefingTemplates: Partial<Record<BriefingLanguage, string>>;
 }
 
 export function resolveCompanySettings(raw: unknown): ResolvedCompanySettings {
@@ -85,6 +95,7 @@ export function resolveCompanySettings(raw: unknown): ResolvedCompanySettings {
   const defaults = DEFAULT_COMPANY_SETTINGS;
 
   return {
+    briefingTemplates: partial.briefingTemplates ?? {},
     branding: {
       displayName:    partial.branding?.displayName    ?? defaults.branding.displayName,
       logoUrl:        partial.branding?.logoUrl        ?? defaults.branding.logoUrl        ?? null,

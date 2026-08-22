@@ -26,7 +26,7 @@ type AddFlow = 'existing' | 'create' | null;
 const ROLE_LABELS: Record<CompanyRole, string> = {
   owner: 'בעלים',
   admin: 'מנהל',
-  member: 'חבר',
+  member: 'צופה',
 };
 
 const ROLE_CHIP: Record<CompanyRole, string> = {
@@ -81,7 +81,7 @@ export default function CompanyMembersClient({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">משתמשי חברת {companyName}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{activeCount} חברים פעילים</p>
+          <p className="text-sm text-gray-500 mt-0.5">{activeCount} משתמשים פעילים</p>
         </div>
         <button
           onClick={() => setAddFlow('existing')}
@@ -109,7 +109,7 @@ export default function CompanyMembersClient({
           <option value="all">כל התפקידים</option>
           <option value="owner">בעלים</option>
           <option value="admin">מנהל</option>
-          <option value="member">חבר</option>
+          <option value="member">צופה</option>
         </select>
       </div>
 
@@ -117,7 +117,7 @@ export default function CompanyMembersClient({
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">👥</p>
-            <p className="font-medium">{search || roleFilter !== 'all' ? 'לא נמצאו תוצאות' : 'אין חברים עדיין'}</p>
+            <p className="font-medium">{search || roleFilter !== 'all' ? 'לא נמצאו תוצאות' : 'אין משתמשים עדיין'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -290,7 +290,7 @@ function MemberRow({
             >
               <option value="owner">בעלים</option>
               <option value="admin">מנהל</option>
-              <option value="member">חבר</option>
+              <option value="member">צופה</option>
             </select>
           )}
         </td>
@@ -431,7 +431,7 @@ function AddExistingModal({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">תפקיד בחברה</label>
           <select value={role} onChange={e => setRole(e.target.value as CompanyRole)} className={inputCls}>
-            <option value="member">חבר</option>
+            <option value="member">צופה</option>
             <option value="admin">מנהל</option>
             <option value="owner">בעלים</option>
           </select>
@@ -683,7 +683,7 @@ function CreateUserModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">תפקיד בחברה</label>
             <select value={form.companyRole} onChange={e => set('companyRole', e.target.value)} className={inputCls}>
-              <option value="member">חבר</option>
+              <option value="member">צופה</option>
               <option value="admin">מנהל</option>
               <option value="owner">בעלים</option>
             </select>

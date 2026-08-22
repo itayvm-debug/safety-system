@@ -18,6 +18,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'תפקיד לא חוקי — חייב להיות owner, admin או member' }, { status: 400 });
     }
 
+    // Only an owner can create another owner
+    if (companyRole === 'owner' && context.companyRole !== 'owner') {
+      return NextResponse.json({ error: 'רק בעלים יכול ליצור בעלים אחר' }, { status: 403 });
+    }
+
     if (password.length < 8) {
       return NextResponse.json({ error: 'הסיסמה חייבת להכיל לפחות 8 תווים' }, { status: 400 });
     }

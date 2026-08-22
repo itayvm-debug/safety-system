@@ -33,7 +33,7 @@ function LiftingImageUploader({ equipmentId, imageUrl, onUploaded }: { equipment
     setUploading(true);
     setUploadError('');
     try {
-      const fd = new FormData(); fd.append('file', file, filename); fd.append('folder', 'equipment');
+      const fd = new FormData(); fd.append('file', file, filename); fd.append('folder', 'lifting-equipment');
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
       const ud = await uploadRes.json();
       if (!uploadRes.ok) { setUploadError(ud.error ?? 'שגיאה בהעלאת הקובץ'); return; }
@@ -288,7 +288,7 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
 
           <div className="space-y-2">
             <FileUploadZone
-              folder="equipment"
+              folder="lifting-equipment"
               onUploaded={handleFileUploaded}
               currentFileName={eq.inspection_file_url ? 'קובץ קיים' : undefined}
             />

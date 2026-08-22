@@ -34,7 +34,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     // Fetch membership and verify it belongs to own company
     const { data: membership } = await supabase
       .from('company_members')
-      .select('id, user_id')
+      .select('id, user_id, role')
       .eq('id', memberId)
       .eq('company_id', context.companyId)
       .maybeSingle();
@@ -46,6 +46,24 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     // Prevent changing own role/status
     if (membership.user_id === context.userId) {
       return NextResponse.json({ error: 'לא ניתן לשנות את ההרשאות של עצמך' }, { status: 409 });
+    }
+
+    // Non-owner cannot modify an owner's membership
+    if (membership.role === 'owner' && context.companyRole !== 'owner') {
+      return NextResponse.json({ error: 'לא ניתן לשנות הרשאות של בעלים' }, { status: 403 });
+    }
+
+    // Last-owner protection: cannot demote the only remaining owner
+    if ('role' in body && membership.role === 'owner' && body.role !== 'owner') {
+      const { count: ownerCount } = await supabase
+        .from('company_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', context.companyId)
+        .eq('role', 'owner')
+        .eq('is_active', true);
+      if ((ownerCount ?? 0) <= 1) {
+        return NextResponse.json({ error: 'לא ניתן לשנות תפקיד הבעלים האחרון בחברה' }, { status: 409 });
+      }
     }
 
     const { data: updated, error: patchError } = await supabase
@@ -73,7 +91,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   // Verify membership belongs to own company
   const { data: membership } = await supabase
     .from('company_members')
-    .select('id, user_id')
+    .select('id, user_id, role')
     .eq('id', memberId)
     .eq('company_id', context.companyId)
     .maybeSingle();
@@ -85,6 +103,24 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   // Prevent self-removal
   if (membership.user_id === context.userId) {
     return NextResponse.json({ error: 'לא ניתן להסיר את עצמך מהחברה' }, { status: 409 });
+  }
+
+  // Non-owner cannot remove an owner
+  if (membership.role === 'owner' && context.companyRole !== 'owner') {
+    return NextResponse.json({ error: 'לא ניתן להסיר בעלים מהחברה' }, { status: 403 });
+  }
+
+  // Last-owner protection
+  if (membership.role === 'owner') {
+    const { count: ownerCount } = await supabase
+      .from('company_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', context.companyId)
+      .eq('role', 'owner')
+      .eq('is_active', true);
+    if ((ownerCount ?? 0) <= 1) {
+      return NextResponse.json({ error: 'לא ניתן להסיר את הבעלים האחרון בחברה' }, { status: 409 });
+    }
   }
 
   // Prevent removing last active member
