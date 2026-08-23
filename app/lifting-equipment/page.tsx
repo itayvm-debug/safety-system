@@ -7,7 +7,7 @@ export default function LiftingEquipmentPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">ציוד הרמה</h1>
-          <p className="text-sm text-gray-500 mt-1">עגורנים, מלגזות וציוד הרמה נוסף</p>
+          <p className="text-sm text-gray-500 mt-1">עגורנים, מלגזות, מעלית משא וציוד הרמה נוסף</p>
         </div>
         <NewEntityButton href="/lifting-equipment/new" label="+ ציוד הרמה חדש" />
       </div>

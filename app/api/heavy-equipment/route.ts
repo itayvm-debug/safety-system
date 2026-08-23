@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       .eq('company_id', context.companyId)
       .eq('license_number', license_number.trim())
       .maybeSingle();
-    if (existing) return NextResponse.json({ error: 'כלי צמ"ה עם מספר רישוי זה כבר קיים במערכת' }, { status: 409 });
+    if (existing) return NextResponse.json({ error: 'כלי עבודה עם מספר רישוי זה כבר קיים במערכת' }, { status: 409 });
   }
 
   const { data, error: dbError } = await supabase

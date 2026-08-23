@@ -7,7 +7,7 @@ import type { Issue } from '@/lib/documents/issues';
 const ENTITY_LABELS: Record<Issue['entityType'], string> = {
   worker: 'עובד',
   vehicle: 'רכב',
-  heavy_equipment: 'כלי צמ"ה',
+  heavy_equipment: 'כלי צמ"ה / עבודה',
   lifting_equipment: 'ציוד הרמה',
   subcontractor: 'קבלן משנה',
 };

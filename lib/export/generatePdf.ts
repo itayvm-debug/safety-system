@@ -283,7 +283,7 @@ export function buildEquipmentHtml(equipment: HeavyEquipment[], title: string, b
 // ─── דורש טיפול ───────────────────────────────────────────────
 export function buildIssuesHtml(issues: Issue[], title: string, branding: PdfBranding): string[] {
   const ENTITY_LABELS: Record<Issue['entityType'], string> = {
-    worker: 'עובד', vehicle: 'רכב', heavy_equipment: 'כלי צמ"ה', lifting_equipment: 'ציוד הרמה', subcontractor: 'קבלן משנה',
+    worker: 'עובד', vehicle: 'רכב', heavy_equipment: 'כלי צמ"ה / עבודה', lifting_equipment: 'ציוד הרמה', subcontractor: 'קבלן משנה',
   };
   const STATUS_LABEL: Record<Issue['status'], string> = {
     expired: 'פג תוקף', expiring_soon: 'עומד לפוג', missing: 'חסר',

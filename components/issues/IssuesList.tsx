@@ -7,7 +7,7 @@ import { Issue, IssueStatus } from '@/lib/documents/issues';
 const ENTITY_LABELS: Record<Issue['entityType'], string> = {
   worker: 'עובד',
   vehicle: 'רכב',
-  heavy_equipment: 'כלי צמ&quot;ה',
+  heavy_equipment: 'כלי צמ&quot;ה / עבודה',
   lifting_equipment: 'ציוד הרמה',
   subcontractor: 'קבלן משנה',
 };
@@ -117,7 +117,7 @@ export default function IssuesList({ issues, initialStatus }: Props) {
             <option value="worker">עובדים</option>
             <option value="manager">מנהלי עבודה</option>
             <option value="vehicle">רכבים</option>
-            <option value="heavy_equipment">כלי צמ&quot;ה</option>
+            <option value="heavy_equipment">כלי צמ&quot;ה / עבודה</option>
             <option value="lifting_equipment">ציוד הרמה</option>
           </select>
 

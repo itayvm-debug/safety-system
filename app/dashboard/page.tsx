@@ -359,8 +359,8 @@ export default async function DashboardPage() {
         <DashboardCard
           href="/heavy-equipment"
           icon={IconExcavator}
-          title='כלי צמ"ה'
-          description='ניהול רישיונות, ביטוחים ובדיקות תקופתיות לכלי צמ"ה'
+          title='כלי צמ"ה / עבודה'
+          description='ניהול רישיונות, ביטוחים ובדיקות תקופתיות לכלי צמ"ה / עבודה'
           color="text-yellow-600" bg="bg-yellow-50" border="border-yellow-100" hoverBorder="hover:border-yellow-300"
           counts={heavyCounts}
         />

@@ -271,7 +271,7 @@ function MachineForm({
       {/* בחירת כלי קיים */}
       {entry.source === 'existing' && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">בחר כלי צמ&quot;ה</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">בחר כלי צמ&quot;ה / עבודה</label>
           {loadingEq ? (
             <p className="text-sm text-gray-400">טוען כלים...</p>
           ) : (
