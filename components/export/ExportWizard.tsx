@@ -37,7 +37,7 @@ const REPORT_OPTIONS: { value: ReportType; label: string; desc: string; icon: st
   { value: 'workers',   label: 'עובדים',        desc: 'כל העובדים, פרטים וסטטוס מסמכים',   icon: '👷' },
   { value: 'managers',  label: 'מנהלי עבודה',   desc: 'מנהלי עבודה פנימיים בלבד',           icon: '🦺' },
   { value: 'vehicles',  label: 'רכבים',          desc: 'רכבים, רישיונות וביטוחים',           icon: '🚗' },
-  { value: 'equipment', label: 'כלי צמ&quot;ה',       desc: 'ציוד כבד, רישיונות ותסקירים',        icon: '🏗️' },
+  { value: 'equipment', label: 'כלי צמ&quot;ה / עבודה', desc: 'ציוד כבד, רישיונות ותסקירים',        icon: '🏗️' },
   { value: 'issues',    label: 'דורש טיפול',     desc: 'ליקויים פעילים מכל הישויות',         icon: '⚠️' },
 ];
 
@@ -208,7 +208,7 @@ export default function ExportWizard({ onClose }: Props) {
     if (format === 'excel') {
       generateEquipmentExcel(filtered);
     } else {
-      const pages = buildEquipmentHtml(filtered, 'כלי צמ"ה', branding);
+      const pages = buildEquipmentHtml(filtered, 'כלי צמ"ה / עבודה', branding);
       await generatePdf(pages, `כלי_צמה_${today()}.pdf`);
     }
   }
@@ -393,7 +393,7 @@ export default function ExportWizard({ onClose }: Props) {
                           <option value="all">כל הסוגים</option>
                           <option value="worker">עובדים</option>
                           <option value="vehicle">רכבים</option>
-                          <option value="heavy_equipment">כלי צמ&quot;ה</option>
+                          <option value="heavy_equipment">כלי צמ&quot;ה / עבודה</option>
                           <option value="lifting_equipment">ציוד הרמה</option>
                         </select>
                       </div>

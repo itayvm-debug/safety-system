@@ -43,7 +43,7 @@ const CATEGORIES: Category[] = [
   { label: 'עובדים',       entityType: 'worker',           nonManagerOnly: true },
   { label: 'מנהלי עבודה', entityType: 'worker',           managerOnly: true },
   { label: 'רכבים',        entityType: 'vehicle' },
-  { label: 'כלי צמ"ה',   entityType: 'heavy_equipment' },
+  { label: 'כלי צמ"ה / עבודה',   entityType: 'heavy_equipment' },
   { label: 'ציוד הרמה',   entityType: 'lifting_equipment' },
 ];
 

@@ -22,7 +22,7 @@ export default async function HeavyEquipmentDetailPage({ params }: { params: Pro
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/heavy-equipment" className="text-gray-400 hover:text-gray-600 text-sm">
-          ← רשימת כלי צמ&quot;ה
+          ← רשימת כלי צמ&quot;ה / עבודה
         </Link>
       </div>
       <HeavyEquipmentDetail equipment={data as HeavyEquipment} />

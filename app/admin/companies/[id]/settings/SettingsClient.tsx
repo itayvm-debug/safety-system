@@ -171,7 +171,7 @@ export default function SettingsClient({ companyId, companyName, initialSettings
     workers: 'עובדים',
     documents: 'מסמכים',
     vehicles: 'רכבים',
-    heavyEquipment: 'כלי צמ"ה',
+    heavyEquipment: 'כלי צמ"ה / עבודה',
     liftingEquipment: 'ציוד הרמה',
     subcontractors: 'קבלני משנה',
     reports: 'דוחות',

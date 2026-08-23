@@ -157,7 +157,7 @@ export default function HeavyEquipmentList() {
       <div className="text-center py-20 text-gray-400">
         {!isOnline
           ? <p className="text-base font-medium">אין נתונים שמורים להצגה במצב לא מקוון</p>
-          : <><p className="text-base font-medium">אין כלי צמ&quot;ה רשומים עדיין</p>
+          : <><p className="text-base font-medium">אין כלי צמ&quot;ה / עבודה רשומים עדיין</p>
               <p className="text-sm mt-1">לחץ על &quot;+ כלי&quot; כדי להוסיף</p></>
         }
       </div>
@@ -197,7 +197,7 @@ export default function HeavyEquipmentList() {
 
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm">
-          {search || filter !== 'all' ? 'לא נמצאו תוצאות התואמות את הסינון' : 'אין כלי צמ&quot;ה פעילים'}
+          {search || filter !== 'all' ? 'לא נמצאו תוצאות התואמות את הסינון' : 'אין כלי צמ&quot;ה / עבודה פעילים'}
         </div>
       ) : (
         <div className="space-y-2">

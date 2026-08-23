@@ -13,7 +13,7 @@ export const FEATURE_LABELS: Record<keyof CompanyFeatures, string> = {
   workers:                        'עובדים',
   documents:                      'מסמכים',
   vehicles:                       'רכבים',
-  heavyEquipment:                 'כלי צמ"ה',
+  heavyEquipment:                 'כלי צמ"ה / עבודה',
   liftingEquipment:               'ציוד הרמה',
   subcontractors:                 'קבלני משנה',
   reports:                        'דוחות',

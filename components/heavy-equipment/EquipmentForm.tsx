@@ -73,7 +73,7 @@ export default function EquipmentForm({ equipment }: Props) {
           type="text"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
-          placeholder="למשל: מנוף טאדאנו 50 טון"
+          placeholder="למשל: מנוף טאדאנו 50 טון, קומפרסור אוויר"
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
         />
       </div>

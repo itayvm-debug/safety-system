@@ -58,7 +58,7 @@ export default function LiftingForm({ equipment }: Props) {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">תיאור הציוד <span className="text-red-500">*</span></label>
         <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-          placeholder="למשל: חגורות הרמה, שרשרת הרמה, שאקל"
+          placeholder="למשל: חגורות הרמה, שרשרת הרמה, שאקל, מעלית משא"
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400" />
       </div>
 

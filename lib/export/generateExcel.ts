@@ -155,9 +155,9 @@ export function generateEquipmentExcel(equipment: HeavyEquipment[]): void {
   ];
   const colWidths = [30, 14, 20, 16, 14, 14, 14, 14, 20, 12, 8];
 
-  const ws = makeSheet('כלי צמ"ה', headers, rows, colWidths);
+  const ws = makeSheet('כלי צמ"ה / עבודה', headers, rows, colWidths);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'כלי צמ"ה');
+  XLSX.utils.book_append_sheet(wb, ws, 'כלי צמ"ה / עבודה');
   XLSX.writeFile(wb, `כלי_צמה_${todayStr()}.xlsx`);
 }
 
@@ -189,7 +189,7 @@ export function generateIssuesExcel(issues: Issue[], reportTitle = 'דורש ט�
   const ENTITY_LABELS: Record<Issue['entityType'], string> = {
     worker: 'עובד',
     vehicle: 'רכב',
-    heavy_equipment: 'כלי צמ"ה',
+    heavy_equipment: 'כלי צמ"ה / עבודה',
     lifting_equipment: 'ציוד הרמה',
     subcontractor: 'קבלן משנה',
   };
