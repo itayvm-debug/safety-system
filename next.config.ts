@@ -20,6 +20,10 @@ const csp = [
   "form-action 'self'",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
+  // Allow same-origin static PDFs and Supabase Storage signed URLs in iframes.
+  // Without an explicit frame-src the browser falls back to default-src 'self',
+  // which blocks cross-origin Supabase Storage URLs used in the signed-PDF viewer.
+  "frame-src 'self' https://*.supabase.co",
 ].join('; ');
 
 const nextConfig: NextConfig = {

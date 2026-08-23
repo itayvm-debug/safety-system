@@ -339,6 +339,10 @@ function SystemBriefingFlow({
 }
 
 // ─── צפייה ב-PDF המקורי ─────────────────────────────────────────
+// Desktop (≥640px): inline iframe — works on all desktop browsers.
+// Mobile (<640px): Safari on iPhone cannot render PDFs in iframes.
+//   Show a full-width "open to read" card instead so the user can
+//   read the document in the native browser viewer and return to sign.
 function PdfViewer({
   src,
   onContinue,
@@ -350,13 +354,30 @@ function PdfViewer({
 }) {
   return (
     <div>
-      <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-100" style={{ height: '420px' }}>
+      {/* Desktop: inline iframe */}
+      <div className="hidden sm:block border border-gray-200 rounded-xl overflow-hidden bg-gray-100" style={{ height: '420px' }}>
         <iframe
           src={src}
           className="w-full h-full"
           title="מסמך בטיחות"
         />
       </div>
+
+      {/* Mobile: open-in-browser card (iOS Safari cannot display PDFs in iframes) */}
+      <div className="sm:hidden flex flex-col items-center justify-center gap-4 border border-gray-200 rounded-xl bg-gray-50 py-10 px-6 text-center">
+        <div className="text-4xl">📄</div>
+        <p className="text-sm text-gray-700 font-medium">לחץ לפתיחת מסמך הבטיחות לקריאה</p>
+        <a
+          href={src}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block px-5 py-3 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 active:bg-orange-700"
+        >
+          פתח לקריאה ←
+        </a>
+        <p className="text-xs text-gray-400">לאחר קריאת המסמך, חזור לכאן וסמן &#34;קראתי והבנתי&#34;</p>
+      </div>
+
       <p className="text-xs text-gray-400 mt-1.5">
         אם המסמך אינו מוצג —{' '}
         <a href={src} target="_blank" rel="noopener noreferrer" className="text-orange-500 underline">פתח בלשונית חדשה</a>
@@ -643,28 +664,69 @@ async function generateBriefingPDF({
 }
 
 // ─── מודל תצוגת מסמך מובנה ──────────────────────────────────────
+// Desktop (≥640px): inline iframe.  CSP includes frame-src https://*.supabase.co
+//   so Supabase Storage signed URLs load correctly.
+// Mobile (<640px): iOS Safari cannot render PDFs in iframes, so show a
+//   prominent open-externally button instead of a blank gray rectangle.
 function DocumentPreviewModal({ url, onClose }: { url: string; onClose: () => void }) {
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col bg-black/70"
       onClick={onClose}
     >
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-900 text-white shrink-0" onClick={e => e.stopPropagation()}>
+      {/* Header — always visible */}
+      <div
+        className="flex items-center justify-between px-4 py-2 bg-gray-900 text-white shrink-0"
+        onClick={e => e.stopPropagation()}
+      >
         <span className="text-sm font-medium">תצוגת מסמך</span>
-        <button
-          onClick={onClose}
-          className="text-white hover:text-gray-300 text-xl leading-none px-2"
-          aria-label="סגור"
-        >
-          ✕
-        </button>
+        <div className="flex items-center gap-3">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-gray-300 hover:text-white underline"
+          >
+            פתח בלשונית חדשה ↗
+          </a>
+          <button
+            onClick={onClose}
+            className="text-white hover:text-gray-300 text-xl leading-none px-2"
+            aria-label="סגור"
+          >
+            ✕
+          </button>
+        </div>
       </div>
-      <div className="flex-1 overflow-hidden" onClick={e => e.stopPropagation()}>
+
+      {/* Desktop: inline iframe */}
+      <div
+        className="hidden sm:flex flex-1 overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
         <iframe
           src={url}
           className="w-full h-full border-0"
           title="תצוגת מסמך"
         />
+      </div>
+
+      {/* Mobile: iOS Safari cannot render PDFs in iframes */}
+      <div
+        className="sm:hidden flex-1 flex flex-col items-center justify-center gap-5 px-6"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="text-5xl">📄</div>
+        <p className="text-white text-center text-sm">לא ניתן להציג PDF בתוך החלון במכשיר זה</p>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-6 py-3 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 active:bg-orange-700"
+          onClick={onClose}
+        >
+          פתח את המסמך ←
+        </a>
       </div>
     </div>
   );

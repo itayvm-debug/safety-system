@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // CJS operational scripts — not part of the TypeScript application
+    "scripts/**",
   ]),
 ]);
 
