@@ -30,6 +30,7 @@ const CompanyFeaturesSchema = z.object({
   customVehicleFields:            z.boolean().optional(),
   vehicleAssignmentToWorker:      z.boolean().optional(),
   vehicleAssignmentToSubcontractor: z.boolean().optional(),
+  employeeReviews:                z.boolean().optional(),
 });
 
 const CompanyUiSchema = z.object({
@@ -71,6 +72,7 @@ export interface CompanyFeatures {
   customVehicleFields:            boolean;
   vehicleAssignmentToWorker:      boolean;
   vehicleAssignmentToSubcontractor: boolean;
+  employeeReviews:                boolean;
 }
 
 export interface CompanyUi {
@@ -116,6 +118,7 @@ export function resolveCompanySettings(raw: unknown): ResolvedCompanySettings {
       customVehicleFields:            partial.features?.customVehicleFields            ?? defaults.features.customVehicleFields,
       vehicleAssignmentToWorker:      partial.features?.vehicleAssignmentToWorker      ?? defaults.features.vehicleAssignmentToWorker,
       vehicleAssignmentToSubcontractor: partial.features?.vehicleAssignmentToSubcontractor ?? defaults.features.vehicleAssignmentToSubcontractor,
+      employeeReviews:                partial.features?.employeeReviews                ?? defaults.features.employeeReviews,
     },
     ui: {
       dashboardVariant:    partial.ui?.dashboardVariant    ?? defaults.ui.dashboardVariant,

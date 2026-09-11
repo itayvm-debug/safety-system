@@ -21,6 +21,7 @@ export const DEFAULT_COMPANY_SETTINGS: ResolvedCompanySettings = {
     customVehicleFields:            false,
     vehicleAssignmentToWorker:      true,
     vehicleAssignmentToSubcontractor: true,
+    employeeReviews:                false,
   },
   ui: {
     dashboardVariant:    'default',

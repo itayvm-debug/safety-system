@@ -25,8 +25,14 @@ const NAV_LINKS = [
 export default function NavBar() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+  const [reviewsEnabled, setReviewsEnabled] = useState(false);
   useEffect(() => { setIsAdmin(getClientRole() === 'admin'); }, []);
+  useEffect(() => {
+    fetch('/api/company/features')
+      .then(r => r.ok ? r.json() : {})
+      .then((f: Record<string, boolean>) => { if (f.employeeReviews) setReviewsEnabled(true); })
+      .catch(() => undefined);
+  }, []);
   const [showExport, setShowExport] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [prevPath, setPrevPath] = useState(pathname);
@@ -210,6 +216,18 @@ export default function NavBar() {
                 </Link>
               );
             })}
+            {reviewsEnabled && (
+              <Link
+                href="/reviews"
+                className={`px-2 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                  pathname.startsWith('/reviews')
+                    ? 'bg-orange-50 text-orange-600'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                ביצועי עובדים
+              </Link>
+            )}
           </nav>
 
           {/* פעולות */}
@@ -356,6 +374,18 @@ export default function NavBar() {
                   </Link>
                 );
               })}
+              {reviewsEnabled && (
+                <Link
+                  href="/reviews"
+                  className={`flex items-center px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    pathname.startsWith('/reviews')
+                      ? 'bg-orange-50 text-orange-600'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  ביצועי עובדים
+                </Link>
+              )}
             </nav>
 
             {/* מחליף חברה במובייל — גלוי רק למשתמשים עם מספר חברות */}

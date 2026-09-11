@@ -22,4 +22,5 @@ export const FEATURE_LABELS: Record<keyof CompanyFeatures, string> = {
   customVehicleFields:            'שדות רכב מותאמים',
   vehicleAssignmentToWorker:      'שיוך רכב לעובד',
   vehicleAssignmentToSubcontractor: 'שיוך רכב לקבלן משנה',
+  employeeReviews:                'משוב עובדים',
 };

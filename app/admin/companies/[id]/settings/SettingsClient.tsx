@@ -180,6 +180,7 @@ export default function SettingsClient({ companyId, companyName, initialSettings
     customVehicleFields: 'שדות רכב מותאמים',
     vehicleAssignmentToWorker: 'שיוך רכב לעובד',
     vehicleAssignmentToSubcontractor: 'שיוך רכב לקבלן משנה',
+    employeeReviews: 'משוב עובדים',
   };
 
   return (
