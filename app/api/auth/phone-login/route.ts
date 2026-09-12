@@ -17,7 +17,9 @@ export async function POST(request: NextRequest) {
     const normalized = normalizeIsraeliPhone(phone);
     const variants = phoneVariants(phone);
 
-    console.log('[phone-login] בודק הרשאה עבור:', normalized);
+    // Log only the last 4 digits to avoid full phone numbers in server logs.
+    const maskedPhone = normalized.replace(/\d(?=\d{4})/g, '*');
+    console.log('[phone-login] בודק הרשאה עבור:', maskedPhone);
 
     const supabase = createServiceClient();
 
@@ -34,11 +36,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (!authRow) {
-      console.log('[phone-login] ❌ מספר לא מורשה:', normalized);
+      console.log('[phone-login] ❌ מספר לא מורשה:', maskedPhone);
       return NextResponse.json({ error: 'מספר הטלפון אינו מורשה למערכת' }, { status: 403 });
     }
 
-    console.log('[phone-login] ✅ מספר מורשה:', normalized);
+    console.log('[phone-login] ✅ מספר מורשה:', maskedPhone);
 
     // credentials פנימיים — נגזרים מהמספר, לא נחשפים לרשת
     const digits = normalized.replace(/\D/g, '');
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
         console.error('[phone-login] שגיאה ביצירת משתמש:', createError.message);
         return NextResponse.json({ error: 'שגיאת שרת' }, { status: 500 });
       }
-      console.log('[phone-login] משתמש חדש נוצר עבור:', normalized);
+      console.log('[phone-login] משתמש חדש נוצר עבור:', maskedPhone);
     }
 
     return NextResponse.json({ email: internalEmail, password: internalPassword });

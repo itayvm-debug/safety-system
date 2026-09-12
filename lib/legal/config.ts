@@ -29,7 +29,8 @@ export const LEGAL = {
   /** גרסת תנאי שימוש — שינוי דורש אישור מחדש מהמשתמשים */
   termsVersion:        '1.1',
   /** גרסת מדיניות פרטיות — שינוי דורש אישור מחדש מהמשתמשים */
-  privacyVersion:      '1.1',
+  // v1.2: הוספת Anthropic (AI OCR) לרשימת מעבדי המשנה
+  privacyVersion:      '1.2',
   /** גרסת הצהרת נגישות — שינוי אינו דורש אישור מחדש */
   accessibilityVersion: '1.1',
 
@@ -58,6 +59,14 @@ export const LEGAL = {
       country: 'עיבוד בינלאומי בהתאם לתנאי השירות',
       purpose: 'שליחת הודעות ודוחות מערכת בדואר אלקטרוני',
       dpUrl:   'https://resend.com/legal/privacy-policy',
+    },
+    {
+      name:    'Anthropic, PBC',
+      country: 'ארצות הברית',
+      // Used only for the AI document OCR feature (/api/ai/extract-worker-identity).
+      // Image bytes of worker ID documents are transmitted to the Anthropic API for extraction.
+      purpose: 'עיבוד בינה מלאכותית לחילוץ נתונים ממסמכי זיהוי (OCR) — בשימוש בתכונת קריאת מסמכי עובדים בלבד',
+      dpUrl:   'https://www.anthropic.com/privacy',
     },
   ],
 

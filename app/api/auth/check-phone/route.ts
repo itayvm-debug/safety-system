@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
     const normalized = normalizeIsraeliPhone(phone);
     const variants = phoneVariants(phone); // [+972..., 05...]
 
-    console.log('[check-phone] התקבל:', phone, '→ מנורמל:', normalized, '| גרסאות:', variants);
+    const maskedPhone = normalized.replace(/\d(?=\d{4})/g, '*');
+    console.log('[check-phone] התקבל (מוסתר):', maskedPhone);
 
     const supabase = createServiceClient();
 
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.log('[check-phone] שגיאת DB:', error.code, '—', error.message);
     }
-    console.log('[check-phone] תוצאה:', data ? `נמצא (${data.phone})` : 'לא נמצא');
+    console.log('[check-phone] תוצאה:', data ? 'נמצא' : 'לא נמצא');
 
     if (error || !data) {
       return NextResponse.json(

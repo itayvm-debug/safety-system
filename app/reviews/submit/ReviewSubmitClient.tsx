@@ -272,7 +272,11 @@ export default function ReviewSubmitClient({ workers, weekStart, managerWorkerId
           value={draft.manager_comment ?? ''}
           onChange={e => setComment(e.target.value)}
           className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+          aria-describedby="manager-comment-privacy-hint"
         />
+        <p id="manager-comment-privacy-hint" className="mt-1 text-xs text-gray-400">
+          הערה מקצועית בלבד — אין לכלול מידע אישי שאינו נדרש להערכת העבודה.
+        </p>
       </div>
 
       {error && (

@@ -57,3 +57,8 @@ next-env.d.ts
 
 # Brand asset source / working files (production assets live in public/branding/)
 /SafeDoc LOGO/
+
+# Credential/secret files — NEVER commit; rotate any credentials that were committed
+"סיסמא לאתר.txt"
+*.credentials.txt
+*.password.txt

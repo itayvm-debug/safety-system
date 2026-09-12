@@ -5,10 +5,12 @@ import { requireAdmin } from '@/lib/auth/api';
 
 export const runtime = 'nodejs';
 
+// SVG intentionally excluded: uploaded SVGs are served on the same origin with
+// Content-Type: image/svg+xml, which allows embedded scripts to execute as XSS.
 const MIME_TO_EXT: Record<string, string[]> = {
-  'image/png':     ['png'],
-  'image/jpeg':    ['jpg', 'jpeg'],
-  'image/svg+xml': ['svg'],
+  'image/png':  ['png'],
+  'image/jpeg': ['jpg', 'jpeg'],
+  'image/webp': ['webp'],
 };
 
 export async function POST(request: NextRequest) {
@@ -30,7 +32,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!Object.hasOwn(MIME_TO_EXT, file.type)) {
-    return NextResponse.json({ error: 'סוג קובץ לא מורשה (PNG, JPG, SVG בלבד)' }, { status: 400 });
+    return NextResponse.json({ error: 'סוג קובץ לא מורשה (PNG, JPG, WEBP בלבד)' }, { status: 400 });
   }
 
   const rawExt = (file.name.split('.').pop() ?? '').toLowerCase();

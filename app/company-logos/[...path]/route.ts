@@ -54,12 +54,16 @@ export async function GET(
   const ext = storagePath.split('.').pop()?.toLowerCase() ?? 'jpg';
   const contentType = EXT_TO_MIME[ext] ?? 'image/jpeg';
 
-  return new NextResponse(buffer, {
-    headers: {
-      'Content-Type': contentType,
-      // private: only the authenticated user's browser should cache this,
-      // not shared caches/CDNs (consistent with the auth requirement above).
-      'Cache-Control': 'private, max-age=3600',
-    },
-  });
+  // SVG files served inline with Content-Type: image/svg+xml can execute embedded
+  // scripts as XSS on this origin.  New SVG uploads are blocked in upload-logo.
+  // For any legacy SVG already in storage, force a download instead of inline render.
+  const headers: Record<string, string> = {
+    'Content-Type': contentType,
+    'Cache-Control': 'private, max-age=3600',
+  };
+  if (ext === 'svg') {
+    headers['Content-Disposition'] = 'attachment; filename="logo.svg"';
+  }
+
+  return new NextResponse(buffer, { headers });
 }
