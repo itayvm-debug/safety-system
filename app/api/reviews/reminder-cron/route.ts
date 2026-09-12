@@ -1,22 +1,30 @@
 /**
  * GET /api/reviews/reminder-cron
- * Fires at 06:00 UTC and 07:00 UTC every Thursday (vercel.json: "0 6,7 * * 4").
- * Israel switches between IDT (UTC+3, summer) and IST (UTC+2, winter), so one
- * of the two UTC firings always lands at Israel 09:00 and the other does not.
+ * Fires at 06:00 UTC every Thursday (vercel.json: "0 6 * * 4").
+ *
+ * VERCEL HOBBY PLAN LIMITATION
+ * ────────────────────────────
+ * Vercel Hobby permits only ONE cron execution per day. The previous schedule
+ * "0 6,7 * * 4" ran twice on Thursday and caused the deployment to be rejected.
+ *
+ * Current schedule: Thursday 06:00 UTC
+ *   - IDT (summer, UTC+3) → 09:00 Israel
+ *   - IST (winter, UTC+2) → 08:00 Israel
+ *
+ * Exact 09:00 Israel year-round requires a scheduler without this Hobby
+ * limitation (e.g. Vercel Pro, an external cron service, or a self-hosted runner).
  *
  * IDEMPOTENCY
  * ───────────
- * The timezone guard (israelHour() === 9) filters out the wrong-hour firing.
- * For the valid firing, review_reminder_log provides durable idempotency:
+ * review_reminder_log provides durable idempotency:
  *   INSERT … ON CONFLICT DO NOTHING on (company_id, week_start, reminder_type)
- * ensures at-most-once delivery per company per week, even under concurrent
- * invocations, Vercel cron retries, or manual duplicate calls at 09:xx IST.
+ * ensures at-most-once delivery per company per week, even under Vercel cron
+ * retries or manual duplicate calls.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getWeekStart } from '@/lib/reviews/week';
-import { israelHour } from '@/lib/reviews/cronHelpers';
 import { buildReviewReminderHtml, buildReviewReminderSubject } from '@/lib/reviews/reminderEmail';
 
 export const runtime = 'nodejs';
@@ -28,13 +36,9 @@ export async function GET(request: NextRequest) {
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-
-  // DST-safe guard: only proceed at Israel local 09:xx.
-  const hour = israelHour();
-  if (hour !== 9) {
-    console.log(`[reviews-reminder] skipped — Israel hour=${hour} (expected 9)`);
-    return NextResponse.json({ skipped: true, reason: 'not 09:00 Israel time', israel_hour: hour });
-  }
+  // Cron timing (vercel.json: "0 6 * * 4") is authoritative.
+  // No Israel-hour guard — with a single daily cron the guard would silently
+  // skip every winter Thursday (06:00 UTC = 08:00 IST, not 09:00).
 
   const apiKey    = process.env.RESEND_API_KEY;
   const fromEmail = process.env.REPORT_FROM_EMAIL;
