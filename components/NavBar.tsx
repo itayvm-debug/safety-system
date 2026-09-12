@@ -103,7 +103,7 @@ export default function NavBar() {
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+      <header data-testid="main-navbar" className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
 
         {/* ═══ דסקטופ (lg+) — שורה אחת ═══════════════════════════════ */}
         <div className="hidden lg:flex max-w-[1400px] mx-auto px-4 h-16 items-center gap-2">

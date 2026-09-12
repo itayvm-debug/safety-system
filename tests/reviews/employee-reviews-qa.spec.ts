@@ -388,6 +388,59 @@ ownerTest.describe('9. Reminder Cron', () => {
 
 // ─── Group 10: Mobile & RTL (1 test) ─────────────────────────────────────────
 
+// ─── Group 11: NavBar Visibility on Review Routes (6 tests) ─────────────────
+// Regression: before app/reviews/layout.tsx was added, the reviews pages fell
+// back to app/layout.tsx (root) which has no <NavBar />, so no header appeared.
+// These tests assert the main-navbar is present and unique on every review route.
+
+reviewsTest.describe('11. NavBar Visibility on Review Routes', () => {
+  reviewsTest('11-01 /reviews — main-navbar visible (member)', async ({ reviewsPage }) => {
+    await reviewsPage.goto('/reviews');
+    await reviewsPage.waitForLoadState('networkidle');
+    await expect(reviewsPage.locator('[data-testid="main-navbar"]')).toBeVisible();
+  });
+
+  reviewsTest('11-02 /reviews/submit — main-navbar visible (member)', async ({ reviewsPage }) => {
+    await reviewsPage.goto('/reviews/submit');
+    await reviewsPage.waitForLoadState('domcontentloaded');
+    // submit may redirect to /reviews if no pending workers; navbar must be present either way
+    const navbarLocator = reviewsPage.locator('[data-testid="main-navbar"]');
+    await expect(navbarLocator).toBeVisible({ timeout: 10_000 });
+  });
+
+  ownerTest('11-03 /reviews/manager-setup — main-navbar visible (owner)', async ({ ownerPage }) => {
+    await ownerPage.goto('/reviews/manager-setup');
+    await ownerPage.waitForLoadState('networkidle');
+    await expect(ownerPage.locator('[data-testid="main-navbar"]')).toBeVisible();
+  });
+
+  ownerTest('11-04 /reviews/reports — main-navbar visible (owner)', async ({ ownerPage }) => {
+    await ownerPage.goto('/reviews/reports');
+    await ownerPage.waitForLoadState('networkidle');
+    await expect(ownerPage.locator('[data-testid="main-navbar"]')).toBeVisible();
+  });
+
+  reviewsTest('11-05 mobile /reviews — main-navbar visible at 375px', async ({ browser }) => {
+    const ctx = await browser.newContext({
+      storageState: REVIEWS_AUTH_STATE_PATH,
+      locale: 'he-IL',
+      viewport: { width: 375, height: 812 },
+    });
+    const page = await ctx.newPage();
+    await page.goto('/reviews');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('[data-testid="main-navbar"]')).toBeVisible();
+    await ctx.close();
+  });
+
+  reviewsTest('11-06 /reviews — navbar appears exactly once (no duplicate shell)', async ({ reviewsPage }) => {
+    await reviewsPage.goto('/reviews');
+    await reviewsPage.waitForLoadState('networkidle');
+    await expect(reviewsPage.locator('[data-testid="main-navbar"]')).toHaveCount(1);
+  });
+});
+
+// ─── Group 10: Mobile & RTL (1 test) ─────────────────────────────────────────
 reviewsTest.describe('10. Mobile & RTL', () => {
   reviewsTest('10-01 Submit page has dir=rtl and no horizontal overflow on mobile', async ({ browser }) => {
     const meta = readReviewsMeta();
