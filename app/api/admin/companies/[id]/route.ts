@@ -48,7 +48,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       if (key in body) updates[key] = body[key];
     }
 
-    if (Object.keys(updates).length === 0) {
+    // settings is JSONB — deep-merge to preserve existing keys rather than replace
+    const incomingSettings = (
+      'settings' in body && body.settings !== null && typeof body.settings === 'object'
+    ) ? (body.settings as Record<string, unknown>) : null;
+
+    if (Object.keys(updates).length === 0 && !incomingSettings) {
       return NextResponse.json({ error: 'לא נשלח שום שדה לעדכון' }, { status: 400 });
     }
 
@@ -65,6 +70,21 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
 
     const supabase = createServiceClient();
+
+    if (incomingSettings) {
+      const { data: current } = await supabase
+        .from('companies')
+        .select('settings')
+        .eq('id', id)
+        .single();
+      const cur = ((current?.settings ?? {}) as Record<string, unknown>);
+      const merged: Record<string, unknown> = { ...cur, ...incomingSettings };
+      // features is the only nested sub-object; merge one level deep
+      if ('features' in incomingSettings && cur.features && typeof cur.features === 'object') {
+        merged.features = { ...(cur.features as Record<string, unknown>), ...(incomingSettings.features as Record<string, unknown>) };
+      }
+      updates.settings = merged;
+    }
 
     const { data: company, error: patchError } = await supabase
       .from('companies')

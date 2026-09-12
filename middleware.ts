@@ -24,6 +24,8 @@ const PUBLIC = [
   '/api/auth/logout',
   '/api/reports/weekly-status',
   '/api/health',
+  // Cron endpoints — secured by their own CRON_SECRET bearer token
+  '/api/reviews/reminder-cron',
   // דפים ציבוריים
   '/terms',
   '/privacy',

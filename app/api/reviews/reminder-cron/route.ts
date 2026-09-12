@@ -1,21 +1,39 @@
 /**
  * GET /api/reviews/reminder-cron
- * Cron job: runs Thursday 13:00 UTC (≈15:00 IST / 16:00 IDT) — sends review reminder emails to owners of
- * companies that have employeeReviews enabled and have incomplete reviews for
- * the current week.
+ * Fires at 06:00 UTC and 07:00 UTC every Thursday (vercel.json: "0 6,7 * * 4").
+ * Israel switches between IDT (UTC+3, summer) and IST (UTC+2, winter), so one
+ * of the two UTC firings always lands at Israel 09:00 and the other does not.
+ *
+ * IDEMPOTENCY
+ * ───────────
+ * The timezone guard (israelHour() === 9) filters out the wrong-hour firing.
+ * For the valid firing, review_reminder_log provides durable idempotency:
+ *   INSERT … ON CONFLICT DO NOTHING on (company_id, week_start, reminder_type)
+ * ensures at-most-once delivery per company per week, even under concurrent
+ * invocations, Vercel cron retries, or manual duplicate calls at 09:xx IST.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getWeekStart } from '@/lib/reviews/week';
+import { israelHour } from '@/lib/reviews/cronHelpers';
 import { buildReviewReminderHtml, buildReviewReminderSubject } from '@/lib/reviews/reminderEmail';
 
 export const runtime = 'nodejs';
+
+const REMINDER_TYPE = 'weekly_review';
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // DST-safe guard: only proceed at Israel local 09:xx.
+  const hour = israelHour();
+  if (hour !== 9) {
+    console.log(`[reviews-reminder] skipped — Israel hour=${hour} (expected 9)`);
+    return NextResponse.json({ skipped: true, reason: 'not 09:00 Israel time', israel_hour: hour });
   }
 
   const apiKey    = process.env.RESEND_API_KEY;
@@ -37,6 +55,7 @@ export async function GET(request: NextRequest) {
     .eq('is_active', true);
 
   let sent = 0;
+  let skippedIdempotent = 0;
   const errors: string[] = [];
 
   for (const company of companies ?? []) {
@@ -45,6 +64,32 @@ export async function GET(request: NextRequest) {
     if (!features?.employeeReviews) continue;
 
     try {
+      // ── Idempotency claim ─────────────────────────────────────────
+      // INSERT ... ON CONFLICT DO NOTHING is atomic at DB level.
+      // If the row already exists (this week's reminder was already sent),
+      // the insert returns nothing and we skip.  Race-safe: concurrent
+      // calls both attempt the same INSERT; the unique constraint ensures
+      // exactly one succeeds.
+      const { error: logErr } = await supabase
+        .from('review_reminder_log')
+        .insert({
+          company_id:    company.id,
+          week_start:    weekStart,
+          reminder_type: REMINDER_TYPE,
+        });
+
+      if (logErr) {
+        // Postgres unique-violation code 23505 means already sent this week
+        if (logErr.code === '23505') {
+          console.log(`[reviews-reminder] ${company.id}: already sent for week ${weekStart} — skipping`);
+          skippedIdempotent++;
+          continue;
+        }
+        // Table missing or other error → log but still try to send
+        console.error(`[reviews-reminder] idempotency log failed (${logErr.code}): ${logErr.message}`);
+      }
+
+      // ── Check if there is anything to remind about ────────────────
       const [assignmentsRes, reviewsRes, ownersRes] = await Promise.all([
         supabase
           .from('worker_review_assignments')
@@ -65,8 +110,8 @@ export async function GET(request: NextRequest) {
           .eq('is_active', true),
       ]);
 
-      const totalWorkers    = assignmentsRes.count ?? 0;
-      const submittedCount  = reviewsRes.count ?? 0;
+      const totalWorkers   = assignmentsRes.count ?? 0;
+      const submittedCount = reviewsRes.count ?? 0;
 
       if (totalWorkers === 0 || submittedCount >= totalWorkers) continue;
 
@@ -89,12 +134,15 @@ export async function GET(request: NextRequest) {
         company.name as string, weekStart, totalWorkers, submittedCount, appUrl
       );
 
-      await resend.emails.send({
-        from:    fromEmail,
-        to:      recipients,
-        subject,
-        html,
-      });
+      await resend.emails.send({ from: fromEmail, to: recipients, subject, html });
+
+      // Update the log row with the actual recipient count
+      await supabase
+        .from('review_reminder_log')
+        .update({ recipients_count: recipients.length })
+        .eq('company_id', company.id)
+        .eq('week_start', weekStart)
+        .eq('reminder_type', REMINDER_TYPE);
 
       sent++;
     } catch (e) {
@@ -104,6 +152,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  console.log(`[reviews-reminder] week ${weekStart}: sent ${sent} reminder emails`);
-  return NextResponse.json({ week_start: weekStart, sent, errors });
+  console.log(`[reviews-reminder] week ${weekStart}: sent=${sent} skipped_idempotent=${skippedIdempotent}`);
+  return NextResponse.json({ week_start: weekStart, sent, skipped_idempotent: skippedIdempotent, errors });
 }

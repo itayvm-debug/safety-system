@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/reviews/reminder-cron",
-      "schedule": "0 13 * * 4"
+      "schedule": "0 6,7 * * 4"
     }
   ]
 }
