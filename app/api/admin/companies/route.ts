@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
+import { auditLog } from '@/lib/audit/log';
 
 export async function GET() {
   const { error } = await requireAdmin();
@@ -105,6 +106,16 @@ export async function POST(request: NextRequest) {
     if (activateError) {
       return NextResponse.json({ error: 'שגיאה בהפעלת החברה — פנה לתמיכה' }, { status: 500 });
     }
+
+    void auditLog({
+      user_id:     session.userId,
+      user_email:  session.email,
+      action:      'admin.company_create',
+      entity_type: 'company',
+      entity_id:   activatedCompany.id,
+      metadata:    { name: activatedCompany.name, slug: activatedCompany.slug },
+      ip_address:  request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? null,
+    });
 
     return NextResponse.json(activatedCompany, { status: 201 });
   } catch {

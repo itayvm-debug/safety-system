@@ -18,6 +18,7 @@ interface Props {
   companyId: string;
   companyName: string;
   currentUserId: string;
+  isPlatformAdmin: boolean;
   initialMembers: MemberWithProfile[];
 }
 
@@ -41,6 +42,7 @@ const inputCls =
 export default function CompanyMembersClient({
   companyName,
   currentUserId,
+  isPlatformAdmin,
   initialMembers,
 }: Props) {
   const [members, setMembers] = useState<MemberWithProfile[]>(initialMembers);
@@ -83,13 +85,15 @@ export default function CompanyMembersClient({
           <h1 className="text-2xl font-bold text-gray-900">משתמשי חברת {companyName}</h1>
           <p className="text-sm text-gray-500 mt-0.5">{activeCount} משתמשים פעילים</p>
         </div>
-        <button
-          onClick={() => setAddFlow('existing')}
-          className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
-        >
-          <span className="text-lg leading-none">+</span>
-          הוסף משתמש לחברה
-        </button>
+        {isPlatformAdmin && (
+          <button
+            onClick={() => setAddFlow('existing')}
+            className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors shrink-0"
+          >
+            <span className="text-lg leading-none">+</span>
+            הוסף משתמש לחברה
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -137,6 +141,7 @@ export default function CompanyMembersClient({
                     key={m.id}
                     member={m}
                     isSelf={m.user_id === currentUserId}
+                    isPlatformAdmin={isPlatformAdmin}
                     onUpdated={handleUpdated}
                     onRemoved={handleRemoved}
                   />
@@ -147,14 +152,14 @@ export default function CompanyMembersClient({
         )}
       </div>
 
-      {addFlow === 'existing' && (
+      {isPlatformAdmin && addFlow === 'existing' && (
         <AddExistingModal
           onClose={() => setAddFlow(null)}
           onAdded={handleAdded}
           onSwitchToCreate={() => setAddFlow('create')}
         />
       )}
-      {addFlow === 'create' && (
+      {isPlatformAdmin && addFlow === 'create' && (
         <CreateUserModal
           onClose={() => setAddFlow(null)}
           onAdded={handleAdded}
@@ -168,11 +173,13 @@ export default function CompanyMembersClient({
 function MemberRow({
   member: m,
   isSelf,
+  isPlatformAdmin,
   onUpdated,
   onRemoved,
 }: {
   member: MemberWithProfile;
   isSelf: boolean;
+  isPlatformAdmin: boolean;
   onUpdated: (m: MemberWithProfile) => void;
   onRemoved: (id: string) => void;
 }) {
@@ -277,7 +284,7 @@ function MemberRow({
         </td>
         <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">{m.profile?.email ?? '—'}</td>
         <td className="px-4 py-3">
-          {isSelf ? (
+          {isSelf || !isPlatformAdmin ? (
             <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full border ${ROLE_CHIP[m.role]}`}>
               {ROLE_LABELS[m.role]}
             </span>
@@ -297,7 +304,7 @@ function MemberRow({
         <td className="px-4 py-3">
           {isSelf ? (
             <span className="text-xs text-gray-400">—</span>
-          ) : (
+          ) : isPlatformAdmin ? (
             <button
               onClick={handleToggleActive}
               disabled={loading}
@@ -309,6 +316,14 @@ function MemberRow({
             >
               {m.is_active ? 'פעיל' : 'מושבת'}
             </button>
+          ) : (
+            <span className={`text-xs px-2 py-1 rounded-full border ${
+              m.is_active
+                ? 'bg-green-50 text-green-700 border-green-200'
+                : 'bg-gray-100 text-gray-500 border-gray-200'
+            }`}>
+              {m.is_active ? 'פעיל' : 'מושבת'}
+            </span>
           )}
         </td>
         <td className="px-4 py-3">
@@ -327,7 +342,7 @@ function MemberRow({
                 )}
               </button>
             )}
-            {!isSelf && (
+            {!isSelf && isPlatformAdmin && (
               <button
                 onClick={() => setShowRemoveModal(true)}
                 disabled={loading}

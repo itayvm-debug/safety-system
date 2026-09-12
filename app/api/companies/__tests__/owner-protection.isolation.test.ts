@@ -22,7 +22,8 @@ const MEMBER_1    = 'mmmmmmmm-0000-0000-0000-000000000001';
 
 const authMock = vi.hoisted(() => ({ requireCompanyAdminRole: vi.fn() }));
 vi.mock('@/lib/auth/company-context', () => ({
-  requireCompanyAdminRole: authMock.requireCompanyAdminRole,
+  requireCompanyAdminRole:  authMock.requireCompanyAdminRole,
+  getCurrentCompanyContext: authMock.requireCompanyAdminRole,
 }));
 
 // ─── DB mock ─────────────────────────────────────────────────────────────────
@@ -114,12 +115,12 @@ function createUserReq(body: Record<string, unknown>) {
 }
 
 const adminContext = {
-  context: { companyId: COMPANY_A, userId: USER_ADMIN, companyRole: 'admin' as const },
+  context: { companyId: COMPANY_A, userId: USER_ADMIN, companyRole: 'admin' as const, platformRole: 'admin' as const },
   error: null,
 };
 
 const ownerContext = {
-  context: { companyId: COMPANY_A, userId: USER_OWNER, companyRole: 'owner' as const },
+  context: { companyId: COMPANY_A, userId: USER_OWNER, companyRole: 'owner' as const, platformRole: 'admin' as const },
   error: null,
 };
 

@@ -65,7 +65,8 @@ const companyAuthMock = vi.hoisted(() => ({ requireCompanyAdminRole: vi.fn() }))
 const adminAuthMock   = vi.hoisted(() => ({ requireAdmin: vi.fn(), requirePlatformAdmin: vi.fn() }));
 
 vi.mock('@/lib/auth/company-context', () => ({
-  requireCompanyAdminRole: companyAuthMock.requireCompanyAdminRole,
+  requireCompanyAdminRole:  companyAuthMock.requireCompanyAdminRole,
+  getCurrentCompanyContext: companyAuthMock.requireCompanyAdminRole,
 }));
 
 vi.mock('@/lib/auth/api', () => ({
@@ -141,7 +142,7 @@ import { GET as adminCompanyMembersRoute }
 
 function makeCompanyAdminContext(companyId = COMPANY_B) {
   companyAuthMock.requireCompanyAdminRole.mockResolvedValue({
-    context: { companyId, userId: USER_ADMIN, companyRole: 'admin' },
+    context: { companyId, userId: USER_ADMIN, companyRole: 'admin', platformRole: 'admin' },
     error: null,
   });
 }

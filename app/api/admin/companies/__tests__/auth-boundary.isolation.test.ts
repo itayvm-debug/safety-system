@@ -270,21 +270,19 @@ describe('T7: Company Admin A accesses own company settings (companyId from cont
   });
 });
 
-// ─── T8: Company admin cannot grant invalid or platform-level roles ───────────
+// ─── T8: Company admin cannot reach /api/companies/members mutations ─────────
+// Policy change: only Platform Owner may add members — company admins are blocked
+// at the auth level (403) before reaching role validation.
 
 describe('T8: Company admin cannot grant elevated or invalid roles', () => {
-  it("role='owner' rejected by /api/companies/members → 400", async () => {
+  it("role='owner' — company admin blocked before validation → 403", async () => {
     const res = await companyMembersPost(companyMembersReq({ email: 'x@x.com', role: 'owner' }));
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toMatch(/role/i);
+    expect(res.status).toBe(403);
   });
 
-  it("role='platform_admin' rejected → 400", async () => {
+  it("role='platform_admin' — company admin blocked before validation → 403", async () => {
     const res = await companyMembersPost(companyMembersReq({ email: 'x@x.com', role: 'platform_admin' }));
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toMatch(/role/i);
+    expect(res.status).toBe(403);
   });
 });
 
@@ -414,8 +412,10 @@ describe('Company B Admin — full company access with profiles.role=user', () =
     expect(res.status).toBe(403);
   });
 
-  it('cannot grant owner or platform_admin roles → 400 (validation)', async () => {
+  it('cannot POST to /api/companies/members (blocked at auth level) → 403', async () => {
+    // Company admin (platformRole='user') is rejected by the platform admin guard
+    // before reaching role validation — policy: only Platform Owner may add members.
     const res = await companyMembersPost(companyMembersReq({ email: 'x@x.com', role: 'platform_admin' }));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(403);
   });
 });

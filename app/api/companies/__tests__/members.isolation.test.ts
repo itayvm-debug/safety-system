@@ -14,7 +14,8 @@ const MEMBER_1   = 'mmmmmmmm-0000-0000-0000-000000000001';
 const authMock = vi.hoisted(() => ({ requireCompanyAdminRole: vi.fn() }));
 
 vi.mock('@/lib/auth/company-context', () => ({
-  requireCompanyAdminRole: authMock.requireCompanyAdminRole,
+  requireCompanyAdminRole:  authMock.requireCompanyAdminRole,
+  getCurrentCompanyContext: authMock.requireCompanyAdminRole,
 }));
 
 const dbState = vi.hoisted(() => ({
@@ -76,7 +77,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   dbState.reset();
   authMock.requireCompanyAdminRole.mockResolvedValue({
-    context: { companyId: COMPANY_A, userId: USER_ADMIN, companyRole: 'admin' },
+    context: { companyId: COMPANY_A, userId: USER_ADMIN, companyRole: 'admin', platformRole: 'admin' },
     error: null,
   });
 });

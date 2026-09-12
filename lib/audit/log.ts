@@ -51,7 +51,11 @@ export type AuditAction =
   | 'admin.phone_add'
   | 'admin.phone_remove'
   | 'user_disabled'
-  | 'user_reactivated';
+  | 'user_reactivated'
+  // ── Platform authorization (privilege-sensitive — always logged) ──
+  | 'admin.platform_role_grant'
+  | 'admin.platform_role_revoke'
+  | 'admin.company_create';
 
 export interface AuditLogEntry {
   user_id: string | null;

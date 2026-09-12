@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { getCurrentCompanyContext } from '@/lib/auth/company-context';
 import { createServiceClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
-  const { context, error } = await requireCompanyAdminRole();
+  const { context, error } = await getCurrentCompanyContext();
   if (error) return error;
+
+  if (context.platformRole !== 'admin') {
+    return NextResponse.json({ error: 'פעולה זו מחייבת הרשאת מנהל פלטפורמה' }, { status: 403 });
+  }
 
   try {
     const body = await request.json();

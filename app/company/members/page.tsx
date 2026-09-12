@@ -36,6 +36,7 @@ export default async function CompanyMembersPage() {
       companyId={context.companyId}
       companyName={context.companyName}
       currentUserId={context.userId}
+      isPlatformAdmin={context.platformRole === 'admin'}
       initialMembers={members}
     />
   );
