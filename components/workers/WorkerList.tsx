@@ -14,7 +14,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 type FilterType = 'all' | DocumentStatus;
 
-export default function WorkerList() {
+export default function WorkerList({ canManage = true }: { canManage?: boolean }) {
   const [workers, setWorkers] = useState<WorkerWithDocuments[]>([]);
   const [loading, setLoading] = useState(true);
   const onlineStatus = useOnlineStatus();
@@ -176,7 +176,7 @@ export default function WorkerList() {
               {showInactive ? 'הסתר לא פעילים' : 'הצג לא פעילים'}
             </button>
           )}
-          {isOnline && (
+          {isOnline && canManage && (
             <Link
               href="/workers/new"
               className="bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"

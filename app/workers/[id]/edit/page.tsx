@@ -1,13 +1,22 @@
 import { createServiceClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import WorkerForm from '@/components/workers/WorkerForm';
 import { Worker } from '@/types';
+import { getCurrentCompanyContext } from '@/lib/auth/company-context';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EditWorkerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  const ctxResult = await getCurrentCompanyContext();
+  if (ctxResult.error) {
+    if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
+    redirect('/login');
+  }
+  if (ctxResult.context.companyRole === 'member') redirect(`/workers/${id}`);
+
   const supabase = createServiceClient();
 
   const { data, error } = await supabase

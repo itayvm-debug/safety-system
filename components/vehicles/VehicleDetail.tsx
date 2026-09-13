@@ -15,10 +15,11 @@ interface Props {
   vehicle: Vehicle;
   imageUrl: string | null;
   workers: { id: string; full_name: string }[];
+  canManage?: boolean;
 }
 
 const INSURANCE_TYPES = ['ביטוח חובה', 'ביטוח מקיף', 'ביטוח צד ג'] as const;
-export default function VehicleDetail({ vehicle: initial, imageUrl: initialImageUrl, workers }: Props) {
+export default function VehicleDetail({ vehicle: initial, imageUrl: initialImageUrl, workers, canManage = true }: Props) {
   const router = useRouter();
   const [vehicle, setVehicle] = useState<Vehicle>(initial);
   const [imageUrl, setImageUrl] = useState<string | null>(initialImageUrl);
@@ -130,6 +131,7 @@ export default function VehicleDetail({ vehicle: initial, imageUrl: initialImage
             )}
           </div>
         </div>
+        {canManage && (
         <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
           <button
             onClick={() => setEditing(true)}
@@ -146,6 +148,7 @@ export default function VehicleDetail({ vehicle: initial, imageUrl: initialImage
             {deleting ? 'מעביר לארכיון...' : 'העבר לארכיון'}
           </button>
         </div>
+        )}
         {archiveError && (
           <p className="text-xs text-red-600 mt-2">{archiveError}</p>
         )}

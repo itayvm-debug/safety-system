@@ -7,6 +7,7 @@ import EntityNotesButton from '@/components/EntityNotesButton';
 
 interface Props {
   initialSubcontractors: Subcontractor[];
+  canManage?: boolean;
 }
 
 interface FormState {
@@ -18,7 +19,7 @@ interface FormState {
 
 const emptyForm: FormState = { name: '', contact_name: '', phone: '', notes: '' };
 
-export default function SubcontractorList({ initialSubcontractors }: Props) {
+export default function SubcontractorList({ initialSubcontractors, canManage = true }: Props) {
   const router = useRouter();
   const [list, setList] = useState<Subcontractor[]>(initialSubcontractors);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -142,7 +143,7 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
       {/* כותרת + כפתור הוספה */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500">{list.length} קבלנים</p>
-        {!showAddForm && (
+        {!showAddForm && canManage && (
           <button
             onClick={() => setShowAddForm(true)}
             className="bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
@@ -153,7 +154,7 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
       </div>
 
       {/* טופס הוספה */}
-      {showAddForm && (
+      {showAddForm && canManage && (
         <SubcontractorForm
           form={addForm}
           onChange={setAddForm}
@@ -236,6 +237,7 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
                   </div>
                 )}
               </div>
+              {canManage && (
               <div className="flex gap-2 shrink-0 mr-3 flex-wrap justify-end">
                 <button
                   onClick={() => startEdit(sub)}
@@ -252,6 +254,7 @@ export default function SubcontractorList({ initialSubcontractors }: Props) {
                   {archivingId === sub.id ? 'מעביר...' : 'ארכיון'}
                 </button>
               </div>
+              )}
             </div>
           </div>
         )

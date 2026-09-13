@@ -12,7 +12,8 @@ export default async function WorkerPage({ params }: { params: Promise<{ id: str
 
   const { context, error } = await getCurrentCompanyContext();
   if (error) redirect('/select-company');
-  const { companyId } = context;
+  const { companyId, companyRole } = context;
+  const canManage = companyRole !== 'member';
 
   const supabase = createServiceClient();
 
@@ -57,7 +58,7 @@ export default async function WorkerPage({ params }: { params: Promise<{ id: str
           ← רשימת עובדים
         </Link>
       </div>
-      <WorkerDetail worker={worker} />
+      <WorkerDetail worker={worker} canManage={canManage} />
     </div>
   );
 }

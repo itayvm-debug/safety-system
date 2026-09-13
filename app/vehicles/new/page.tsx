@@ -12,6 +12,7 @@ export default async function NewVehiclePage({ searchParams }: { searchParams: P
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');
   }
+  if (ctxResult.context.companyRole === 'member') redirect('/vehicles');
   const { companyId } = ctxResult.context;
 
   const supabase = createServiceClient();

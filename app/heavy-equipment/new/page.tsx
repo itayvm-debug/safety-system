@@ -1,7 +1,15 @@
 import Link from 'next/link';
 import EquipmentForm from '@/components/heavy-equipment/EquipmentForm';
+import { getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { redirect } from 'next/navigation';
 
-export default function NewHeavyEquipmentPage() {
+export default async function NewHeavyEquipmentPage() {
+  const ctxResult = await getCurrentCompanyContext();
+  if (ctxResult.error) {
+    if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
+    redirect('/login');
+  }
+  if (ctxResult.context.companyRole === 'member') redirect('/heavy-equipment');
   return (
     <div className="max-w-lg mx-auto">
       <div className="flex items-center gap-3 mb-6">

@@ -14,7 +14,8 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');
   }
-  const { companyId } = ctxResult.context;
+  const { companyId, companyRole } = ctxResult.context;
+  const canManage = companyRole !== 'member';
 
   const supabase = createServiceClient();
 
@@ -51,7 +52,7 @@ export default async function VehiclePage({ params }: { params: Promise<{ id: st
           ← רשימת רכבים
         </Link>
       </div>
-      <VehicleDetail vehicle={vehicle} imageUrl={imageUrl} workers={workers ?? []} />
+      <VehicleDetail vehicle={vehicle} imageUrl={imageUrl} workers={workers ?? []} canManage={canManage} />
     </div>
   );
 }

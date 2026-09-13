@@ -12,7 +12,8 @@ export default async function SubcontractorsPage() {
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');
   }
-  const { companyId } = ctxResult.context;
+  const { companyId, companyRole } = ctxResult.context;
+  const canManage = companyRole !== 'member';
 
   const supabase = createServiceClient();
   const { data } = await supabase
@@ -30,7 +31,7 @@ export default async function SubcontractorsPage() {
         <h1 className="text-2xl font-bold text-gray-900">קבלני משנה</h1>
         <p className="text-sm text-gray-500 mt-1">ניהול רשימת קבלני המשנה העובדים באתר</p>
       </div>
-      <SubcontractorList initialSubcontractors={subcontractors} />
+      <SubcontractorList initialSubcontractors={subcontractors} canManage={canManage} />
     </div>
   );
 }

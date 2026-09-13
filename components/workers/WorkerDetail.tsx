@@ -32,6 +32,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 interface WorkerDetailProps {
   worker: WorkerWithDocuments;
+  canManage?: boolean;
 }
 
 // ─── Section accordion ─────────────────────────────────────────
@@ -124,7 +125,7 @@ function WorkerSummaryBanner({ issues }: { issues: Issue[] }) {
   );
 }
 
-export default function WorkerDetail({ worker }: WorkerDetailProps) {
+export default function WorkerDetail({ worker, canManage = true }: WorkerDetailProps) {
   const router = useRouter();
   const onlineStatus = useOnlineStatus();
   const isOnline = onlineStatus !== 'offline';
@@ -462,8 +463,8 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
         )}
       </Section>
 
-      {/* פעולות */}
-      <Section title="פעולות" defaultOpen={false}>
+      {/* פעולות — גלוי רק למנהלים */}
+      {canManage && <Section title="פעולות" defaultOpen={false}>
         {!isOnline ? (
           <p className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2.5">
             עריכה, מחיקה ושינוי סטטוס אינם זמינים במצב לא מקוון.
@@ -501,7 +502,7 @@ export default function WorkerDetail({ worker }: WorkerDetailProps) {
         )}
         </>
         )}
-      </Section>
+      </Section>}
     </div>
   );
 }
