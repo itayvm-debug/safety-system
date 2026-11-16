@@ -9,6 +9,7 @@ import {
   getHeavyEquipmentStatus,
   getLiftingEquipmentStatus,
   getBriefingStatus,
+  getLatestCompletedSafetyBriefing,
   getHeightCombinedStatus,
   STATUS_LABELS,
 } from '@/lib/documents/status';
@@ -43,9 +44,7 @@ export function generateWorkersExcel(workers: WorkerWithDocuments[], reportTitle
     const idDoc = docMap.get('id_document');
     const visa = docMap.get('work_visa');
     const heightPermit = docMap.get('height_permit');
-    const latestBriefing = (w.safety_briefings ?? [])
-      .slice()
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] ?? null;
+    const latestBriefing = getLatestCompletedSafetyBriefing(w.safety_briefings);
 
     const heightStatus = STATUS_LABELS[getHeightCombinedStatus(heightPermit, w.height_restrictions ?? [])];
     const briefingStatus = STATUS_LABELS[getBriefingStatus(latestBriefing)];

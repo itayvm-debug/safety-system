@@ -1,0 +1,12 @@
+{
+  "name": "safedoc-motion-film",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "render": "node render.js"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "puppeteer": "^24.43.1"
+  }
+}

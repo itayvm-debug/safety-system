@@ -66,6 +66,30 @@ export function getHeightRestrictionStatus(restriction: HeightRestriction | null
   return 'valid';
 }
 
+/** רשומה ללא תאריך תוקף לא נחשבת תדריך שהושלם ואינה קובעת סטטוס נוכחי. */
+export function isCompletedBriefing(briefing: SafetyBriefing): boolean {
+  return Boolean(briefing.expires_at);
+}
+
+/**
+ * מקור אמת יחיד לתדריך הנוכחי: התדריך האחרון שהושלם.
+ * מיון: briefed_at (תאריך ביצוע) ↓, ואז created_at ↓, ואז id — דטרמיניסטי גם באותו יום.
+ * תדריכים ישנים נשמרים כהיסטוריה ואינם קובעים את הסטטוס.
+ */
+export function getLatestCompletedSafetyBriefing(
+  briefings: SafetyBriefing[] | null | undefined
+): SafetyBriefing | null {
+  const completed = (briefings ?? []).filter(isCompletedBriefing);
+  completed.sort((a, b) => {
+    const byDate = (b.briefed_at ?? '').localeCompare(a.briefed_at ?? '');
+    if (byDate !== 0) return byDate;
+    const byCreated = (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0);
+    if (byCreated !== 0) return byCreated;
+    return b.id.localeCompare(a.id);
+  });
+  return completed[0] ?? null;
+}
+
 /**
  * סטטוס תדריך בטיחות:
  */
@@ -147,13 +171,7 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
     worstStatus = heightCombinedStatus;
   }
 
-  // תדריך בטיחות — הכי עדכני לפי created_at
-  const latestBriefing =
-    (worker.safety_briefings ?? []).slice().sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )[0] ?? null;
-
-  const briefingStatus = getBriefingStatus(latestBriefing);
+  const briefingStatus = getBriefingStatus(getLatestCompletedSafetyBriefing(worker.safety_briefings));
   if (STATUS_SEVERITY[briefingStatus] > STATUS_SEVERITY[worstStatus]) {
     worstStatus = briefingStatus;
   }

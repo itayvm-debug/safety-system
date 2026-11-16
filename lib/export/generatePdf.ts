@@ -5,6 +5,7 @@ import {
   getVehicleStatus,
   getHeavyEquipmentStatus,
   getBriefingStatus,
+  getLatestCompletedSafetyBriefing,
   getHeightCombinedStatus,
   STATUS_LABELS,
 } from '@/lib/documents/status';
@@ -44,9 +45,7 @@ function getWorkerIssueDetails(w: WorkerWithDocuments): string {
     else if (s === 'expiring_soon') problems.push('אשרת עבודה עומדת לפוג');
   }
 
-  const latestBriefing = (w.safety_briefings ?? [])
-    .slice()
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] ?? null;
+  const latestBriefing = getLatestCompletedSafetyBriefing(w.safety_briefings);
   const bs = getBriefingStatus(latestBriefing);
   if (bs === 'missing') problems.push('חסר תדריך בטיחות');
   else if (bs === 'expired') problems.push('תדריך בטיחות פג תוקף');
@@ -196,9 +195,7 @@ export function buildWorkersHtml(workers: WorkerWithDocuments[], title: string, 
     const docMap = new Map(w.documents.map((d) => [d.doc_type, d]));
     const visa = docMap.get('work_visa');
     const heightPermit = docMap.get('height_permit');
-    const latestBriefing = (w.safety_briefings ?? [])
-      .slice()
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] ?? null;
+    const latestBriefing = getLatestCompletedSafetyBriefing(w.safety_briefings);
 
     const heightLabel   = STATUS_LABELS[getHeightCombinedStatus(heightPermit, w.height_restrictions ?? [])];
     const briefingLabel = STATUS_LABELS[getBriefingStatus(latestBriefing)];

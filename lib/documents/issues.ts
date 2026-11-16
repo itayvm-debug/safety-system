@@ -11,6 +11,7 @@ import {
 import {
   getDocumentStatus,
   getBriefingStatus,
+  getLatestCompletedSafetyBriefing,
   getHeightCombinedStatus,
   STATUS_SEVERITY,
 } from '@/lib/documents/status';
@@ -83,10 +84,7 @@ export function buildWorkerIssues(worker: WorkerWithDocuments): Issue[] {
   if (hs) issues.push({ ...base, id: `worker-${worker.id}-height`, status: hs, problem: 'אישור עבודה בגובה' });
 
   // תדריך בטיחות
-  const latestBriefing = (worker.safety_briefings ?? [])
-    .slice()
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] ?? null;
-  const bs = toIssue(getBriefingStatus(latestBriefing));
+  const bs = toIssue(getBriefingStatus(getLatestCompletedSafetyBriefing(worker.safety_briefings)));
   if (bs) issues.push({ ...base, id: `worker-${worker.id}-briefing`, status: bs, problem: 'תדריך בטיחות' });
 
   // מינוי מפעיל מכונת הרמה

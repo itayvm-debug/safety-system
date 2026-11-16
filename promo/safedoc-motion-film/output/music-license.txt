@@ -1,0 +1,62 @@
+SAFEDOC MOTION FILM — MUSIC & SFX LICENSING RECORD
+Generated: 2026-10-02
+=======================================================
+
+AUDIO PROVENANCE STATEMENT
+----------------------------
+The current music and SFX were generated procedurally in-house. The
+generator reads no third-party audio, MIDI or sample files, and no
+third-party audio material was identified in the resulting track.
+
+Generator: audio/generate_audio.py (Python/numpy/scipy)
+AST audit confirms: zero open() calls, zero file reads.
+Imports: numpy, scipy.io.wavfile, scipy.signal, scipy.ndimage, os, json
+
+Replacing the music with a third-party licensed track is optional and
+would be a creative/production decision. If replaced, the new track's
+license and source must be documented.
+
+=======================================================
+UI SOUND EFFECTS
+=======================================================
+
+All UI SFX in this production are PROCEDURALLY GENERATED.
+Source: audio/generate_audio.py (Python/numpy/scipy)
+Author: SafeDoc Production Pipeline
+
+No third-party SFX samples were used.
+
+SFX inventory:
+  - cursor_click       — soft percussive tap (~35ms)
+  - confirmation_tick  — two-tone C6→G6 blip (~90ms)
+  - interface_tap      — light high-frequency tap (~50ms)
+  - success_tick       — E5→B5 positive two-tone (~110ms)
+  - notification_tone  — A5→C#6 chime (~160ms)
+  - resolved_tick      — descending G5→E5 (~120ms)
+  - rating_tap         — quiet dry tap (~28ms)
+  - analytics_rise     — tonal frequency sweep (~220ms)
+  - report_ready       — A5→C#6→E6 arpeggio (~180ms)
+  - brand_sting        — A4→C#5→E5→G#5 premium sting (~520ms)
+
+=======================================================
+REPLACEMENT TRACK — IF APPLICABLE
+=======================================================
+
+If the procedural music is replaced with a third-party track,
+document the following before use:
+
+Track title:        [TO BE CONFIRMED]
+Artist / creator:   [TO BE CONFIRMED]
+Source:             [TO BE CONFIRMED]
+Source URL:         [TO BE CONFIRMED]
+License URL:        [TO BE CONFIRMED]
+License type:       [TO BE CONFIRMED]
+Commercial use:     [TO BE CONFIRMED]
+Attribution req:    [TO BE CONFIRMED]
+BPM (measured):     [TO BE CONFIRMED]
+Segment used:       [TO BE CONFIRMED]
+Content ID status:  [TO BE CONFIRMED]
+
+=======================================================
+END OF RECORD
+=======================================================

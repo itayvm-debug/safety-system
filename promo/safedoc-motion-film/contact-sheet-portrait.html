@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>SafeDoc Motion Film — Portrait 9:16 Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo','Segoe UI',sans-serif;background:#0d0d0d;color:#e5e7eb;direction:ltr;}
+.page{max-width:1240px;margin:0 auto;padding:64px 60px 100px;}
+
+/* Header */
+.cs-header{margin-bottom:56px;}
+.cs-title{font-size:32px;font-weight:900;color:white;letter-spacing:-0.5px;margin-bottom:6px;}
+.cs-meta{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#6b7280;display:flex;gap:24px;flex-wrap:wrap;}
+.cs-meta span{display:flex;align-items:center;gap:6px;}
+
+/* Story flow */
+.story-flow{display:flex;gap:0;margin-bottom:56px;border-radius:12px;overflow:hidden;border:1px solid #1f1f1f;}
+.flow-act{flex:1;padding:14px 0;text-align:center;font-size:13px;font-weight:800;letter-spacing:.5px;color:rgba(255,255,255,.85);cursor:default;}
+
+/* KEY STILLS */
+.key-stills-label{font-size:11px;font-weight:700;letter-spacing:3px;color:#4b5563;text-transform:uppercase;margin-bottom:20px;}
+.key-stills-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-bottom:72px;}
+.key-still-cell{display:flex;flex-direction:column;gap:10px;}
+.key-still-thumb{border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5);position:relative;}
+.key-still-label{font-size:12px;color:#6b7280;font-weight:600;text-align:center;direction:rtl;}
+
+/* Act sections */
+.act-section{margin-bottom:52px;}
+.act-header{display:flex;align-items:center;gap:14px;padding:18px 24px;border-radius:12px 12px 0 0;margin-bottom:0;}
+.act-id{font-size:20px;font-weight:900;color:white;opacity:.9;}
+.act-name{font-size:15px;font-weight:700;color:white;opacity:.75;}
+.act-desc{font-size:12px;color:rgba(255,255,255,.5);margin-inline-start:auto;font-family:'IBM Plex Mono',monospace;}
+.beat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:20px 24px;background:#111;border-radius:0 0 12px 12px;border:1px solid #1a1a1a;border-top:none;}
+.beat-cell{display:flex;flex-direction:column;gap:8px;}
+.thumb-wrap{overflow:hidden;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.5);position:relative;background:#F9FAFB;}
+.beat-num{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#374151;font-weight:500;}
+.beat-desc{font-size:11px;color:#6b7280;line-height:1.4;direction:rtl;}
+
+/* Ratio helper */
+.aspect-portrait{position:relative;padding-top:177.78%;}/* 2560/1440 */
+.aspect-portrait > *{position:absolute;inset:0;width:100%;height:100%;}
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- ── Header ─────────────────────────── -->
+  <div class="cs-header">
+    <div class="cs-title">SAFEDOC MOTION FILM — PORTRAIT 9:16 PREVIEW</div>
+    <div class="cs-meta">
+      <span>📐 1440 × 2560 (9:16)</span>
+      <span>⏱ 16s · 120 BPM · 32 beats</span>
+      <span>🎬 60fps · 8 acts</span>
+      <span>📱 Mobile-first composition</span>
+    </div>
+  </div>
+
+  <!-- ── Story flow ─────────────────────── -->
+  <div style="margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:3px;color:#4b5563;text-transform:uppercase;">PRODUCT STORY</div>
+  <div class="story-flow" id="story-flow"></div>
+  <div style="margin-bottom:56px;"></div>
+
+  <!-- ── Key Stills ──────────────────────── -->
+  <div class="key-stills-label">KEY STILLS — 4 SELECTED FRAMES</div>
+  <div class="key-stills-grid" id="key-stills"></div>
+
+  <!-- ── Act sections ───────────────────── -->
+  <div id="acts-container"></div>
+</div>
+
+<script>
+const A='assets/';
+const SW=1440,SH=2560;
+
+// ── Portrait render functions ─────────────────────────────────────────────
+// Each fn() returns HTML that fills the card's interior (width:100%;height:100%)
+
+function icon(){
+  return`<div dir="ltr" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#FFF7ED 0%,#F9FAFB 100%);">
+    <div style="width:290px;height:290px;border-radius:65px;overflow:hidden;box-shadow:0 40px 110px rgba(249,115,22,.34);background:linear-gradient(135deg,#f97316,#ea580c);">
+      <img src="${A}safedoc-app-icon.png" style="width:100%;height:100%;object-fit:cover;">
+    </div>
+  </div>`;
+}
+
+function login(p){
+  const bg=p>.6?'#ea580c':'#f97316';
+  return`<div dir="rtl" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 90px;gap:36px;background:linear-gradient(160deg,#FFF7ED 0%,white 55%);">
+    <div style="width:120px;height:120px;border-radius:27px;overflow:hidden;background:linear-gradient(135deg,#f97316,#ea580c);box-shadow:0 18px 50px rgba(249,115,22,.3);">
+      <img src="${A}safedoc-app-icon.png" style="width:100%;height:100%;object-fit:cover;">
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:64px;font-weight:900;color:#111827;letter-spacing:-1.5px;">SafeDoc</div>
+      <div style="font-size:30px;color:#6B7280;margin-top:8px;">ניהול מסמכי בטיחות</div>
+    </div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:20px;">
+      <div style="border:2.5px solid #D1D5DB;border-radius:20px;padding:26px 32px;font-size:30px;color:#9CA3AF;background:#F9FAFB;">natan@valdman.co.il</div>
+      <div style="border:2.5px solid #D1D5DB;border-radius:20px;padding:26px 32px;font-size:30px;color:#111827;background:#F9FAFB;">••••••••••</div>
+      <div style="background:${bg};color:white;border-radius:20px;padding:32px;font-size:34px;font-weight:900;text-align:center;box-shadow:0 14px 36px rgba(249,115,22,.32);">התחברות למערכת</div>
+    </div>
+  </div>`;
+}
+
+function dashFull(multi){
+  const co=multi?'חברת הנדסה ופיתוח בע"מ':'נתן ולדמן ובניו בע"מ';
+  const cats=[['עובדים','#eff6ff','#2563eb','#bfdbfe'],['מנהלי עבודה','#f0f9ff','#0284c7','#bae6fd'],
+    ['רכבים','#fefce8','#ca8a04','#fef08a'],['כלי צמ\\"ה','#faf5ff','#9333ea','#e9d5ff'],
+    ['ציוד הרמה','#fff1f2','#e11d48','#fecdd3'],['קבלני משנה','#f0fdf4','#16a34a','#bbf7d0']];
+  return`<div dir="rtl" style="width:${SW}px;height:${SH}px;background:#F9FAFB;display:flex;flex-direction:column;">
+    <div style="height:96px;background:white;border-bottom:2px solid #E5E7EB;display:flex;align-items:center;padding:0 80px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.05);">
+      <div style="display:flex;align-items:center;gap:18px;">
+        <div style="width:56px;height:56px;border-radius:13px;overflow:hidden;background:linear-gradient(135deg,#f97316,#ea580c);">
+          <img src="${A}safedoc-app-icon.png" style="width:100%;height:100%;object-fit:cover;">
+        </div>
+        <span style="font-size:40px;font-weight:900;color:#111827;">SafeDoc</span>
+      </div>
+      <div style="margin-inline-start:auto;display:flex;align-items:center;gap:26px;">
+        <div style="position:relative;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.8"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span style="position:absolute;top:-5px;right:-9px;min-width:30px;height:30px;background:#dc2626;color:white;font-size:17px;font-weight:900;border-radius:15px;display:flex;align-items:center;justify-content:center;padding:0 4px;">3</span>
+        </div>
+        <div style="width:56px;height:56px;border-radius:50%;background:#fff7ed;display:flex;align-items:center;justify-content:center;border:2.5px solid #fed7aa;">
+          <span style="font-size:24px;font-weight:900;color:#ea580c;">נ</span>
+        </div>
+      </div>
+    </div>
+    ${multi?`<div style="height:68px;background:#fff7ed;border-bottom:2px solid #fed7aa;display:flex;align-items:center;padding:0 80px;gap:16px;flex-shrink:0;">
+      <span style="font-size:24px;color:#9a3412;">חברה פעילה:</span>
+      <span style="font-size:26px;font-weight:900;color:#ea580c;">${co}</span>
+      <span style="margin-inline-start:auto;font-size:22px;color:#f97316;font-weight:700;">החלף ↕</span>
+    </div>`:''}
+    <div style="flex:1;padding:72px 80px;display:flex;flex-direction:column;gap:48px;overflow:hidden;">
+      <div style="font-size:44px;font-weight:700;color:#374151;">ספטמבר 2026 — סקירה כללית</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px;">
+        <div style="background:white;border-radius:28px;padding:56px 44px;box-shadow:0 4px 16px rgba(0,0,0,.06);">
+          <div style="font-size:28px;color:#6B7280;margin-bottom:14px;">עובדים</div>
+          <div style="font-size:128px;font-weight:900;color:#111827;line-height:1;">42</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:28px;padding:56px 44px;">
+          <div style="font-size:28px;color:#15803d;margin-bottom:14px;">בתוקף</div>
+          <div style="font-size:128px;font-weight:900;color:#15803d;line-height:1;">96%</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#fef2f2,#fee2e2);border-radius:28px;padding:56px 44px;">
+          <div style="font-size:28px;color:#991b1b;margin-bottom:14px;">דורש טיפול</div>
+          <div style="font-size:128px;font-weight:900;color:#dc2626;line-height:1;">3</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#F9FAFB,#F3F4F6);border-radius:28px;padding:56px 44px;">
+          <div style="font-size:28px;color:#6B7280;margin-bottom:14px;">כלי צמ"ה</div>
+          <div style="font-size:128px;font-weight:900;color:#374151;line-height:1;">12</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px;">
+        ${cats.map(([l,bg,c,br])=>`<div style="background:${bg};border:2px solid ${br};border-radius:22px;padding:40px 30px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:30px;font-weight:700;color:${c};">${l}</span>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function workerHero(expiring){
+  const docs=[
+    {l:'תדריך בטיחות',s:'valid',lb:'תקין',i:'✓'},
+    {l:'עבודה בגובה',s:expiring?'exp':'valid',lb:expiring?'עומד לפוג':'תקין',i:expiring?'⚠':'✓'},
+    {l:'רישיון מקצועי',s:'valid',lb:'תקין',i:'✓'},
+    {l:'תעודת זהות',s:'valid',lb:'תקין',i:'✓'},
+  ];
+  const cs={valid:{bg:'#f0fdf4',br:'#bbf7d0',c:'#16a34a',tc:'#15803d'},exp:{bg:'#fefce8',br:'#fef08a',c:'#ca8a04',tc:'#854d0e'}};
+  return`<div dir="rtl" style="width:100%;height:100%;background:white;padding:72px 68px;display:flex;flex-direction:column;gap:36px;">
+    <div style="display:flex;align-items:center;gap:32px;">
+      <div style="width:128px;height:128px;border-radius:50%;background:#fff7ed;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:3px solid #fed7aa;">
+        <span style="font-size:52px;font-weight:900;color:#ea580c;">י</span>
+      </div>
+      <div>
+        <div style="font-size:56px;font-weight:900;color:#111827;margin-bottom:8px;">יוסי כהן</div>
+        <div style="font-size:30px;color:#6B7280;">עובד בניה · מנהל עבודה: אילן לוי</div>
+      </div>
+    </div>
+    <div style="padding:26px 32px;background:${expiring?'#fefce8':'#f0fdf4'};border:2.5px solid ${expiring?'#fef08a':'#bbf7d0'};border-radius:18px;text-align:center;">
+      <span style="font-size:32px;font-weight:900;color:${expiring?'#854d0e':'#15803d'};">${expiring?'⚠ מסמך עומד לפוג — נדרש חידוש':'✓ כל המסמכים תקינים'}</span>
+    </div>
+    <div style="font-size:34px;font-weight:800;color:#374151;">מסמכים ותעודות</div>
+    <div style="display:flex;flex-direction:column;gap:18px;flex:1;">
+      ${docs.map(d=>{const c=cs[d.s];return`<div style="display:flex;align-items:center;gap:22px;padding:30px 34px;border:2.5px solid ${c.br};border-radius:20px;background:${c.bg}${d.s==='exp'&&expiring?';outline:3px solid #ca8a04;outline-offset:2px':''};">
+        <span style="font-size:38px;color:${c.c};flex-shrink:0;">${d.i}</span>
+        <span style="font-size:34px;font-weight:600;color:#111827;flex:1;">${d.l}</span>
+        <span style="padding:12px 26px;background:white;border:2px solid ${c.br};border-radius:14px;font-size:28px;font-weight:700;color:${c.tc};white-space:nowrap;">${d.lb}</span>
+      </div>`;}).join('')}
+    </div>
+  </div>`;
+}
+
+function pdfHero(op){
+  return`<div dir="rtl" style="width:100%;height:100%;background:white;display:flex;flex-direction:column;">
+    <div style="padding:44px 52px;background:#F9FAFB;border-bottom:2px solid #E5E7EB;display:flex;align-items:center;gap:22px;flex-shrink:0;">
+      <span style="font-size:56px;flex-shrink:0;">📄</span>
+      <div>
+        <div style="font-size:38px;font-weight:800;color:#111827;">אישור עבודה בגובה</div>
+        <div style="font-size:26px;color:#6B7280;">PDF · יוסי כהן</div>
+      </div>
+      <div style="margin-inline-start:auto;padding:16px 28px;background:#fefce8;border:2px solid #fef08a;border-radius:14px;">
+        <span style="font-size:26px;font-weight:700;color:#854d0e;">⚠ עומד לפוג</span>
+      </div>
+    </div>
+    <div style="flex:1;padding:52px;opacity:${op.toFixed(2)};display:flex;flex-direction:column;gap:26px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;">
+        <div style="background:#F9FAFB;border:2px solid #E5E7EB;border-radius:18px;padding:28px 34px;">
+          <div style="font-size:22px;color:#6B7280;margin-bottom:6px;">שם עובד</div>
+          <div style="font-size:34px;font-weight:700;color:#111827;">יוסי כהן</div>
+        </div>
+        <div style="background:#fef2f2;border:2px solid #fecaca;border-radius:18px;padding:28px 34px;">
+          <div style="font-size:22px;color:#9a3412;margin-bottom:6px;">תאריך תפוגה</div>
+          <div style="font-size:34px;font-weight:900;color:#dc2626;">מרץ 2025</div>
+        </div>
+      </div>
+      <div style="height:16px;background:#F3F4F6;border-radius:6px;width:90%;"></div>
+      <div style="height:14px;background:#F3F4F6;border-radius:5px;width:75%;"></div>
+      <div style="height:14px;background:#F3F4F6;border-radius:5px;width:83%;"></div>
+      <div style="padding:28px 34px;background:#FEF9C3;border:2px solid #FEF08A;border-radius:18px;flex:1;display:flex;align-items:center;">
+        <span style="font-size:30px;color:#854d0e;font-weight:700;">⚠ נדרש חידוש מסמך לפני המשך עבודה</span>
+      </div>
+      <div style="background:#f97316;color:white;border-radius:18px;padding:34px;font-size:34px;font-weight:900;text-align:center;box-shadow:0 12px 32px rgba(249,115,22,.3);">חדש מסמך ←</div>
+    </div>
+  </div>`;
+}
+
+function equipHero(type){
+  const isH=type==='heavy';
+  const c=isH
+    ?{label:'כלי צמ"ה / עבודה',lc:'#ca8a04',bg:'#fefce8',br:'#fde047',name:'קומפרסור אוויר',id:'EQ-2847',icon:'🔧',cap:'לחץ 10 בר',yr:'2019'}
+    :{label:'ציוד הרמה',lc:'#9333ea',bg:'#faf5ff',br:'#d8b4fe',name:'מעלית משא',id:'LF-1203',icon:'🏗️',cap:'נשיאה 2 טון',yr:'2021'};
+  return`<div dir="rtl" style="width:100%;height:100%;background:white;padding:60px 64px;display:flex;flex-direction:column;gap:28px;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="width:16px;height:16px;border-radius:50%;background:${c.lc};flex-shrink:0;"></div>
+      <span style="font-size:32px;font-weight:900;color:${c.lc};">${c.label}</span>
+    </div>
+    <div style="background:${c.bg};border:3px solid ${c.br};border-radius:28px;padding:52px;display:flex;align-items:center;gap:40px;">
+      <div style="font-size:110px;flex-shrink:0;line-height:1;">${c.icon}</div>
+      <div>
+        <div style="font-size:56px;font-weight:900;color:#111827;margin-bottom:10px;">${c.name}</div>
+        <div style="font-size:28px;color:#6B7280;margin-bottom:6px;">מזהה: ${c.id}</div>
+        <div style="font-size:26px;color:#374151;">${c.cap} · שנת ייצור ${c.yr}</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;flex:1;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:28px 34px;background:#F9FAFB;border:2px solid #E5E7EB;border-radius:20px;">
+        <div>
+          <div style="font-size:32px;font-weight:800;color:#111827;">תסקיר בדיקה</div>
+          ${!isH?`<div style="font-size:22px;color:#6B7280;margin-top:4px;">בדיקה אחרונה: ינואר 2026</div>`:''}
+        </div>
+        <div style="padding:16px 28px;background:#f0fdf4;border:2.5px solid #bbf7d0;border-radius:16px;">
+          <span style="font-size:30px;font-weight:900;color:#15803d;">✓ תקין</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:28px 34px;background:#F9FAFB;border:2px solid #E5E7EB;border-radius:20px;">
+        <span style="font-size:32px;font-weight:700;color:#111827;">ביטוח חובה</span>
+        <div style="padding:16px 28px;background:#f0fdf4;border:2.5px solid #bbf7d0;border-radius:16px;">
+          <span style="font-size:28px;font-weight:800;color:#15803d;">✓ תקין · 12/2027</span>
+        </div>
+      </div>
+      ${!isH?`<div style="display:flex;align-items:center;justify-content:space-between;padding:28px 34px;background:#F9FAFB;border:2px solid #E5E7EB;border-radius:20px;">
+        <span style="font-size:32px;font-weight:700;color:#111827;">אישור בטיחות</span>
+        <div style="padding:16px 28px;background:#f0fdf4;border:2.5px solid #bbf7d0;border-radius:16px;">
+          <span style="font-size:28px;font-weight:800;color:#15803d;">✓ תקין · 06/2027</span>
+        </div>
+      </div>`:''}
+    </div>
+    <div style="padding:28px 34px;background:#f0fdf4;border:2.5px solid #bbf7d0;border-radius:18px;display:flex;align-items:center;gap:16px;">
+      <span style="font-size:36px;color:#16a34a;">✓</span>
+      <span style="font-size:32px;font-weight:900;color:#15803d;">תסקיר בדיקה — תקין</span>
+    </div>
+  </div>`;
+}
+
+function alertHero(state){
+  const items=[
+    {t:'רישיון עובד עומד לפוג',s:'יוסי כהן · עבודה בגובה',cat:'עובד',resolved:state>=2},
+    {t:'תסקיר ציוד חסר',s:'מנוף JH-450',cat:'ציוד',resolved:false},
+    {t:'ביטוח רכב עומד לפוג',s:'טנדר T-342',cat:'רכב',resolved:false},
+  ];
+  const count=items.filter(i=>!i.resolved).length;
+  if(state===0){
+    return`<div dir="rtl" style="width:100%;height:100%;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:36px;padding:64px;">
+      <div style="position:relative;display:inline-block;">
+        <svg width="160" height="160" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <div style="position:absolute;top:-12px;right:-16px;min-width:56px;height:56px;background:#dc2626;color:white;font-size:32px;font-weight:900;border-radius:28px;display:flex;align-items:center;justify-content:center;padding:0 8px;">3</div>
+      </div>
+      <div style="font-size:52px;font-weight:900;color:#111827;text-align:center;">3 התראות פתוחות</div>
+      <div style="font-size:30px;color:#6B7280;">דורשות טיפול</div>
+    </div>`;
+  }
+  return`<div dir="rtl" style="width:100%;height:100%;background:white;display:flex;flex-direction:column;">
+    <div style="padding:36px 48px;border-bottom:2px solid #E5E7EB;display:flex;align-items:center;gap:20px;flex-shrink:0;">
+      <div style="position:relative;"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <span style="position:absolute;top:-7px;right:-10px;min-width:32px;height:32px;background:#dc2626;color:white;font-size:18px;font-weight:900;border-radius:16px;display:flex;align-items:center;justify-content:center;">${count}</span></div>
+      <div>
+        <div style="font-size:40px;font-weight:900;color:#111827;">התראות</div>
+        <div style="font-size:26px;color:#6B7280;">${count} פריטים דורשים טיפול</div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;">
+      ${items.map(item=>`<div style="display:flex;align-items:flex-start;gap:20px;padding:36px 48px;border-bottom:1.5px solid #F9FAFB;background:${item.resolved?'#f0fdf4':'white'};flex:1;">
+        <div style="width:14px;height:14px;border-radius:50%;background:${item.resolved?'#16a34a':'#dc2626'};margin-top:16px;flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div style="font-size:30px;font-weight:700;color:${item.resolved?'#15803d':'#111827'};margin-bottom:${item.resolved?'0':'8px'};">${item.resolved?'✓ טופל — '+item.s:item.t}</div>
+          ${!item.resolved?`<div style="font-size:24px;color:#6B7280;">${item.s}</div>
+          <span style="margin-top:10px;display:inline-block;padding:7px 18px;background:${item.cat==='עובד'?'#eff6ff':item.cat==='ציוד'?'#faf5ff':'#fefce8'};color:${item.cat==='עובד'?'#2563eb':item.cat==='ציוד'?'#9333ea':'#ca8a04'};font-size:20px;font-weight:700;border-radius:10px;">${item.cat}</span>`:''}
+        </div>
+        ${!item.resolved?`<div style="padding:14px 24px;background:#fff7ed;border:2px solid #fed7aa;border-radius:14px;font-size:24px;font-weight:700;color:#f97316;flex-shrink:0;white-space:nowrap;">פתח ←</div>`:''}
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function reviewHero(ratings,step){
+  const cats=['תפוקה','איכות עבודה','בטיחות'];
+  const name=step>=2?'דניאל מזרחי':'יוסי כהן';
+  const pct=step===0?0:step===1?33:66;
+  const allFilled=ratings.every(r=>r>0);
+  return`<div dir="rtl" style="width:100%;height:100%;background:white;padding:56px 60px;display:flex;flex-direction:column;gap:28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:36px;font-weight:900;color:#111827;">ביצועי עובדים</div>
+      <div style="font-size:22px;color:#6B7280;">שבוע 40 · 2026</div>
+    </div>
+    <div style="height:10px;background:#F3F4F6;border-radius:5px;overflow:hidden;">
+      <div style="height:100%;background:#f97316;width:${pct}%;"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:24px;padding:28px 32px;background:#F9FAFB;border-radius:20px;">
+      <div style="width:88px;height:88px;border-radius:50%;background:#fff7ed;display:flex;align-items:center;justify-content:center;border:3px solid #fed7aa;flex-shrink:0;">
+        <span style="font-size:36px;font-weight:900;color:#ea580c;">${name.charAt(0)}</span>
+      </div>
+      <div>
+        <div style="font-size:40px;font-weight:900;color:#111827;">${name}</div>
+        <div style="font-size:26px;color:#6B7280;">עובד בניה · הערכה שבועית</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:28px;flex:1;">
+      ${cats.map((cat,i)=>{const v=ratings[i]||0;return`<div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <span style="font-size:32px;font-weight:800;color:#374151;">${cat}</span>
+          ${v>0?`<span style="font-size:30px;font-weight:900;color:#f97316;">${v}/5</span>`:`<span style="font-size:22px;color:#9CA3AF;">בחר ציון</span>`}
+        </div>
+        <div style="display:flex;gap:10px;">
+          ${[1,2,3,4,5].map(n=>`<div style="flex:1;height:80px;border-radius:16px;background:${n===v?'#f97316':'#F9FAFB'};border:2.5px solid ${n===v?'#f97316':'#E5E7EB'};color:${n===v?'white':'#6B7280'};display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:${n===v?'900':'500'};">${n}</div>`).join('')}
+        </div>
+      </div>`;}).join('')}
+    </div>
+    ${allFilled?`<div style="background:#f97316;color:white;border-radius:20px;padding:34px;font-size:36px;font-weight:900;text-align:center;box-shadow:0 14px 36px rgba(249,115,22,.28);">שמור והבא ←</div>`:''}
+  </div>`;
+}
+
+function analyticsHero(hP){
+  const data=[3.8,4.1,4.3,4.4,4.6,4.6],labs=['מאי','יוני','יולי','אוג','ספט','אוק'];
+  const W=1080,H=500,pL=60,pR=48,pT=40,pB=70,pw=W-pL-pR,ph=H-pT-pB,mn=3.4,mx=5;
+  const pts=data.map((v,i)=>({x:pL+(i/(data.length-1))*pw,y:pT+(1-(v-mn)/(mx-mn))*ph,v,l:labs[i]}));
+  const pD=pts.map((p,i)=>`${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const aD=`${pD} L${pts[5].x},${H-pB} L${pts[0].x},${H-pB} Z`;
+  const hi=Math.min(5,Math.round(hP*5));const hp=pts[hi];
+  return`<div dir="rtl" style="width:100%;height:100%;background:white;padding:60px 64px;display:flex;flex-direction:column;gap:36px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+      <div>
+        <div style="font-size:40px;font-weight:900;color:#111827;margin-bottom:8px;">ביצועי עובדים</div>
+        <div style="font-size:26px;color:#6B7280;">ממוצע חודשי · 6 חודשים אחרונים</div>
+      </div>
+      <div style="text-align:start;">
+        <div style="display:flex;align-items:baseline;gap:14px;">
+          <div style="font-size:108px;font-weight:900;color:#111827;line-height:1;">4.6</div>
+          <div style="font-size:34px;font-weight:800;color:#16a34a;">↑ 5%</div>
+        </div>
+        <div style="font-size:24px;color:#6B7280;">ציון חודשי ממוצע</div>
+      </div>
+    </div>
+    <div style="flex:1;">
+      <svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" style="overflow:visible;display:block;">
+        ${[3.5,4,4.5,5].map(v=>{const y=pT+(1-(v-mn)/(mx-mn))*ph;return`<line x1="${pL}" x2="${W-pR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#F3F4F6" stroke-width="2"/>
+        <text x="${(pL-14).toFixed(1)}" y="${(y+8).toFixed(1)}" text-anchor="end" font-size="22" fill="#D1D5DB" font-family="Heebo,sans-serif">${v}</text>`;}).join('')}
+        <path d="${aD}" fill="#fff7ed" opacity=".8"/>
+        <path d="${pD}" fill="none" stroke="#f97316" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        ${pts.map((p,i)=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${i===hi&&hP>0?14:8}" fill="${i===hi&&hP>0?'#f97316':'#fed7aa'}" stroke="${i===hi&&hP>0?'white':'#f97316'}" stroke-width="3.5"/>
+        <text x="${p.x.toFixed(1)}" y="${(H-14).toFixed(1)}" text-anchor="middle" font-size="22" fill="#9CA3AF" font-family="Heebo,sans-serif">${p.l}</text>`).join('')}
+        ${hP>0?`<rect x="${(hp.x-84).toFixed(1)}" y="${(hp.y-92).toFixed(1)}" width="168" height="74" rx="14" fill="#1c2b3a" opacity=".94"/>
+        <text x="${hp.x.toFixed(1)}" y="${(hp.y-60).toFixed(1)}" text-anchor="middle" font-size="22" fill="#9CA3AF" font-family="Heebo,sans-serif">${hp.l} 2026</text>
+        <text x="${hp.x.toFixed(1)}" y="${(hp.y-26).toFixed(1)}" text-anchor="middle" font-size="30" fill="white" font-family="Heebo,sans-serif" font-weight="700">${hp.v} / 5</text>
+        <line x1="${hp.x.toFixed(1)}" x2="${hp.x.toFixed(1)}" y1="${(hp.y+14).toFixed(1)}" y2="${(H-pB).toFixed(1)}" stroke="#f97316" stroke-width="3" stroke-dasharray="6,6" opacity=".5"/>`:''}
+      </svg>
+    </div>
+  </div>`;
+}
+
+function reportHero(stage){
+  return`<div dir="rtl" style="width:100%;height:100%;background:white;padding:60px 64px;display:flex;flex-direction:column;gap:32px;">
+    <div style="display:flex;align-items:center;gap:20px;padding-bottom:32px;border-bottom:2.5px solid #F3F4F6;">
+      <div style="width:62px;height:62px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#f97316,#ea580c);">
+        <img src="${A}safedoc-app-icon.png" style="width:100%;height:100%;object-fit:cover;">
+      </div>
+      <div>
+        <div style="font-size:36px;font-weight:900;color:#111827;">SafeDoc</div>
+        <div style="font-size:22px;color:#6B7280;">מערכת ניהול בטיחות</div>
+      </div>
+      <div style="margin-inline-start:auto;padding:14px 26px;background:#F9FAFB;border:2px solid #E5E7EB;border-radius:14px;">
+        <span style="font-size:26px;font-weight:700;color:#374151;">דוח עובד</span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:50px;font-weight:900;color:#111827;margin-bottom:10px;">דוח ביצועים חודשי</div>
+      <div style="font-size:26px;color:#6B7280;">תקופה: ספטמבר–אוקטובר 2026</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px;">
+      <div style="background:#F9FAFB;border:2px solid #E5E7EB;border-radius:22px;padding:32px;">
+        <div style="font-size:22px;color:#6B7280;margin-bottom:6px;">עובדים</div>
+        <div style="font-size:72px;font-weight:900;color:#111827;line-height:1;">14</div>
+      </div>
+      <div style="background:#f0fdf4;border:2px solid #bbf7d0;border-radius:22px;padding:32px;">
+        <div style="font-size:22px;color:#15803d;margin-bottom:6px;">ציון</div>
+        <div style="font-size:72px;font-weight:900;color:#15803d;line-height:1;">4.6</div>
+      </div>
+      <div style="background:#eff6ff;border:2px solid #bfdbfe;border-radius:22px;padding:32px;">
+        <div style="font-size:22px;color:#1d4ed8;margin-bottom:6px;">בתוקף</div>
+        <div style="font-size:72px;font-weight:900;color:#1d4ed8;line-height:1;">96%</div>
+      </div>
+    </div>
+    <div style="height:10px;background:#F3F4F6;border-radius:5px;overflow:hidden;">
+      <div style="height:100%;background:linear-gradient(to left,#f97316,#ea580c);width:92%;"></div>
+    </div>
+    <div style="flex:1;display:flex;align-items:flex-end;">
+      ${stage===0
+        ?`<div style="width:100%;background:#f97316;color:white;border-radius:20px;padding:34px;font-size:36px;font-weight:900;text-align:center;box-shadow:0 14px 36px rgba(249,115,22,.28);">הפק דוח PDF ↓</div>`
+        :`<div style="width:100%;display:flex;align-items:center;gap:18px;padding:34px;background:#f0fdf4;border:2.5px solid #bbf7d0;border-radius:20px;">
+          <span style="font-size:36px;color:#16a34a;">✓</span>
+          <span style="font-size:32px;font-weight:900;color:#15803d;">הדוח מוכן — לחץ להורדה</span>
+        </div>`}
+    </div>
+  </div>`;
+}
+
+function productTerms(p){
+  const terms=[['עובדים',10,20],['מסמכים',75,14],['רכבים',82,52],['ציוד',12,72],['בטיחות',50,84],['משובים',80,76],['דוחות',20,44]];
+  const show=Math.ceil(Math.max(0,Math.min(1,p))*terms.length);
+  return`<div style="width:100%;height:100%;background:white;position:relative;display:flex;align-items:center;justify-content:center;">
+    <div style="width:200px;height:200px;border-radius:44px;overflow:hidden;background:linear-gradient(135deg,#f97316,#ea580c);box-shadow:0 24px 70px rgba(249,115,22,.30);position:relative;z-index:2;">
+      <img src="${A}safedoc-app-icon.png" style="width:100%;height:100%;object-fit:cover;">
+    </div>
+    ${terms.slice(0,show).map(([t,lx,ly])=>`<div dir="rtl" style="position:absolute;left:${lx}%;top:${ly}%;transform:translate(-50%,-50%);font-size:28px;font-weight:700;color:#9CA3AF;white-space:nowrap;">${t}</div>`).join('')}
+  </div>`;
+}
+
+function sealHero(phase,exitP){
+  const op=exitP>0?Math.max(0,1-exitP*2):1;
+  const iOp=exitP>0?Math.max(0,1-exitP):1;
+  return`<div style="width:100%;height:100%;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding:80px 72px;">
+    <div style="width:220px;height:220px;border-radius:50px;overflow:hidden;background:linear-gradient(135deg,#f97316,#ea580c);box-shadow:0 32px 96px rgba(249,115,22,.4);opacity:${iOp};">
+      <img src="${A}safedoc-app-icon.png" style="width:100%;height:100%;object-fit:cover;">
+    </div>
+    <div style="opacity:${op};display:flex;flex-direction:column;align-items:center;gap:24px;text-align:center;">
+      <div style="font-size:88px;font-weight:900;color:#1c2b3a;letter-spacing:-2px;line-height:1;">SafeDoc</div>
+      ${phase>=2?`<div dir="rtl" style="font-size:60px;font-weight:900;color:#111827;line-height:1.3;letter-spacing:-.5px;">כל הבטיחות.<br>במקום אחד.</div>`:''}
+      ${phase>=3?`<div dir="rtl" style="font-size:48px;font-weight:700;color:#374151;line-height:1.4;">פחות ניירת.<br>יותר שליטה.</div>
+      <div dir="rtl" style="font-size:32px;color:#9CA3AF;line-height:1.5;">ניהול עובדים, ציוד,<br>מסמכים ובטיחות</div>`:''}
+    </div>
+  </div>`;
+}
+
+// ── ACTS — Portrait geometry: c=[cx,cy,cw,ch,cr] stage 1440×2560 ─────────
+const ACTS=[
+  {id:'A',label:'Login',color:'#7c3aed',desc:'Icon → Login',beats:[
+    {fn:()=>icon(),           c:[720,1280,360,360,80], cur:{x:720,y:1280}, desc:'App icon · opening'},
+    {fn:()=>icon(),           c:[720,1280,360,360,80], cur:{x:720,y:1280}, desc:'App icon · cursor approaching'},
+    {fn:()=>login(0),         c:[720,1280,1260,980,24],cur:{x:720,y:1460}, desc:'Login form'},
+    {fn:()=>login(0.9),       c:[720,1280,1260,980,24],cur:{x:720,y:1520}, desc:'Button press'},
+  ]},
+  {id:'B',label:'Dashboard',color:'#2563eb',desc:'Full-bleed mobile dashboard → Worker',beats:[
+    {fn:()=>dashFull(false), c:[720,1280,1440,2560,0],fullBleed:true, cur:{x:880,y:460},  desc:'Dashboard · single company'},
+    {fn:()=>dashFull(true),  c:[720,1280,1440,2560,0],fullBleed:true, cur:{x:1080,y:460}, desc:'Dashboard · multi-company'},
+    {fn:()=>workerHero(false),c:[720,1280,1260,1720,20],cur:{x:840,y:920},  desc:'Worker card opens'},
+    {fn:()=>workerHero(false),c:[720,1280,1260,1720,20],cur:{x:1000,y:1020},desc:'Browse compliance docs'},
+  ]},
+  {id:'C',label:'Compliance',color:'#ca8a04',desc:'Expiring doc → PDF',beats:[
+    {fn:()=>workerHero(true), c:[720,1280,1260,1720,20],cur:{x:1000,y:1060},desc:'Expiry warning highlighted'},
+    {fn:()=>workerHero(true), c:[720,1280,1260,1720,20],cur:{x:860,y:1110}, desc:'Tap expiring certificate'},
+    {fn:()=>pdfHero(0.75),    c:[720,1280,1260,1440,20],cur:{x:1040,y:960}, desc:'PDF viewer opens'},
+    {fn:()=>pdfHero(0.9),     c:[720,1280,1260,1440,20],cur:{x:720,y:1100}, desc:'Renew document CTA'},
+  ]},
+  {id:'D',label:'Equipment',color:'#9333ea',desc:'Compressor → Cargo lift',beats:[
+    {fn:()=>equipHero('heavy'),   c:[720,1280,1260,1320,20],cur:{x:700,y:1000}, desc:'קומפרסור אוויר EQ-2847'},
+    {fn:()=>equipHero('heavy'),   c:[720,1280,1260,1320,20],cur:{x:960,y:1100}, desc:'Equipment docs confirmed'},
+    {fn:()=>equipHero('lifting'), c:[720,1280,1260,1320,20],cur:{x:660,y:1000}, desc:'מעלית משא LF-1203'},
+    {fn:()=>equipHero('lifting'), c:[720,1280,1260,1320,20],cur:{x:980,y:1120}, desc:'Lifting certification OK'},
+  ]},
+  {id:'E',label:'Alerts',color:'#dc2626',desc:'Bell → alert list → review',beats:[
+    {fn:()=>alertHero(0), c:[720,1060,940,780,20],  cur:{x:980,y:880},  desc:'3 alerts · bell view'},
+    {fn:()=>alertHero(1), c:[720,1280,1260,1480,20],cur:{x:720,y:1100}, desc:'Alert list · 3 items'},
+    {fn:()=>alertHero(2), c:[720,1280,1260,1480,20],cur:{x:720,y:1120}, desc:'First alert resolved ✓'},
+    {fn:()=>reviewHero([0,0,0],0),c:[720,1280,1260,1720,20],cur:{x:720,y:1120},desc:'Review sheet · empty'},
+  ]},
+  {id:'F',label:'Review → Analytics',color:'#16a34a',desc:'Ratings morph into chart',beats:[
+    {fn:()=>reviewHero([3,4,4],1),c:[720,1280,1260,1720,20],cur:{x:720,y:1200},desc:'Review partial · 33%'},
+    {fn:()=>reviewHero([5,5,5],2),c:[720,1280,1260,1720,20],cur:{x:720,y:1340},desc:'Review complete · save'},
+    {fn:()=>analyticsHero(0),     c:[720,1280,1260,1220,20],cur:{x:820,y:1120},desc:'Analytics chart · appears'},
+    {fn:()=>analyticsHero(0.85),  c:[720,1280,1260,1220,20],cur:{x:980,y:1020},desc:'Tooltip · ספטמבר 4.6'},
+  ]},
+  {id:'G',label:'Report',color:'#0369a1',desc:'Chart → report → feature orbit',beats:[
+    {fn:()=>reportHero(0), c:[720,1280,1260,1400,20],cur:{x:720,y:1360},desc:'Monthly report · generate'},
+    {fn:()=>reportHero(2), c:[720,1280,1260,1400,20],cur:{x:720,y:1360},desc:'✓ Report ready'},
+    {fn:()=>productTerms(0.4),c:[720,1280,780,780,28],cur:{x:720,y:1200},desc:'Feature orbit · partial'},
+    {fn:()=>productTerms(0.9),c:[720,1280,780,780,28],cur:{x:720,y:1100},desc:'Feature orbit · full'},
+  ]},
+  {id:'H',label:'Brand Seal',color:'#f97316',desc:'SafeDoc brand → seamless loop',beats:[
+    {fn:()=>sealHero(1,0), c:[720,1280,1260,1040,24],cur:{x:720,y:1560},desc:'SafeDoc logo · title'},
+    {fn:()=>sealHero(2,0), c:[720,1280,1260,1240,24],cur:{x:720,y:1600},desc:'כל הבטיחות. במקום אחד.'},
+    {fn:()=>sealHero(3,0), c:[720,1280,1260,1460,24],cur:{x:720,y:1640},desc:'פחות ניירת. יותר שליטה.'},
+    {fn:()=>icon(),         c:[720,1280,360,360,80], cur:{x:720,y:1280},desc:'Loop — back to icon ♾'},
+  ]},
+];
+
+// ── Scene builder (1440×2560) ─────────────────────────────────────────────
+function buildScene(beat){
+  const[cx,cy,cw,ch,cr]=beat.c;
+  const content=beat.fn();
+  if(beat.fullBleed){
+    return`<div style="width:${SW}px;height:${SH}px;overflow:hidden;font-family:'Heebo',sans-serif;">${content}</div>`;
+  }
+  const l=cx-cw/2,t=cy-ch/2;
+  const cur=beat.cur;
+  return`<div style="width:${SW}px;height:${SH}px;background:#F9FAFB;position:relative;overflow:hidden;font-family:'Heebo',sans-serif;">
+    <div style="position:absolute;left:${l}px;top:${t}px;width:${cw}px;height:${ch}px;border-radius:${cr}px;background:white;border:1.5px solid #E5E7EB;box-shadow:0 20px 64px rgba(0,0,0,.12),0 4px 14px rgba(0,0,0,.06);overflow:hidden;">${content}</div>
+    <div style="position:absolute;left:${cur.x-28}px;top:${cur.y-28}px;z-index:100;">
+      <svg width="56" height="56" viewBox="0 0 20 20" fill="none">
+        <path d="M3 2l5.5 15 2.5-5.5 5.5-2.5z" fill="#1c2b3a" stroke="white" stroke-width="1.3" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </div>`;
+}
+
+// ── Thumbnail helper ───────────────────────────────────────────────────────
+function makeThumbnail(beat,scale,isKeyStill=false){
+  const tw=Math.round(SW*scale),th=Math.round(SH*scale);
+  const scene=buildScene(beat);
+  const rounding=isKeyStill?'14px':'10px';
+  return`<div style="width:${tw}px;height:${th}px;overflow:hidden;border-radius:${rounding};box-shadow:${isKeyStill?'0 8px 32px rgba(0,0,0,.5)':'0 4px 18px rgba(0,0,0,.4)'};position:relative;background:#F9FAFB;">
+    <div style="width:${SW}px;height:${SH}px;transform:scale(${scale});transform-origin:top left;position:absolute;top:0;left:0;">${scene}</div>
+  </div>`;
+}
+
+// ── Render story flow ──────────────────────────────────────────────────────
+const storyFlow=document.getElementById('story-flow');
+ACTS.forEach(act=>{
+  const d=document.createElement('div');
+  d.className='flow-act';
+  d.style.background=act.color+'33';
+  d.style.borderRight='1px solid #1f1f1f';
+  d.innerHTML=`<span style="color:${act.color};font-size:14px;font-weight:900;">${act.id}</span><br><span style="font-size:10px;color:rgba(255,255,255,.5);">${act.label}</span>`;
+  storyFlow.appendChild(d);
+});
+
+// ── Render KEY STILLS ──────────────────────────────────────────────────────
+const KEY_STILLS_IDX=[[1,0],[2,2],[5,1],[7,2]]; // [act,beat] 0-indexed
+const keyStillsGrid=document.getElementById('key-stills');
+const KS_SCALE=0.167; // 240×427px
+
+KEY_STILLS_IDX.forEach(([ai,bi])=>{
+  const act=ACTS[ai];
+  const beat=act.beats[bi];
+  const cell=document.createElement('div');
+  cell.className='key-still-cell';
+  cell.innerHTML=`${makeThumbnail(beat,KS_SCALE,true)}<div class="key-still-label">${act.id}${bi+1} · ${beat.desc}</div>`;
+  keyStillsGrid.appendChild(cell);
+});
+
+// ── Render act sections ────────────────────────────────────────────────────
+const GRID_SCALE=0.111; // 160×284px
+const container=document.getElementById('acts-container');
+
+ACTS.forEach((act,ai)=>{
+  const section=document.createElement('div');
+  section.className='act-section';
+
+  const header=document.createElement('div');
+  header.className='act-header';
+  header.style.background=act.color+'22';
+  header.style.border=`1px solid ${act.color}44`;
+  header.innerHTML=`<span class="act-id" style="color:${act.color};">ACT ${act.id}</span>
+    <span class="act-name">${act.label}</span>
+    <span class="act-desc">${act.desc}</span>`;
+  section.appendChild(header);
+
+  const grid=document.createElement('div');
+  grid.className='beat-grid';
+
+  act.beats.forEach((beat,bi)=>{
+    const globalBeat=ai*4+bi+1;
+    const cell=document.createElement('div');
+    cell.className='beat-cell';
+    cell.innerHTML=`${makeThumbnail(beat,GRID_SCALE)}
+      <div class="beat-num">B${String(globalBeat).padStart(2,'0')}</div>
+      <div class="beat-desc">${beat.desc}</div>`;
+    grid.appendChild(cell);
+  });
+
+  section.appendChild(grid);
+  container.appendChild(section);
+});
+</script>
+</body>
+</html>

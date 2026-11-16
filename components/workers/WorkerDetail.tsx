@@ -8,6 +8,7 @@ import {
   Document,
   DocumentType,
   HeightRestriction,
+  SafetyBriefing,
   Subcontractor,
   ALL_DOCUMENT_TYPES,
   DOCUMENT_TYPE_LABELS,
@@ -140,6 +141,7 @@ export default function WorkerDetail({ worker, canManage = true }: WorkerDetailP
   const [localAppointments, setLocalAppointments] = useState(worker.lifting_machine_appointments ?? []);
   const [localDocs, setLocalDocs] = useState<Document[]>(worker.documents);
   const [localHeightRestrictions, setLocalHeightRestrictions] = useState<HeightRestriction[]>(worker.height_restrictions ?? []);
+  const [localBriefings, setLocalBriefings] = useState<SafetyBriefing[]>(worker.safety_briefings ?? []);
 
   // Save full per-worker snapshot so it's available offline
   useEffect(() => {
@@ -159,6 +161,7 @@ export default function WorkerDetail({ worker, canManage = true }: WorkerDetailP
     documents: localDocs,
     lifting_machine_appointments: localAppointments,
     height_restrictions: localHeightRestrictions,
+    safety_briefings: localBriefings,
     is_crane_operator: isCraneOperator,
     is_responsible_site_manager: isResponsibleManager,
   } as WorkerWithDocuments;
@@ -346,7 +349,8 @@ export default function WorkerDetail({ worker, canManage = true }: WorkerDetailP
       >
         <SafetyBriefingCard
           worker={worker}
-          briefings={worker.safety_briefings ?? []}
+          briefings={localBriefings}
+          onBriefingsChange={setLocalBriefings}
         />
       </Section>
 

@@ -8,7 +8,7 @@ import {
   BRIEFING_LANGUAGE_LABELS,
   WorkerWithDocuments,
 } from '@/types';
-import { getBriefingStatus } from '@/lib/documents/status';
+import { getBriefingStatus, getLatestCompletedSafetyBriefing } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -16,12 +16,12 @@ import { he } from 'date-fns/locale';
 interface Props {
   worker: WorkerWithDocuments;
   briefings: SafetyBriefing[];
+  onBriefingsChange: (briefings: SafetyBriefing[]) => void;
 }
 
 type Mode = null | 'system' | 'external';
 
-export default function SafetyBriefingCard({ worker, briefings }: Props) {
-  const [localBriefings, setLocalBriefings] = useState<SafetyBriefing[]>(briefings);
+export default function SafetyBriefingCard({ worker, briefings, onBriefingsChange }: Props) {
   const [formOpen, setFormOpen] = useState(false);
   const [mode, setMode] = useState<Mode>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -29,11 +29,7 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
   const [deleteError, setDeleteError] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // מיון לפי created_at (timestamp מדויק) ולא briefed_at (רק תאריך)
-  // מבטיח שתמיד יוצג התדריך שנוצר אחרון, גם אם שניים נוצרו באותו יום
-  const latestBriefing = [...localBriefings].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )[0] ?? null;
+  const latestBriefing = getLatestCompletedSafetyBriefing(briefings);
 
   const status = getBriefingStatus(latestBriefing);
 
@@ -46,7 +42,7 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
       body: JSON.stringify({ briefing_id: id }),
     });
     if (res.ok) {
-      setLocalBriefings((prev) => prev.filter((b) => b.id !== id));
+      onBriefingsChange(briefings.filter((b) => b.id !== id));
       setConfirmDelete(false);
     } else {
       setDeleteError('שגיאה במחיקה');
@@ -125,9 +121,9 @@ export default function SafetyBriefingCard({ worker, briefings }: Props) {
           <button onClick={close} className="text-xs text-gray-400 hover:text-gray-600">ביטול</button>
         </div>
       ) : mode === 'system' ? (
-        <SystemBriefingFlow worker={worker} onClose={close} onSaved={(b) => { setLocalBriefings((prev) => [b, ...prev]); close(); }} />
+        <SystemBriefingFlow worker={worker} onClose={close} onSaved={(b) => { onBriefingsChange([b, ...briefings]); close(); }} />
       ) : (
-        <ExternalModeForm workerId={worker.id} onClose={close} onSaved={(b) => { setLocalBriefings((prev) => [b, ...prev]); close(); }} />
+        <ExternalModeForm workerId={worker.id} onClose={close} onSaved={(b) => { onBriefingsChange([b, ...briefings]); close(); }} />
       )}
     </div>
     </>
