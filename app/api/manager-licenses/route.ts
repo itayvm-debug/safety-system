@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole, getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { validateFileFields } from '@/lib/storage/file-paths';
 
 export async function GET(request: NextRequest) {
   const { context, error } = await getCurrentCompanyContext();
@@ -55,12 +56,16 @@ export async function POST(request: NextRequest) {
 
   if (!worker) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
 
+  // P1·1 — the client may only attach a file issued to / owned by this company
+  const fileCheck = await validateFileFields(supabase, companyId, { file_url });
+  if (!fileCheck.ok) return fileCheck.error;
+
   const { data, error: dbError } = await supabase
     .from('manager_licenses')
     .insert({
       worker_id,
       license_type: license_type.trim(),
-      file_url: file_url || null,
+      file_url: fileCheck.values.file_url ?? null,
       expiry_date: expiry_date || null,
       vehicle_number: vehicle_number?.trim() || null,
     })

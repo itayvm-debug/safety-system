@@ -2,6 +2,8 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { authorizeStorageObjectAccess, normalizeStoragePath } from '@/lib/storage/authorize';
+import { isUploadIssuedFor } from '@/lib/storage/file-paths';
+import { isAiIdentityExtractionEnabled } from '@/lib/ai/flags';
 
 export const runtime = 'nodejs';
 
@@ -12,6 +14,12 @@ export async function POST(request: NextRequest) {
   const { context, error: authError } = await requireCompanyAdminRole();
   if (authError) return authError;
   const { companyId, userId } = context;
+
+  // Off by default: no file is read and nothing is sent to the AI provider
+  // until the owner enables AI_IDENTITY_EXTRACTION_ENABLED. The wizard treats this as "skip AI".
+  if (!isAiIdentityExtractionEnabled()) {
+    return NextResponse.json({ success: false, error: 'ai_disabled' });
+  }
 
   let body: { path?: string; document_type?: string };
   try {
@@ -39,10 +47,14 @@ export async function POST(request: NextRequest) {
   }
 
   // Step 4: Authorize — verify the path belongs to this company before creating a signed URL.
-  // Uses the same authorization chain as /api/signed-url. The service client is passed so
-  // authorizeStorageObjectAccess can query the DB with service-role privileges.
+  // B-05: the new-worker wizard extracts from a file it has just uploaded and not yet attached
+  // to any record, so an upload receipt issued to this company is accepted as proof of ownership.
+  // Otherwise the same authorization chain as /api/signed-url applies. The service client is
+  // passed so authorizeStorageObjectAccess can query the DB with service-role privileges.
   const supabase = createServiceClient();
-  const accessResult = await authorizeStorageObjectAccess({ companyId, path, supabase });
+  const accessResult = isUploadIssuedFor(path, companyId)
+    ? ({ allowed: true, entityType: 'upload_receipt' } as const)
+    : await authorizeStorageObjectAccess({ companyId, path, supabase });
 
   if (!accessResult.allowed) {
     // Log the internal reason safely — never expose it to the client.
@@ -143,7 +155,8 @@ Rules: full_name = Hebrew (שם פרטי + שם משפחה). national_id = 9-dig
     const match = text.match(/\{[\s\S]*\}/);
     extracted = JSON.parse(match?.[0] ?? '{}');
   } catch {
-    console.error('[extract-worker-identity] JSON parse failed, raw text:', text);
+    // Raw model output may contain the person's name / ID number — never log it
+    console.error('[extract-worker-identity] JSON parse failed, response length:', text.length);
     return NextResponse.json({ success: false, error: 'parse_error' });
   }
 

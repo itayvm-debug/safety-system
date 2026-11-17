@@ -31,6 +31,7 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 import { POST } from '../extract-worker-identity/route';
+import { issueUploadPath } from '@/lib/storage/file-paths';
 
 const COMPANY_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const COMPANY_B = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
@@ -46,6 +47,8 @@ function req(body: Record<string, unknown>) {
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.ANTHROPIC_API_KEY = 'test-key';
+  process.env.AI_IDENTITY_EXTRACTION_ENABLED = 'true'; // these tests exercise the enabled path
+  process.env.SESSION_SECRET = 'test-secret-for-upload-receipts';
 });
 
 describe('F-01 — extract-worker-identity storage isolation', () => {
@@ -154,5 +157,67 @@ describe('F-01 — extract-worker-identity storage isolation', () => {
     const authorizeOrder = mocks.authorizeStorageObjectAccess.mock.invocationCallOrder[0];
     const signedUrlOrder = mocks.createSignedUrl.mock.invocationCallOrder[0];
     expect(authorizeOrder).toBeLessThan(signedUrlOrder);
+  });
+});
+
+/**
+ * B-05 — the new-worker wizard extracts from a file it has just uploaded and not yet
+ * attached to any record. Before the fix authorizeStorageObjectAccess found no record and
+ * the route answered 404, so the wizard silently skipped AI. An upload receipt issued to
+ * the active company is now accepted; a receipt of another company still is not.
+ */
+describe('B-05 — fresh (not yet attached) upload receipts', () => {
+  it('Company A’s fresh receipt is allowed for Company A (no record needed)', async () => {
+    const receiptA = issueUploadPath(COMPANY_A, 'documents', 'jpg');
+    mocks.requireCompanyAdminRole.mockResolvedValueOnce({
+      context: { companyId: COMPANY_A, userId: 'user-a' },
+      error: null,
+    });
+    mocks.normalizeStoragePath.mockReturnValueOnce(receiptA);
+    // the file is not on any record yet
+    mocks.authorizeStorageObjectAccess.mockResolvedValue({ allowed: false, reason: 'no_matching_record' });
+    // stop before any network call
+    mocks.createSignedUrl.mockResolvedValueOnce({ data: null, error: { message: 'storage error' } });
+
+    const res = await POST(req({ path: receiptA, document_type: 'id' }));
+
+    expect(res.status).not.toBe(404);
+    expect(mocks.createSignedUrl).toHaveBeenCalledOnce();
+    expect(mocks.createSignedUrl.mock.calls[0][0]).toBe(receiptA);
+  });
+
+  it('Company A’s fresh receipt is denied for Company B (generic 404, no signed URL)', async () => {
+    const receiptA = issueUploadPath(COMPANY_A, 'documents', 'jpg');
+    mocks.requireCompanyAdminRole.mockResolvedValueOnce({
+      context: { companyId: COMPANY_B, userId: 'user-b' },
+      error: null,
+    });
+    mocks.normalizeStoragePath.mockReturnValueOnce(receiptA);
+    mocks.authorizeStorageObjectAccess.mockResolvedValueOnce({ allowed: false, reason: 'no_matching_record' });
+
+    const res = await POST(req({ path: receiptA }));
+    const body = await res.json();
+
+    expect(res.status).toBe(404);
+    expect(body.error).toBe('file_not_found');
+    expect(mocks.authorizeStorageObjectAccess).toHaveBeenCalledOnce();
+    expect(mocks.authorizeStorageObjectAccess.mock.calls[0][0].companyId).toBe(COMPANY_B);
+    expect(mocks.createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it('a tampered receipt (mac changed) is not accepted', async () => {
+    const receiptA = issueUploadPath(COMPANY_A, 'documents', 'jpg');
+    const tampered = receiptA.replace(/([0-9a-f])\.jpg$/, (_m, c: string) => `${c === '0' ? '1' : '0'}.jpg`);
+    mocks.requireCompanyAdminRole.mockResolvedValueOnce({
+      context: { companyId: COMPANY_A, userId: 'user-a' },
+      error: null,
+    });
+    mocks.normalizeStoragePath.mockReturnValueOnce(tampered);
+    mocks.authorizeStorageObjectAccess.mockResolvedValueOnce({ allowed: false, reason: 'no_matching_record' });
+
+    const res = await POST(req({ path: tampered }));
+
+    expect(res.status).toBe(404);
+    expect(mocks.createSignedUrl).not.toHaveBeenCalled();
   });
 });

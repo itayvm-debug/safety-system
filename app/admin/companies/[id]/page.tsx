@@ -1,5 +1,6 @@
+import { requirePlatformAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import CompanyDetailClient from './CompanyDetailClient';
 import type { Company } from '@/types';
 
@@ -8,6 +9,10 @@ export const dynamic = 'force-dynamic';
 type Props = { params: Promise<{ id: string }> };
 
 export default async function CompanyDetailPage({ params }: Props) {
+  // Platform admin is re-checked against the DB (role + is_active), not the session cookie (P1·2)
+  const { error: adminError } = await requirePlatformAdmin();
+  if (adminError) redirect('/dashboard');
+
   const { id } = await params;
   const supabase = createServiceClient();
 

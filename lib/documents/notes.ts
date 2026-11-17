@@ -8,14 +8,20 @@ export interface EntityNameMap {
   subcontractorName?: string | null;
 }
 
+/**
+ * הערות "דורש טיפול" → פריטי Issue.
+ * entityMap נבנה מישויות פעילות ולא בארכיון בלבד (Dashboard / דורש טיפול).
+ * הערה על ישות שאינה במפה (בארכיון / לא פעילה / נמחקה) אינה מוצגת —
+ * עקבי עם הסתרת ישויות כאלה מכל מסכי הבקרה.
+ */
 export function buildNoteIssues(
   notes: EntityNote[],
   entityMap: Map<string, EntityNameMap>
 ): Issue[] {
   return notes
-    .filter((n) => n.status === 'needs_attention')
+    .filter((n) => n.status === 'needs_attention' && entityMap.has(n.entity_id))
     .map((n) => {
-      const entity = entityMap.get(n.entity_id);
+      const entity = entityMap.get(n.entity_id)!;
       const shortContent = n.content.length > 60
         ? n.content.slice(0, 60) + '...'
         : n.content;
@@ -23,15 +29,15 @@ export function buildNoteIssues(
         id: `note-${n.id}`,
         entityType: n.entity_type as Issue['entityType'],
         entityId: n.entity_id,
-        entityName: entity?.name ?? 'ישות לא ידועה',
-        isManager: entity?.isManager ?? false,
+        entityName: entity.name,
+        isManager: entity.isManager ?? false,
         status: 'missing' as IssueStatus,
         problem: `הערה: ${shortContent}`,
         subcontractorId: null,
-        subcontractorName: entity?.subcontractorName ?? null,
+        subcontractorName: entity.subcontractorName ?? null,
         managerId: null,
         managerName: null,
-        href: entity?.href ?? '/',
+        href: entity.href,
       };
     });
 }

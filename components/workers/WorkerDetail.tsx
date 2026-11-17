@@ -9,6 +9,9 @@ import {
   DocumentType,
   HeightRestriction,
   SafetyBriefing,
+  ProfessionalLicense,
+  ManagerLicense,
+  Vehicle,
   Subcontractor,
   ALL_DOCUMENT_TYPES,
   DOCUMENT_TYPE_LABELS,
@@ -142,6 +145,10 @@ export default function WorkerDetail({ worker, canManage = true }: WorkerDetailP
   const [localDocs, setLocalDocs] = useState<Document[]>(worker.documents);
   const [localHeightRestrictions, setLocalHeightRestrictions] = useState<HeightRestriction[]>(worker.height_restrictions ?? []);
   const [localBriefings, setLocalBriefings] = useState<SafetyBriefing[]>(worker.safety_briefings ?? []);
+  // רישיונות מקצועיים / רישיונות מנהל / רכב מנהל — מוחזקים כאן (ולא בכרטיסים) כדי שסטטוס הכותרת יחושב מהנתונים העדכניים
+  const [localProfessionalLicenses, setLocalProfessionalLicenses] = useState<ProfessionalLicense[]>(worker.professional_licenses ?? []);
+  const [localManagerLicenses, setLocalManagerLicenses] = useState<ManagerLicense[]>(worker.manager_licenses ?? []);
+  const [localVehicles, setLocalVehicles] = useState<Vehicle[]>(worker.vehicles ?? []);
 
   // Save full per-worker snapshot so it's available offline
   useEffect(() => {
@@ -162,6 +169,9 @@ export default function WorkerDetail({ worker, canManage = true }: WorkerDetailP
     lifting_machine_appointments: localAppointments,
     height_restrictions: localHeightRestrictions,
     safety_briefings: localBriefings,
+    professional_licenses: localProfessionalLicenses,
+    manager_licenses: localManagerLicenses,
+    vehicles: localVehicles,
     is_crane_operator: isCraneOperator,
     is_responsible_site_manager: isResponsibleManager,
   } as WorkerWithDocuments;
@@ -393,7 +403,8 @@ export default function WorkerDetail({ worker, canManage = true }: WorkerDetailP
       >
         <ProfessionalLicensesCard
           workerId={worker.id}
-          licenses={worker.professional_licenses ?? []}
+          licenses={localProfessionalLicenses}
+          onLicensesChange={setLocalProfessionalLicenses}
         />
       </Section>
 
@@ -449,7 +460,8 @@ export default function WorkerDetail({ worker, canManage = true }: WorkerDetailP
           <div className="space-y-4">
             <ManagerDocumentsCard
               workerId={worker.id}
-              licenses={worker.manager_licenses ?? []}
+              licenses={localManagerLicenses}
+              onLicensesChange={setLocalManagerLicenses}
             />
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -458,7 +470,8 @@ export default function WorkerDetail({ worker, canManage = true }: WorkerDetailP
               </div>
               <WorkerVehicleCard
                 workerId={worker.id}
-                initialVehicles={worker.vehicles ?? []}
+                vehicles={localVehicles}
+                onVehiclesChange={setLocalVehicles}
               />
             </div>
           </div>

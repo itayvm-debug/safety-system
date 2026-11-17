@@ -10,6 +10,7 @@ import {
 } from '@/types';
 import {
   getDocumentStatus,
+  getWorkerRequiredDocStatus,
   getBriefingStatus,
   getLatestCompletedSafetyBriefing,
   getHeightCombinedStatus,
@@ -70,11 +71,8 @@ export function buildWorkerIssues(worker: WorkerWithDocuments): Issue[] {
 
   for (const docType of requiredTypes) {
     if (docType === 'height_permit') continue;
-    const doc = docMap.get(docType);
-    const requiresExpiry = docType !== 'id_document';
-    // Respect is_required=false so non-required docs without files don't show as missing
-    const isRequired = docType === 'id_document' ? true : (doc ? doc.is_required !== false : true);
-    const s = toIssue(getDocumentStatus(doc?.file_url ?? null, doc?.expiry_date ?? null, isRequired, requiresExpiry));
+    // אותה פונקציה בדיוק כמו getWorkerStatus — כולל נעילת אשרה לעובד זר
+    const s = toIssue(getWorkerRequiredDocStatus(worker.is_foreign_worker, docType, docMap.get(docType)));
     if (s) issues.push({ ...base, id: `worker-${worker.id}-${docType}`, status: s, problem: DOC_LABELS[docType] ?? docType });
   }
 

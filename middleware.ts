@@ -24,8 +24,9 @@ const PUBLIC = [
   '/api/auth/logout',
   '/api/reports/weekly-status',
   '/api/health',
-  // Cron endpoints — secured by their own CRON_SECRET bearer token
+  // Cron endpoints — secured by their own CRON_SECRET bearer token (lib/auth/cron.ts)
   '/api/reviews/reminder-cron',
+  '/api/reviews/weekly-snapshot-cron',
   // דפים ציבוריים
   '/terms',
   '/privacy',
@@ -105,6 +106,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|logo\\.png|.*\\.pdf|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg|.*\\.ico).*)',
+    // Static extensions are anchored to the end of the path, so a path that merely
+    // contains ".png" or ".pdf" in the middle still goes through the checks.
+    '/((?!_next/static|_next/image|favicon\\.ico$|logo\\.png$|.*\\.pdf$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.ico$).*)',
   ],
 };

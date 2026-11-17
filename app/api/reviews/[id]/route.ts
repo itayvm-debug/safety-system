@@ -40,13 +40,13 @@ export async function GET(_request: NextRequest, { params }: Params) {
 export async function PATCH(request: NextRequest, { params }: Params) {
   const { context, error } = await requireReviewAuthor();
   if (error) return error;
-  const { companyId, companyRole, managerWorkerId } = context;
+  const { companyId, managerWorkerId } = context;
   const { id } = await params;
 
   const supabase = createServiceClient();
   const { data: existing } = await supabase
     .from('worker_weekly_reviews')
-    .select('id, submitted_at, evaluator_manager_id')
+    .select('id, submitted_at, evaluator_manager_id, is_not_evaluable, productivity_rating, quality_rating, reliability_rating, discipline_rating, teamwork_rating, safety_rating')
     .eq('id', id)
     .eq('company_id', companyId)
     .maybeSingle();
@@ -54,7 +54,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!existing) return NextResponse.json({ error: 'ביצועים לא נמצאו' }, { status: 404 });
   if (existing.submitted_at) return NextResponse.json({ error: 'לא ניתן לערוך ביצועים שהוגשו' }, { status: 422 });
 
-  if (companyRole === 'member' && managerWorkerId && existing.evaluator_manager_id !== managerWorkerId) {
+  // Same rule as POST /api/reviews: only the recorded evaluator edits, for every role (A-07)
+  if (!managerWorkerId || existing.evaluator_manager_id !== managerWorkerId) {
     return NextResponse.json({ error: 'אין הרשאה לערוך ביצועים אלו' }, { status: 403 });
   }
 
@@ -67,11 +68,29 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (body.manager_comment !== undefined)      updates.manager_comment      = body.manager_comment;
 
   for (const field of RATING_FIELDS) {
-    if (body[field] !== undefined) updates[field] = body[field];
+    if (body[field] === undefined) continue;
+    const val = body[field];
+    if (val !== null && !(typeof val === 'number' && Number.isInteger(val) && val >= 1 && val <= 5)) {
+      return NextResponse.json({ error: `שדה ${field} לא תקין (1-5 נדרש)` }, { status: 422 });
+    }
+    updates[field] = val;
   }
 
   const shouldSubmit = body.submit === true;
-  if (shouldSubmit) updates.submitted_at = new Date().toISOString();
+  if (shouldSubmit) {
+    // Same completeness rule as POST: a submitted, evaluable review has all six ratings
+    const notEvaluable = (updates.is_not_evaluable ?? existing.is_not_evaluable) === true;
+    if (!notEvaluable) {
+      const current = existing as unknown as Record<string, unknown>;
+      for (const field of RATING_FIELDS) {
+        const val = field in updates ? updates[field] : current[field];
+        if (typeof val !== 'number' || val < 1 || val > 5) {
+          return NextResponse.json({ error: `שדה ${field} חסר או לא תקין (1-5 נדרש)` }, { status: 422 });
+        }
+      }
+    }
+    updates.submitted_at = new Date().toISOString();
+  }
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'אין שדות לעדכון' }, { status: 400 });
@@ -92,7 +111,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const { context, error } = await requireReviewAuthor();
   if (error) return error;
-  const { companyId, companyRole, managerWorkerId } = context;
+  const { companyId, managerWorkerId } = context;
   const { id } = await params;
 
   const supabase = createServiceClient();
@@ -106,7 +125,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   if (!existing) return NextResponse.json({ error: 'ביצועים לא נמצאו' }, { status: 404 });
   if (existing.submitted_at) return NextResponse.json({ error: 'לא ניתן למחוק ביצועים שהוגשו' }, { status: 422 });
 
-  if (companyRole === 'member' && managerWorkerId && existing.evaluator_manager_id !== managerWorkerId) {
+  if (!managerWorkerId || existing.evaluator_manager_id !== managerWorkerId) {
     return NextResponse.json({ error: 'אין הרשאה למחוק ביצועים אלו' }, { status: 403 });
   }
 

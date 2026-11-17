@@ -1,5 +1,6 @@
+import { requirePlatformAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import MembersClient from './MembersClient';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,10 @@ interface MemberWithProfile {
 }
 
 export default async function CompanyMembersPage({ params }: Props) {
+  // Platform admin is re-checked against the DB (role + is_active), not the session cookie (P1·2)
+  const { error: adminError } = await requirePlatformAdmin();
+  if (adminError) redirect('/dashboard');
+
   const { id: companyId } = await params;
   const supabase = createServiceClient();
 

@@ -96,6 +96,7 @@ vi.mock('@/lib/supabase/server', () => ({
       });
       chain.eq    = vi.fn(() => chain);
       chain.order = vi.fn(() => chain);
+      chain.limit = vi.fn(() => chain); // reference lookups before storage cleanup (P1·6)
       chain.single = vi.fn(() => {
         if (table === 'workers' && op === 'select') {
           return Promise.resolve({ data: state.workerRow, error: state.workerFetchError });

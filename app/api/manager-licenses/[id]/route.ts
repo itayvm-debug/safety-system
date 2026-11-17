@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole, getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { validateFileFields, cleanupAfterChange, replacedPaths } from '@/lib/storage/file-paths';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -49,7 +50,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const { data: license } = await supabase
     .from('manager_licenses')
-    .select('worker_id')
+    .select('worker_id, file_url')
     .eq('id', id)
     .maybeSingle();
 
@@ -64,9 +65,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   if (!worker) return NextResponse.json({ error: 'רישיון לא נמצא' }, { status: 404 });
 
+  // P1·1 — the client may only attach a file issued to / owned by this company
+  const before = { file_url: (license.file_url ?? null) as string | null };
+  const fileCheck = await validateFileFields(supabase, companyId, { file_url }, before);
+  if (!fileCheck.ok) return fileCheck.error;
+
   const updates: Record<string, unknown> = {};
   if (license_type !== undefined) updates.license_type = license_type;
-  if (file_url !== undefined) updates.file_url = file_url;
+  if (file_url !== undefined) updates.file_url = fileCheck.values.file_url;
   if (expiry_date !== undefined) updates.expiry_date = expiry_date;
   if (vehicle_number !== undefined) updates.vehicle_number = vehicle_number;
 
@@ -79,6 +85,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     .single();
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+
+  // P1·6 — retention gate: the file is kept until a retention policy is decided (AUTO_REMOVE_ON)
+  await cleanupAfterChange('file_replaced', supabase, replacedPaths(before, updates));
   return NextResponse.json(data);
 }
 
@@ -92,7 +101,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
 
   const { data: license } = await supabase
     .from('manager_licenses')
-    .select('worker_id')
+    .select('worker_id, file_url')
     .eq('id', id)
     .maybeSingle();
 
@@ -114,5 +123,8 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     .eq('worker_id', license.worker_id);
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+
+  // P1·6 — retention gate: the file is kept until a retention policy is decided (AUTO_REMOVE_ON)
+  await cleanupAfterChange('record_deleted', supabase, [license.file_url]);
   return NextResponse.json({ success: true });
 }

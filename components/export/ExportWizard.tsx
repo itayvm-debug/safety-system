@@ -5,6 +5,7 @@ import type { WorkerWithDocuments, Vehicle, HeavyEquipment, LiftingEquipment } f
 import { getWorkerStatus, getVehicleStatus, getHeavyEquipmentStatus } from '@/lib/documents/status';
 import { getEffectiveSubcontractor } from '@/lib/workers/subcontractor';
 import { buildAllIssues, type Issue } from '@/lib/documents/issues';
+import { filterActiveForIssues } from '@/lib/export/activeEntities';
 import {
   generateWorkersExcel,
   generateVehiclesExcel,
@@ -225,11 +226,16 @@ export default function ExportWizard({ onClose }: Props) {
       throw new Error('שגיאה בטעינת נתונים');
     }
 
-    const [workersAll, vehicles, heavy, lifting]: [WorkerWithDocuments[], Vehicle[], HeavyEquipment[], LiftingEquipment[]] =
+    const [workersAll, vehiclesAll, heavyAll, liftingAll]: [WorkerWithDocuments[], Vehicle[], HeavyEquipment[], LiftingEquipment[]] =
       await Promise.all([workersRes.json(), vehiclesRes.json(), heavyRes.json(), liftingRes.json()]);
 
-    // עובדים לא פעילים אינם חלק מבקרת התקינות השוטפת
-    const workers = workersAll.filter((w) => w.is_active);
+    // ישויות לא פעילות / בארכיון אינן חלק מבקרת התקינות השוטפת — אותו כלל כמו Dashboard ו-/issues
+    const { workers, vehicles, heavy, lifting } = filterActiveForIssues({
+      workers: workersAll,
+      vehicles: vehiclesAll,
+      heavy: heavyAll,
+      lifting: liftingAll,
+    });
     let issues: Issue[] = buildAllIssues(workers, vehicles, heavy, lifting);
 
     // פילטור
@@ -429,15 +435,18 @@ export default function ExportWizard({ onClose }: Props) {
                     </div>
                   )}
 
-                  <label className="flex items-center gap-2 cursor-pointer pt-1">
-                    <input
-                      type="checkbox"
-                      checked={filters.show_inactive}
-                      onChange={(e) => setFilters((f) => ({ ...f, show_inactive: e.target.checked }))}
-                      className="accent-orange-500"
-                    />
-                    <span className="text-sm text-gray-700">כלול רשומות לא פעילות</span>
-                  </label>
+                  {/* "דורש טיפול" כולל תמיד ישויות פעילות בלבד (כמו Dashboard) — אין אפשרות לכלול לא פעילות */}
+                  {reportType !== 'issues' && (
+                    <label className="flex items-center gap-2 cursor-pointer pt-1">
+                      <input
+                        type="checkbox"
+                        checked={filters.show_inactive}
+                        onChange={(e) => setFilters((f) => ({ ...f, show_inactive: e.target.checked }))}
+                        className="accent-orange-500"
+                      />
+                      <span className="text-sm text-gray-700">כלול רשומות לא פעילות</span>
+                    </label>
+                  )}
                 </div>
               )}
 
@@ -457,7 +466,7 @@ export default function ExportWizard({ onClose }: Props) {
                     {filters.manager_id && (
                       <SummaryRow label="מנהל עבודה" value={managers.find(m => m.id === filters.manager_id)?.full_name ?? ''} />
                     )}
-                    {!filters.show_inactive && (
+                    {(!filters.show_inactive || reportType === 'issues') && (
                       <SummaryRow label="רשומות לא פעילות" value="לא כלולות" />
                     )}
                   </div>

@@ -2,6 +2,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { isWorkVisaLocked } from '@/lib/documents/status';
+import { validateFileFields, cleanupAfterChange, replacedPaths } from '@/lib/storage/file-paths';
 
 export async function POST(request: NextRequest) {
   const { context, error } = await requireCompanyAdminRole();
@@ -32,6 +33,26 @@ export async function POST(request: NextRequest) {
 
   if (!worker) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
 
+  // The upsert below replaces the current (worker, doc_type) row — its file counts as "unchanged"
+  let existingDoc: { file_url: string | null } | null = null;
+  if (doc_type !== 'optional_license') {
+    const { data: current } = await supabase
+      .from('documents')
+      .select('file_url')
+      .eq('worker_id', worker_id)
+      .eq('doc_type', doc_type)
+      .eq('company_id', companyId)
+      .maybeSingle();
+    existingDoc = current ?? null;
+  }
+
+  // P1·1 — the client may only attach a file issued to / owned by this company
+  const fileCheck = await validateFileFields(
+    supabase, companyId, { file_url }, { file_url: existingDoc?.file_url },
+  );
+  if (!fileCheck.ok) return fileCheck.error;
+  const fileValues = fileCheck.values; // contains file_url only when the client sent it
+
   let effectiveIsRequired = is_required !== undefined ? is_required : true;
   if (doc_type === 'work_visa') {
     if (isWorkVisaLocked('work_visa', !!worker.is_foreign_worker)) {
@@ -47,7 +68,7 @@ export async function POST(request: NextRequest) {
         worker_id,
         doc_type,
         license_name: license_name.trim(),
-        file_url: file_url || null,
+        file_url: fileValues.file_url ?? null,
         expiry_date: expiry_date || null,
       })
       .select()
@@ -64,7 +85,7 @@ export async function POST(request: NextRequest) {
         company_id: companyId,
         worker_id,
         doc_type,
-        file_url: file_url !== undefined ? (file_url || null) : undefined,
+        file_url: 'file_url' in fileValues ? fileValues.file_url : undefined,
         expiry_date: expiry_date !== undefined ? (expiry_date || null) : undefined,
         is_required: effectiveIsRequired,
         updated_at: new Date().toISOString(),
@@ -79,6 +100,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
   console.log('[documents] upsert ok, id:', data?.id, 'doc_type:', data?.doc_type, 'file_url:', data?.file_url);
+
+  // P1·6 — retention gate: the file is kept until a retention policy is decided (AUTO_REMOVE_ON)
+  await cleanupAfterChange('file_replaced', supabase, replacedPaths(existingDoc, fileValues));
   return NextResponse.json(data);
 }
 
@@ -111,10 +135,8 @@ export async function DELETE(request: NextRequest) {
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
 
-  // Storage cleanup is non-fatal; record is already deleted
-  if (doc.file_url) {
-    await supabase.storage.from('worker-files').remove([doc.file_url]).catch(() => undefined);
-  }
+  // Storage cleanup is non-fatal; record is already deleted. Shared objects are kept.
+  await cleanupAfterChange('document_deleted', supabase, [doc.file_url]);
 
   return NextResponse.json({ success: true });
 }

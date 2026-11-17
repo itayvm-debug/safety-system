@@ -8,11 +8,12 @@ import StatusBadge from '@/components/StatusBadge';
 
 interface Props {
   workerId: string;
-  initialVehicles: Vehicle[];
+  /** רכבים מקושרים — state מוחזק ב-WorkerDetail כדי שסטטוס העובד בכותרת יתעדכן */
+  vehicles: Vehicle[];
+  onVehiclesChange: (update: (prev: Vehicle[]) => Vehicle[]) => void;
 }
 
-export default function WorkerVehicleCard({ workerId, initialVehicles }: Props) {
-  const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles);
+export default function WorkerVehicleCard({ workerId, vehicles, onVehiclesChange: setVehicles }: Props) {
   const [showModal, setShowModal] = useState(false);
   const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
 

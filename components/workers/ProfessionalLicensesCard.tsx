@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ProfessionalLicense } from '@/types';
-import { getDocumentStatus } from '@/lib/documents/status';
+import { getProfessionalLicenseStatus } from '@/lib/documents/status';
 import StatusBadge from '@/components/StatusBadge';
 import FileUploadZone from '@/components/FileUploadZone';
 import { formatDateSafe } from '@/lib/utils/date';
@@ -22,11 +22,12 @@ const PROFESSIONAL_LICENSES = [
 
 interface Props {
   workerId: string;
+  /** רשימת הרישיונות — state מוחזק ב-WorkerDetail כדי שסטטוס העובד בכותרת יתעדכן */
   licenses: ProfessionalLicense[];
+  onLicensesChange: (update: (prev: ProfessionalLicense[]) => ProfessionalLicense[]) => void;
 }
 
-export default function ProfessionalLicensesCard({ workerId, licenses: initial }: Props) {
-  const [licenses, setLicenses] = useState<ProfessionalLicense[]>(initial);
+export default function ProfessionalLicensesCard({ workerId, licenses, onLicensesChange: setLicenses }: Props) {
   const [adding, setAdding] = useState(false);
 
   return (
@@ -72,7 +73,8 @@ function LicenseRow({
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const status = getDocumentStatus(license.file_url, license.expiry_date, true, true);
+  // אותו כלל כמו המנוע: קובץ חובה; תאריך תוקף חובה רק אם הוזן
+  const status = getProfessionalLicenseStatus(license);
 
   async function handleView() {
     if (!license.file_url) return;

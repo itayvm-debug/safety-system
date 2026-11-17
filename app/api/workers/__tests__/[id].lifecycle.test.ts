@@ -78,6 +78,7 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 import { GET, PATCH } from '../[id]/route';
+import { issueUploadPath } from '@/lib/storage/file-paths';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -191,9 +192,12 @@ describe('WL8: PATCH responsible_manager_id — field allowed', () => {
 // WL9: update photo_url
 describe('WL9: PATCH photo_url — field allowed', () => {
   it('returns 200 and passes photo_url to update', async () => {
-    const res = await PATCH(patchReq({ photo_url: 'photos/abc.jpg' }), mockParams);
+    // P1·1: the photo must be an upload receipt issued to the active company
+    process.env.SESSION_SECRET = 'test-secret-for-upload-receipts';
+    const photo = issueUploadPath(TEST_COMPANY_B, 'photos', 'jpg');
+    const res = await PATCH(patchReq({ photo_url: photo }), mockParams);
     expect(res.status).toBe(200);
-    expect(dbTracker.updatedPatch).toMatchObject({ photo_url: 'photos/abc.jpg' });
+    expect(dbTracker.updatedPatch).toMatchObject({ photo_url: photo });
   });
 });
 

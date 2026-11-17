@@ -18,7 +18,12 @@ export default async function EditHeavyEquipmentPage({ params }: { params: Promi
   if (ctxResult.context.companyRole === 'member') redirect(`/heavy-equipment/${id}`);
 
   const supabase = createServiceClient();
-  const { data, error } = await supabase.from('heavy_equipment').select('*').eq('id', id).single();
+  const { data, error } = await supabase
+    .from('heavy_equipment')
+    .select('*')
+    .eq('id', id)
+    .eq('company_id', ctxResult.context.companyId)
+    .single();
   if (error || !data) notFound();
 
   return (

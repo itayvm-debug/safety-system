@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
+import { isAuthorizedCronRequest } from '@/lib/auth/cron';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { buildAllIssues } from '@/lib/documents/issues';
 import { buildWeeklyReportHtml, buildWeeklyReportSubject } from '@/lib/email/weekly-report';
@@ -106,7 +107,8 @@ async function runReportForCompany(
     ? [testRecipient]
     : (await fetchCompanyAdminRecipients(companyId)).map(r => r.report_email);
 
-  console.log('[weekly-report] companyId:', companyId, 'companyName:', companyName, 'recipients:', recipients, 'issues:', issues.length);
+  // No e-mail addresses in logs — counts only
+  console.log('[weekly-report] companyId:', companyId, 'recipients:', recipients.length, 'issues:', issues.length);
 
   if (recipients.length === 0) {
     return { sent_count: 0, failed_count: 0, recipients: [], issues_count: issues.length, resend_id: null, errors: [] };
@@ -141,10 +143,7 @@ async function runReportForCompany(
 
 // ─── GET — Vercel Cron (protected by CRON_SECRET) ─────────────────
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!isAuthorizedCronRequest(request.headers.get('authorization'))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

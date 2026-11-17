@@ -1,9 +1,9 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { randomBytes } from 'crypto';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { rateLimitUploadDb } from '@/lib/rate-limit/db';
-import { authorizeStorageObjectAccess } from '@/lib/storage/authorize';
+import { authorizeStorageObjectAccess, normalizeStoragePath } from '@/lib/storage/authorize';
+import { issueUploadPath, isUploadIssuedFor, isStoragePathReferenced } from '@/lib/storage/file-paths';
 
 export const runtime = 'nodejs';
 
@@ -82,7 +82,8 @@ export async function POST(request: NextRequest) {
   }
 
   const ext = rawExt;
-  const fileName = `${folder}/${Date.now()}-${randomBytes(8).toString('hex')}.${ext}`;
+  // The name embeds a company-bound receipt, verified when the path is attached to a record (P1·1)
+  const fileName = issueUploadPath(context.companyId, folder, ext);
   console.log('[upload] uploading to storage path:', fileName);
 
   const supabase = createServiceClient();
@@ -104,22 +105,30 @@ export async function DELETE(request: NextRequest) {
   const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
 
-  const path = request.nextUrl.searchParams.get('path');
-  if (!path) return NextResponse.json({ error: 'path נדרש' }, { status: 400 });
+  const rawPath = request.nextUrl.searchParams.get('path');
+  if (!rawPath) return NextResponse.json({ error: 'path נדרש' }, { status: 400 });
+
+  const path = normalizeStoragePath(rawPath);
+  if (!path) return NextResponse.json({ error: 'אין גישה לקובץ זה' }, { status: 403 });
 
   const supabase = createServiceClient();
 
-  // Verify the file belongs to this company before deleting.
-  // Exception: orphaned files (path no longer in any DB table) may be cleaned
-  // up by an admin — they are unguessable by construction (timestamp + random hex).
-  const authResult = await authorizeStorageObjectAccess({
-    companyId: context.companyId,
-    path,
-    supabase,
-  });
+  // B-04 — this endpoint only discards a just-uploaded file that was never attached:
+  // it must be an upload receipt issued to the active company AND referenced by no row.
+  // A file referenced by a record must be removed through that record (which also
+  // cleans storage). Fails safe: a lookup error counts as "referenced".
+  const referencedMsg = 'הקובץ משויך לרשומה ולכן לא ניתן למחוק אותו כאן. יש למחוק אותו דרך הרשומה.';
 
-  if (!authResult.allowed && authResult.reason !== 'no_matching_record') {
+  if (!isUploadIssuedFor(path, context.companyId)) {
+    // Not provably ours. Say "attached" only for a file of this company's own records,
+    // so another company's paths stay indistinguishable (no existence oracle).
+    const owned = await authorizeStorageObjectAccess({ companyId: context.companyId, path, supabase });
+    if (owned.allowed) return NextResponse.json({ error: referencedMsg }, { status: 409 });
     return NextResponse.json({ error: 'אין גישה לקובץ זה' }, { status: 403 });
+  }
+
+  if (await isStoragePathReferenced(supabase, path)) {
+    return NextResponse.json({ error: referencedMsg }, { status: 409 });
   }
 
   const { error: storageError } = await supabase.storage.from('worker-files').remove([path]);

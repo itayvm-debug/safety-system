@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { clearAllSnapshots } from '@/lib/offline/cache';
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState('');
@@ -21,6 +22,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'שגיאה בהתחברות'); return; }
+      clearAllSnapshots(); // never show a previous user's cached lists
       window.location.href = '/dashboard';
     } catch {
       setError('שגיאת תקשורת — נסה שנית');

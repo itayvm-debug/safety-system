@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { validateSubcontractorOwnership } from '@/lib/subcontractors/ownership';
+import { validateFileFields, cleanupAfterChange, replacedPaths } from '@/lib/storage/file-paths';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -61,6 +62,25 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (!subOwnership.valid) return subOwnership.error;
   }
 
+  // P1·1 — a client-supplied photo must be issued to / owned by this company
+  let before: { photo_url: string | null } | null = null;
+  if ('photo_url' in patch) {
+    const { data: current } = await supabase
+      .from('workers')
+      .select('photo_url')
+      .eq('id', workerId)
+      .eq('company_id', companyId)
+      .maybeSingle();
+    if (!current) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
+    before = current as { photo_url: string | null };
+
+    const fileCheck = await validateFileFields(
+      supabase, companyId, { photo_url: patch.photo_url }, { photo_url: before.photo_url },
+    );
+    if (!fileCheck.ok) return fileCheck.error;
+    patch.photo_url = fileCheck.values.photo_url;
+  }
+
   const { data, error: dbError } = await supabase
     .from('workers')
     .update(patch)
@@ -71,6 +91,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
+
+  // P1·6 — retention gate: the file is kept until a retention policy is decided (AUTO_REMOVE_ON)
+  if (before) await cleanupAfterChange('file_replaced', supabase, replacedPaths(before, patch));
   return NextResponse.json(data);
 }
 
@@ -142,6 +165,22 @@ export async function PUT(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
   if (!data) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 });
+
+  // P0·4 — a foreign worker's work visa is always required (same rule as POST /api/documents).
+  // Only the flag changes; files and expiry dates are left untouched. Idempotent, so a retry repairs it.
+  if (isForeign) {
+    const { error: visaError } = await supabase
+      .from('documents')
+      .update({ is_required: true })
+      .eq('worker_id', workerId)
+      .eq('company_id', companyId)
+      .eq('doc_type', 'work_visa');
+    if (visaError) {
+      console.error('[workers] work_visa is_required sync failed:', visaError.message);
+      return NextResponse.json({ error: 'פרטי העובד נשמרו, אך עדכון אשרת העבודה נכשל. נסה לשמור שוב.' }, { status: 500 });
+    }
+  }
+
   return NextResponse.json(data);
 }
 
@@ -234,10 +273,9 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
 
   if (deleteErr) return NextResponse.json({ error: deleteErr.message }, { status: 500 });
 
-  // 8. Clean up storage — non-fatal; DB deletion already committed
-  if (storagePaths.length > 0) {
-    await supabase.storage.from('worker-files').remove(storagePaths).catch(() => undefined);
-  }
+  // 8. Clean up storage — non-fatal; DB deletion already committed.
+  //    Objects still referenced by another row are kept.
+  await cleanupAfterChange('worker_permanently_deleted', supabase, storagePaths);
 
   return NextResponse.json({ ok: true });
 }

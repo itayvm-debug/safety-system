@@ -3,9 +3,9 @@ import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext } from '@/lib/auth/company-context';
 import Link from 'next/link';
-import { WorkerWithDocuments, Vehicle, HeavyEquipment, LiftingEquipment } from '@/types';
 import { buildAllIssues, countByEntity, EntityCounts } from '@/lib/documents/issues';
 import { buildNoteIssues, buildEntityMap } from '@/lib/documents/notes';
+import { loadIssueData } from '@/lib/documents/issue-data';
 import { DashboardOfflineCapture } from '@/components/pwa/DashboardOfflineCapture';
 
 export const dynamic = 'force-dynamic';
@@ -171,49 +171,10 @@ export default async function DashboardPage() {
 
   const supabase = createServiceClient();
 
-  const [
-    { data: workersRaw },
-    { data: vehiclesRaw },
-    { data: heavyRaw },
-    { data: liftingRaw },
-    { data: notesRaw },
-    { data: subcontractorsRaw },
-  ] = await Promise.all([
-    supabase
-      .from('workers')
-      .select(`*, documents(id,doc_type,file_url,expiry_date,is_required), safety_briefings(id,briefed_at,expires_at,created_at), height_restrictions(id,expires_at,created_at), lifting_machine_appointments(id), professional_licenses(id,file_url,expiry_date,license_type), manager_licenses(id,file_url,expiry_date,license_type), vehicles(id,vehicle_number,vehicle_licenses(id,file_url,expiry_date),vehicle_insurances(id,insurance_type,file_url,expiry_date)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id,name)`)
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .eq('is_archived', false),
-    supabase
-      .from('vehicles')
-      .select(`*, vehicle_licenses(id,file_url,expiry_date), vehicle_insurances(id,insurance_type,file_url,expiry_date), assigned_manager:workers!vehicles_assigned_manager_id_fkey(id,full_name)`)
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .eq('is_archived', false),
-    supabase
-      .from('heavy_equipment')
-      .select('*, subcontractor:subcontractors(id,name)')
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .eq('is_archived', false),
-    supabase
-      .from('lifting_equipment')
-      .select('*, subcontractor:subcontractors(id,name)')
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .eq('is_archived', false),
-    supabase
-      .from('entity_notes')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('status', 'needs_attention'),
-    supabase
-      .from('subcontractors')
-      .select('id, name')
-      .eq('company_id', companyId)
-      .eq('is_archived', false),
-  ]);
+  // One loader for Dashboard and /issues — includes heavy_equipment_insurances (P0·5)
+  // and reports query failures instead of rendering them as "הכל תקין" (P1·7)
+  const issueData = await loadIssueData(supabase, companyId);
+  const dataIncomplete = issueData.failed || issueData.truncated;
 
   // site_feedback is a platform-level table (no company_id). Only platform admins see the count.
   let feedbackCount = 0;
@@ -225,14 +186,11 @@ export default async function DashboardPage() {
     feedbackCount = count ?? 0;
   }
 
-  const workers = (workersRaw ?? []) as WorkerWithDocuments[];
-  const vehicles = (vehiclesRaw ?? []) as Vehicle[];
-  const heavy = (heavyRaw ?? []) as HeavyEquipment[];
-  const lifting = (liftingRaw ?? []) as LiftingEquipment[];
+  const { workers, vehicles, heavy, lifting } = issueData;
 
   const docIssues = buildAllIssues(workers, vehicles, heavy, lifting);
-  const entityMap = buildEntityMap(workers, vehicles, heavy, lifting, subcontractorsRaw ?? []);
-  const noteIssues = buildNoteIssues(notesRaw ?? [], entityMap);
+  const entityMap = buildEntityMap(workers, vehicles, heavy, lifting, issueData.subcontractors);
+  const noteIssues = buildNoteIssues(issueData.notes, entityMap);
   const allIssues = [...docIssues, ...noteIssues];
 
   const urgentTotal = allIssues.filter((i) => i.status === 'expired' || i.status === 'missing').length;
@@ -249,14 +207,15 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10" dir="rtl">
-      <DashboardOfflineCapture data={{
+      {/* Never cache an incomplete picture for offline viewing */}
+      {!dataIncomplete && <DashboardOfflineCapture data={{
         urgentTotal,
         expiringTotal,
         workersCount: workers.length,
         vehiclesCount: vehicles.length,
         heavyCount: heavy.length,
         liftingCount: lifting.length,
-      }} />
+      }} />}
 
       {/* Header */}
       <div className="mb-8">
@@ -266,6 +225,20 @@ export default async function DashboardPage() {
         <h1 className="text-3xl font-bold text-gray-900 mt-4 mb-1">SafeDoc</h1>
         <p className="text-sm text-gray-500">מערכת ניהול מסמכי בטיחות לעובדים וכלים</p>
       </div>
+
+      {dataIncomplete && (
+        <div role="alert" className="flex items-center gap-3 bg-red-50 border border-red-300 rounded-2xl px-5 py-4 mb-6">
+          <span className="text-red-500 shrink-0"><IconAlert /></span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-red-800">
+              {issueData.failed ? 'לא ניתן לטעון את כל נתוני הסטטוס' : 'הוצגו רק חלק מהרשומות'}
+            </p>
+            <p className="text-xs text-red-600 mt-0.5">
+              המספרים בעמוד זה אינם מלאים ואין להסתמך עליהם. רענן את העמוד, ואם הבעיה חוזרת פנה למנהל המערכת.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Alert — red for expired/missing, yellow for expiring-only */}
       {hasUrgent ? (
@@ -303,7 +276,7 @@ export default async function DashboardPage() {
         <StatBox
           count={workers.length}
           label="עובדים פעילים"
-          sublabel={workerCounts.urgent > 0 ? `${workerCounts.urgent} לא תקינים` : 'הכל תקין'}
+          sublabel={workerCounts.urgent > 0 ? `${workerCounts.urgent} לא תקינים` : dataIncomplete ? 'נתונים חלקיים' : 'הכל תקין'}
           href="/workers"
           color="blue"
         />

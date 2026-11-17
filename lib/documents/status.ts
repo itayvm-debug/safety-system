@@ -41,10 +41,19 @@ export function getDocumentStatus(
   if (!isRequired) return 'not_required';
   if (!fileUrl) return 'missing';
   if (!expiryDate) return requiresExpiry ? 'missing' : 'valid';
+  return statusFromExpiry(expiryDate);
+}
+
+/**
+ * תאריך תוקף → סטטוס. תאריך שלא ניתן לפענח נחשב 'missing' (לא ניתן לאמת תוקף),
+ * ולא 'valid' כפי שקרה קודם (השוואות NaN החזירו false).
+ */
+function statusFromExpiry(expiryDate: string): DocumentStatus {
+  const parsed = parseISO(expiryDate);
+  if (Number.isNaN(parsed.getTime())) return 'missing';
 
   const today = startOfDay(new Date());
-  const expiry = startOfDay(parseISO(expiryDate));
-  const daysLeft = differenceInDays(expiry, today);
+  const daysLeft = differenceInDays(startOfDay(parsed), today);
 
   if (daysLeft < 0) return 'expired';
   if (daysLeft <= 14) return 'expiring_soon';
@@ -52,18 +61,29 @@ export function getDocumentStatus(
 }
 
 /**
+ * מקור אמת יחיד לסטטוס מסמך חובה של עובד (תעודת זהות / אשרת עבודה).
+ * משמש גם את getWorkerStatus וגם את issues engine.
+ * - תעודת זהות: חובה תמיד, קיום קובץ מספיק (אין תאריך תוקף).
+ * - אשרת עבודה לעובד זר: חובה תמיד, גם אם נשמרה בעבר כ"לא נדרש" (isWorkVisaLocked).
+ */
+export function getWorkerRequiredDocStatus(
+  isForeignWorker: boolean,
+  docType: DocumentType,
+  doc: Document | undefined
+): DocumentStatus {
+  if (docType === 'id_document') {
+    return getDocumentStatus(doc?.file_url ?? null, null, true, false);
+  }
+  const isRequired = isWorkVisaLocked(docType, isForeignWorker) ? true : (doc ? doc.is_required !== false : true);
+  return getDocumentStatus(doc?.file_url ?? null, doc?.expiry_date ?? null, isRequired, true);
+}
+
+/**
  * סטטוס איסור עבודה בגובה (HeightRestriction):
  */
 export function getHeightRestrictionStatus(restriction: HeightRestriction | null | undefined): DocumentStatus {
   if (!restriction) return 'missing';
-
-  const today = startOfDay(new Date());
-  const expiry = startOfDay(parseISO(restriction.expires_at));
-  const daysLeft = differenceInDays(expiry, today);
-
-  if (daysLeft < 0) return 'expired';
-  if (daysLeft <= 14) return 'expiring_soon';
-  return 'valid';
+  return statusFromExpiry(restriction.expires_at);
 }
 
 /** רשומה ללא תאריך תוקף לא נחשבת תדריך שהושלם ואינה קובעת סטטוס נוכחי. */
@@ -95,14 +115,7 @@ export function getLatestCompletedSafetyBriefing(
  */
 export function getBriefingStatus(briefing: SafetyBriefing | null | undefined): DocumentStatus {
   if (!briefing) return 'missing';
-
-  const today = startOfDay(new Date());
-  const expiry = startOfDay(parseISO(briefing.expires_at));
-  const daysLeft = differenceInDays(expiry, today);
-
-  if (daysLeft < 0) return 'expired';
-  if (daysLeft <= 14) return 'expiring_soon';
-  return 'valid';
+  return statusFromExpiry(briefing.expires_at);
 }
 
 export const STATUS_SEVERITY: Record<DocumentStatus, number> = {
@@ -151,13 +164,7 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
   for (const docType of requiredTypes) {
     if (docType === 'height_permit') continue; // מטופל בנפרד עם לוגיקת permit+ban
 
-    const doc = docMap.get(docType);
-    // תעודת זהות: תמיד חובה ואין תאריך תוקף — רק קיום קובץ
-    const isRequired = docType === 'id_document' ? true : (doc ? doc.is_required !== false : true);
-    const expiryDate = docType === 'id_document' ? null : (doc?.expiry_date ?? null);
-    // id_document: קיום קובץ מספיק — אין תאריך תוקף
-    const requiresExpiry = docType !== 'id_document';
-    const status = getDocumentStatus(doc?.file_url ?? null, expiryDate, isRequired, requiresExpiry);
+    const status = getWorkerRequiredDocStatus(worker.is_foreign_worker, docType, docMap.get(docType));
 
     if (STATUS_SEVERITY[status] > STATUS_SEVERITY[worstStatus]) {
       worstStatus = status;

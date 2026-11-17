@@ -9,8 +9,13 @@ import {
   getHeightCombinedStatus,
   STATUS_LABELS,
 } from '@/lib/documents/status';
-import type { WorkerWithDocuments, Vehicle, HeavyEquipment } from '@/types';
-import type { Issue } from '@/lib/documents/issues';
+import type { WorkerWithDocuments, Vehicle, HeavyEquipment, HeavyEquipmentInsurance } from '@/types';
+import {
+  buildWorkerIssues,
+  buildVehicleIssues,
+  buildHeavyEquipmentIssues,
+  type Issue,
+} from '@/lib/documents/issues';
 
 // ─── Tenant branding ───────────────────────────────────────────
 export interface PdfBranding {
@@ -26,79 +31,42 @@ function statusColor(label: string): string {
 }
 
 // ─── Issue detail builders ─────────────────────────────────────
+// פירוט הליקויים נגזר ממנוע ה-issues המשותף (lib/documents/issues) —
+// אותו מקור כמו /issues, Dashboard ודוח "דורש טיפול", כדי שה-PDF לא יסטה מהם.
+const ISSUE_STATUS_PREFIX: Record<Issue['status'], string> = {
+  missing: 'חסר',
+  expired: 'פג תוקף',
+  expiring_soon: 'עומד לפוג',
+};
+
+/** שורות טקסט לעמודת "פירוט ליקויים" מתוך רשימת Issue. */
+export function formatIssueLines(issues: Issue[]): string[] {
+  return issues.map((i) => `${ISSUE_STATUS_PREFIX[i.status]}: ${i.problem}`);
+}
+
+export function getWorkerIssueLines(w: WorkerWithDocuments): string[] {
+  return formatIssueLines(buildWorkerIssues(w));
+}
+
+export function getVehicleIssueLines(v: Vehicle): string[] {
+  return formatIssueLines(buildVehicleIssues(v));
+}
+
+export function getHeavyEquipmentIssueLines(eq: HeavyEquipment): string[] {
+  return formatIssueLines(buildHeavyEquipmentIssues(eq));
+}
+
+/**
+ * ביטוח החובה של כלי צמ"ה — מטבלת heavy_equipment_insurances.
+ * העמודות insurance_file_url / insurance_expiry בטבלת heavy_equipment הן Legacy ואינן קובעות סטטוס.
+ */
+export function getHeavyEquipmentMandatoryInsurance(eq: HeavyEquipment): HeavyEquipmentInsurance | null {
+  return (eq.heavy_equipment_insurances ?? []).find((i) => i.insurance_type === 'ביטוח חובה') ?? null;
+}
+
 function issueCell(problems: string[]): string {
   if (problems.length === 0) return '<span style="color:#16a34a">✓ תקין</span>';
   return `<span style="color:#dc2626;font-size:10px;line-height:1.65">${problems.join('<br/>')}</span>`;
-}
-
-function getWorkerIssueDetails(w: WorkerWithDocuments): string {
-  const problems: string[] = [];
-  const docMap = new Map(w.documents.map((d) => [d.doc_type, d]));
-
-  if (!docMap.get('id_document')?.file_url) problems.push('חסר צילום תעודת זהות');
-
-  if (w.is_foreign_worker) {
-    const visa = docMap.get('work_visa');
-    const s = getDocumentStatus(visa?.file_url ?? null, visa?.expiry_date ?? null, true, true);
-    if (s === 'missing') problems.push('חסרה אשרת עבודה');
-    else if (s === 'expired') problems.push('אשרת עבודה פגת תוקף');
-    else if (s === 'expiring_soon') problems.push('אשרת עבודה עומדת לפוג');
-  }
-
-  const latestBriefing = getLatestCompletedSafetyBriefing(w.safety_briefings);
-  const bs = getBriefingStatus(latestBriefing);
-  if (bs === 'missing') problems.push('חסר תדריך בטיחות');
-  else if (bs === 'expired') problems.push('תדריך בטיחות פג תוקף');
-  else if (bs === 'expiring_soon') problems.push('תדריך בטיחות עומד לפוג');
-
-  const heightPermit = docMap.get('height_permit');
-  const hs = getHeightCombinedStatus(heightPermit, w.height_restrictions ?? []);
-  if (hs === 'missing') problems.push('חסר אישור עבודה בגובה');
-  else if (hs === 'expired') problems.push('אישור עבודה בגובה פג תוקף');
-  else if (hs === 'expiring_soon') problems.push('אישור עבודה בגובה עומד לפוג');
-
-  for (const lic of (w.professional_licenses ?? [])) {
-    const ls = getDocumentStatus(lic.file_url, lic.expiry_date, true, !!lic.expiry_date);
-    if (ls === 'missing') problems.push(`חסר מסמך: ${lic.license_type}`);
-    else if (ls === 'expired') problems.push(`פג תוקף: ${lic.license_type}`);
-    else if (ls === 'expiring_soon') problems.push(`עומד לפוג: ${lic.license_type}`);
-  }
-
-  return issueCell(problems);
-}
-
-function getVehicleIssueDetails(v: Vehicle): string {
-  const problems: string[] = [];
-  const lic = (v.vehicle_licenses ?? [])[0] ?? null;
-  const mandatory = (v.vehicle_insurances ?? []).find((i) => i.insurance_type === 'ביטוח חובה') ?? null;
-
-  const ls = getDocumentStatus(lic?.file_url ?? null, lic?.expiry_date ?? null, true, true);
-  if (ls === 'missing') problems.push('חסר רישיון רכב');
-  else if (ls === 'expired') problems.push('רישיון רכב פג תוקף');
-  else if (ls === 'expiring_soon') problems.push('רישיון רכב עומד לפוג');
-
-  const ms = getDocumentStatus(mandatory?.file_url ?? null, mandatory?.expiry_date ?? null, true, true);
-  if (ms === 'missing') problems.push('חסר ביטוח חובה');
-  else if (ms === 'expired') problems.push('ביטוח חובה פג תוקף');
-  else if (ms === 'expiring_soon') problems.push('ביטוח חובה עומד לפוג');
-
-  return issueCell(problems);
-}
-
-function getEquipmentIssueDetails(eq: HeavyEquipment): string {
-  const problems: string[] = [];
-
-  const ls = getDocumentStatus(eq.license_file_url, eq.license_expiry, true, true);
-  if (ls === 'missing') problems.push('חסר רישיון/רישוי');
-  else if (ls === 'expired') problems.push('רישיון פג תוקף');
-  else if (ls === 'expiring_soon') problems.push('רישיון עומד לפוג');
-
-  const is_ = getDocumentStatus(eq.insurance_file_url, eq.insurance_expiry, true, true);
-  if (is_ === 'missing') problems.push('חסר ביטוח חובה');
-  else if (is_ === 'expired') problems.push('ביטוח חובה פג תוקף');
-  else if (is_ === 'expiring_soon') problems.push('ביטוח חובה עומד לפוג');
-
-  return issueCell(problems);
 }
 
 // ─── HTML shell — header repeated per page ─────────────────────
@@ -203,7 +171,7 @@ export function buildWorkersHtml(workers: WorkerWithDocuments[], title: string, 
       ? STATUS_LABELS[getDocumentStatus(visa?.file_url ?? null, visa?.expiry_date ?? null, true, true)]
       : '—';
     const overallLabel  = STATUS_LABELS[getWorkerStatus(w)];
-    const issueDetails  = getWorkerIssueDetails(w);
+    const issueDetails  = issueCell(getWorkerIssueLines(w));
 
     return `<tr>
       <td>${w.full_name}</td>
@@ -230,7 +198,7 @@ export function buildVehiclesHtml(vehicles: Vehicle[], title: string, branding: 
     const lic = (v.vehicle_licenses ?? [])[0] ?? null;
     const mandatory = (v.vehicle_insurances ?? []).find((i) => i.insurance_type === 'ביטוח חובה');
     const statusLabel = STATUS_LABELS[getVehicleStatus(v)];
-    const issueDetails = getVehicleIssueDetails(v);
+    const issueDetails = issueCell(getVehicleIssueLines(v));
 
     return `<tr>
       <td>${v.vehicle_type}${v.model ? ` · ${v.model}` : ''}</td>
@@ -253,10 +221,11 @@ export function buildVehiclesHtml(vehicles: Vehicle[], title: string, branding: 
 // ─── כלי צמ"ה ─────────────────────────────────────────────────
 export function buildEquipmentHtml(equipment: HeavyEquipment[], title: string, branding: PdfBranding): string[] {
   const rows = equipment.map((eq) => {
+    const mandatory = getHeavyEquipmentMandatoryInsurance(eq);
     const licLabel  = STATUS_LABELS[getDocumentStatus(eq.license_file_url, eq.license_expiry, true, true)];
-    const insLabel  = STATUS_LABELS[getDocumentStatus(eq.insurance_file_url, eq.insurance_expiry, true, true)];
+    const insLabel  = STATUS_LABELS[getDocumentStatus(mandatory?.file_url ?? null, mandatory?.expiry_date ?? null, true, true)];
     const overall   = STATUS_LABELS[getHeavyEquipmentStatus(eq)];
-    const issueDetails = getEquipmentIssueDetails(eq);
+    const issueDetails = issueCell(getHeavyEquipmentIssueLines(eq));
 
     return `<tr>
       <td>${eq.description}</td>
@@ -266,7 +235,7 @@ export function buildEquipmentHtml(equipment: HeavyEquipment[], title: string, b
       <td style="color:${statusColor(licLabel)};font-weight:600">${licLabel}</td>
       <td style="color:${statusColor(insLabel)};font-weight:600">${insLabel}</td>
       <td>${eq.license_expiry ?? '—'}</td>
-      <td>${eq.insurance_expiry ?? '—'}</td>
+      <td>${mandatory?.expiry_date ?? '—'}</td>
       <td style="color:${statusColor(overall)};font-weight:600">${overall}</td>
       <td>${issueDetails}</td>
       <td>${eq.is_active ? 'פעיל' : 'לא פעיל'}</td>

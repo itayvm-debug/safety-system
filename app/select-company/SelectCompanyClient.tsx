@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { clearAllSnapshots } from '@/lib/offline/cache';
 import {
   useSessionCompanies,
   broadcastSessionCompaniesChanged,
@@ -58,6 +59,7 @@ export default function SelectCompanyClient() {
         return;
       }
       broadcastSessionCompaniesChanged();
+      clearAllSnapshots(); // a different company is now active
       window.location.replace('/dashboard');
     } catch {
       setSelectError('שגיאת רשת. בדוק את החיבור ונסה שנית.');
@@ -208,6 +210,7 @@ export default function SelectCompanyClient() {
           <button
             onClick={async () => {
               await fetch('/api/auth/logout', { method: 'POST' });
+              clearAllSnapshots();
               window.location.replace('/login');
             }}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors"

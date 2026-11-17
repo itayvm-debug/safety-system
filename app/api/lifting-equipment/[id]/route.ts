@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { validateSubcontractorOwnership } from '@/lib/subcontractors/ownership';
+import { validateFileFields, cleanupAfterChange, replacedPaths } from '@/lib/storage/file-paths';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const supabase = createServiceClient();
   const { data: existing } = await supabase
     .from('lifting_equipment')
-    .select('id')
+    .select('id, image_url, inspection_file_url')
     .eq('id', id)
     .eq('company_id', companyId)
     .maybeSingle();
@@ -58,6 +59,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (!subOwnership.valid) return subOwnership.error;
   }
 
+  // P1·1 — the client may only attach files issued to / owned by this company
+  const before = {
+    image_url:           existing.image_url as string | null,
+    inspection_file_url: existing.inspection_file_url as string | null,
+  };
+  const fileCheck = await validateFileFields(supabase, companyId, { image_url, inspection_file_url }, before);
+  if (!fileCheck.ok) return fileCheck.error;
+
   const updates: Record<string, unknown> = {};
   if (description         !== undefined) updates.description         = description;
   if (subcontractor_id    !== undefined) updates.subcontractor_id    = subcontractor_id;
@@ -67,8 +76,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     updates.is_archived = is_archived;
     if (is_archived) updates.archived_at = new Date().toISOString();
   }
-  if (image_url           !== undefined) updates.image_url           = image_url;
-  if (inspection_file_url !== undefined) updates.inspection_file_url = inspection_file_url;
+  if (image_url           !== undefined) updates.image_url           = fileCheck.values.image_url;
+  if (inspection_file_url !== undefined) updates.inspection_file_url = fileCheck.values.inspection_file_url;
   if (inspection_expiry   !== undefined) updates.inspection_expiry   = inspection_expiry;
 
   const { data, error: dbError } = await supabase
@@ -80,6 +89,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     .single();
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+
+  // P1·6 — retention gate: the file is kept until a retention policy is decided (AUTO_REMOVE_ON)
+  await cleanupAfterChange('file_replaced', supabase, replacedPaths(before, updates));
   return NextResponse.json(data);
 }
 
@@ -92,7 +104,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   const supabase = createServiceClient();
   const { data: existing } = await supabase
     .from('lifting_equipment')
-    .select('id')
+    .select('id, image_url, inspection_file_url')
     .eq('id', id)
     .eq('company_id', companyId)
     .maybeSingle();
@@ -106,5 +118,11 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     .eq('company_id', companyId);
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+
+  // P1·6 — retention gate: the file is kept until a retention policy is decided (AUTO_REMOVE_ON)
+  await cleanupAfterChange('record_deleted', supabase, [
+    existing.image_url as string | null,
+    existing.inspection_file_url as string | null,
+  ]);
   return NextResponse.json({ success: true });
 }

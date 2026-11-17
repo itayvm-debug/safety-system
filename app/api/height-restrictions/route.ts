@@ -2,6 +2,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { addYears } from 'date-fns';
+import { validateFileFields, cleanupAfterChange } from '@/lib/storage/file-paths';
 
 export async function POST(request: NextRequest) {
   const { context, error } = await requireCompanyAdminRole();
@@ -26,6 +27,10 @@ export async function POST(request: NextRequest) {
 
   if (!worker) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
 
+  // P1·1 — the client may only attach files issued to / owned by this company
+  const fileCheck = await validateFileFields(supabase, companyId, { file_url, signature_url });
+  if (!fileCheck.ok) return fileCheck.error;
+
   const issued_at = new Date();
   const expires_at = addYears(issued_at, 1);
 
@@ -35,8 +40,8 @@ export async function POST(request: NextRequest) {
       worker_id,
       language,
       conducted_by: conducted_by?.trim() || null,
-      file_url: file_url || null,
-      signature_url: signature_url || null,
+      file_url: fileCheck.values.file_url ?? null,
+      signature_url: fileCheck.values.signature_url ?? null,
       issued_at: issued_at.toISOString(),
       expires_at: expires_at.toISOString(),
     })
@@ -83,9 +88,8 @@ export async function DELETE(request: NextRequest) {
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
 
-  // Storage cleanup is non-fatal; record is already deleted
-  if (rec.file_url)      await supabase.storage.from('worker-files').remove([rec.file_url]).catch(() => undefined);
-  if (rec.signature_url) await supabase.storage.from('worker-files').remove([rec.signature_url]).catch(() => undefined);
+  // Storage cleanup is non-fatal; record is already deleted. Shared objects are kept.
+  await cleanupAfterChange('height_restriction_deleted', supabase, [rec.file_url, rec.signature_url]);
 
   return NextResponse.json({ success: true });
 }

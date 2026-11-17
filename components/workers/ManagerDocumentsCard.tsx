@@ -9,13 +9,14 @@ import { formatDateSafe } from '@/lib/utils/date';
 
 interface Props {
   workerId: string;
+  /** רישיונות מנהל — state מוחזק ב-WorkerDetail כדי שסטטוס העובד בכותרת יתעדכן */
   licenses: ManagerLicense[];
+  onLicensesChange: (update: (prev: ManagerLicense[]) => ManagerLicense[]) => void;
 }
 
 const DRIVING_LICENSE_TYPE = 'רישיון נהיגה';
 
-export default function ManagerDocumentsCard({ workerId, licenses: initialLicenses }: Props) {
-  const [licenses, setLicenses] = useState<ManagerLicense[]>(initialLicenses);
+export default function ManagerDocumentsCard({ workerId, licenses, onLicensesChange: setLicenses }: Props) {
 
   const drivingLicenses = licenses.filter((l) => l.license_type === DRIVING_LICENSE_TYPE);
 
@@ -129,7 +130,8 @@ function ManagerFileRow({
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const status = getDocumentStatus(fileUrl, expiryDate, required, true);
+  // אותו כלל כמו המנוע (getWorkerStatus / buildWorkerIssues): תאריך תוקף חובה רק אם הוזן
+  const status = getDocumentStatus(fileUrl, expiryDate, required, !!expiryDate);
 
   async function handleFileUploaded(path: string) {
     setError('');

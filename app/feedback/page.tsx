@@ -1,16 +1,15 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/auth/session';
+import { requirePlatformAdmin } from '@/lib/auth/api';
 import FeedbackPage from '@/components/FeedbackPage';
 import { SiteFeedback } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
 export default async function FeedbackAdminPage() {
-  const session = await getSession();
-  if (!session || session.role !== 'admin') {
-    redirect('/dashboard');
-  }
+  // Role and active state come from the DB, not from the session cookie (P1·2)
+  const { error: adminError } = await requirePlatformAdmin();
+  if (adminError) redirect('/dashboard');
 
   const supabase = createServiceClient();
   const { data, error } = await supabase

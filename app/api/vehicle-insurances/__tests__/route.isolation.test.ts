@@ -45,10 +45,12 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 import { PATCH, DELETE } from '../[id]/route';
+import { issueUploadPath } from '@/lib/storage/file-paths';
 
 beforeEach(() => {
   vi.clearAllMocks();
   dbState.reset([]);
+  process.env.SESSION_SECRET = 'test-secret-for-upload-receipts';
 });
 
 describe('F-02 — vehicle-insurances cross-tenant mutation hardening', () => {
@@ -73,14 +75,16 @@ describe('F-02 — vehicle-insurances cross-tenant mutation hardening', () => {
       context: { companyId: COMPANY_A, userId: 'user-a' },
       error: null,
     });
+    // P1·1: the new file must be an upload receipt issued to Company A
+    const newPath = issueUploadPath(COMPANY_A, 'documents', 'pdf');
     dbState.reset([
       { data: { id: INS_ID }, error: null },
-      { data: { id: INS_ID, file_url: 'new.pdf' }, error: null },
+      { data: { id: INS_ID, file_url: newPath }, error: null },
     ]);
 
     const req = new NextRequest(`http://localhost/api/vehicle-insurances/${INS_ID}`, {
       method: 'PATCH',
-      body: JSON.stringify({ file_url: 'new.pdf' }),
+      body: JSON.stringify({ file_url: newPath }),
       headers: { 'Content-Type': 'application/json' },
     });
     const res = await PATCH(req, { params: Promise.resolve({ id: INS_ID }) });

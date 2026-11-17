@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole, getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { validateFileFields, cleanupAfterChange } from '@/lib/storage/file-paths';
 
 export async function GET(request: NextRequest) {
   const { context, error } = await getCurrentCompanyContext();
@@ -56,6 +57,10 @@ export async function POST(request: NextRequest) {
 
   if (!worker) return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
 
+  // P1·1 — the client may only attach a file issued to / owned by this company
+  const fileCheck = await validateFileFields(supabase, companyId, { file_url });
+  if (!fileCheck.ok) return fileCheck.error;
+
   const { data, error: dbError } = await supabase
     .from('professional_licenses')
     .insert({
@@ -63,7 +68,7 @@ export async function POST(request: NextRequest) {
       license_type: license_type.trim(),
       license_number: license_number?.trim() || null,
       expiry_date: expiry_date || null,
-      file_url: file_url || null,
+      file_url: fileCheck.values.file_url ?? null,
       notes: notes?.trim() || null,
     })
     .select()
@@ -86,7 +91,7 @@ export async function DELETE(request: NextRequest) {
   // Verify ownership via worker chain
   const { data: license } = await supabase
     .from('professional_licenses')
-    .select('worker_id')
+    .select('worker_id, file_url')
     .eq('id', id)
     .maybeSingle();
 
@@ -103,5 +108,8 @@ export async function DELETE(request: NextRequest) {
 
   const { error: dbError } = await supabase.from('professional_licenses').delete().eq('id', id);
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+
+  // P1·6 — retention gate: the file is kept until a retention policy is decided (AUTO_REMOVE_ON)
+  await cleanupAfterChange('record_deleted', supabase, [license.file_url]);
   return NextResponse.json({ success: true });
 }

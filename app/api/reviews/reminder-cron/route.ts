@@ -24,6 +24,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase/server';
+import { isAuthorizedCronRequest } from '@/lib/auth/cron';
 import { getWeekStart } from '@/lib/reviews/week';
 import { buildReviewReminderHtml, buildReviewReminderSubject } from '@/lib/reviews/reminderEmail';
 
@@ -32,8 +33,7 @@ export const runtime = 'nodejs';
 const REMINDER_TYPE = 'weekly_review';
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(request.headers.get('authorization'))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   // Cron timing (vercel.json: "0 6 * * 4") is authoritative.

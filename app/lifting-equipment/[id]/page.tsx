@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { getCurrentCompanyContext } from '@/lib/auth/company-context';
 import Link from 'next/link';
 import { LiftingEquipment } from '@/types';
 import LiftingEquipmentDetail from '@/components/lifting-equipment/LiftingEquipmentDetail';
@@ -8,12 +9,19 @@ export const dynamic = 'force-dynamic';
 
 export default async function LiftingEquipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const ctxResult = await getCurrentCompanyContext();
+  if (ctxResult.error) {
+    if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
+    redirect('/login');
+  }
+  const { companyId } = ctxResult.context;
   const supabase = createServiceClient();
 
   const { data, error } = await supabase
     .from('lifting_equipment')
     .select('*, subcontractor:subcontractors(id, name)')
     .eq('id', id)
+    .eq('company_id', companyId)
     .single();
 
   if (error || !data) notFound();

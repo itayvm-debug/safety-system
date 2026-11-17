@@ -18,7 +18,12 @@ export default async function EditLiftingEquipmentPage({ params }: { params: Pro
   if (ctxResult.context.companyRole === 'member') redirect(`/lifting-equipment/${id}`);
 
   const supabase = createServiceClient();
-  const { data, error } = await supabase.from('lifting_equipment').select('*').eq('id', id).single();
+  const { data, error } = await supabase
+    .from('lifting_equipment')
+    .select('*')
+    .eq('id', id)
+    .eq('company_id', ctxResult.context.companyId)
+    .single();
   if (error || !data) notFound();
 
   return (

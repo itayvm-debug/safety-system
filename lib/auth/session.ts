@@ -10,6 +10,19 @@ export const SESSION_COOKIE_NAME = 'safedoc_session';
 export const ROLE_COOKIE_NAME = 'safedoc_role';
 export const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 ימים
 
+/** Server-side session lifetime — the same 7 days as the cookie, enforced from loginAt (P1·2) */
+export const SESSION_MAX_AGE_MS = COOKIE_MAX_AGE * 1000;
+/** Tolerated clock skew for a loginAt slightly in the future */
+const CLOCK_SKEW_MS = 5 * 60 * 1000;
+
+/** True when the payload's loginAt is present and within the allowed lifetime. */
+export function isSessionFresh(payload: Pick<SessionPayload, 'loginAt'>, now = Date.now()): boolean {
+  const loginAt = payload.loginAt;
+  if (typeof loginAt !== 'number' || !Number.isFinite(loginAt)) return false;
+  if (loginAt > now + CLOCK_SKEW_MS) return false;
+  return now - loginAt <= SESSION_MAX_AGE_MS;
+}
+
 export interface SessionPayload {
   userId: string;
   email: string;
@@ -54,8 +67,12 @@ export async function signSession(payload: SessionPayload): Promise<string> {
   return `${data}.${toB64Url(sig)}`;
 }
 
-/** מאמת token — מחזיר payload אם תקין, null אחרת */
-export async function verifySession(token: string): Promise<SessionPayload | null> {
+/**
+ * מאמת token — מחזיר payload אם החתימה תקינה וה-session לא פג, null אחרת.
+ * The cookie's max-age is only a browser hint; a copied token is refused here
+ * once loginAt is older than SESSION_MAX_AGE_MS.
+ */
+export async function verifySession(token: string, now = Date.now()): Promise<SessionPayload | null> {
   try {
     const key = await getHmacKey();
     const dot = token.lastIndexOf('.');
@@ -66,7 +83,9 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
       'HMAC', key, fromB64Url(sig), encode(data)
     );
     if (!valid) return null;
-    return JSON.parse(new TextDecoder().decode(fromB64Url(data))) as SessionPayload;
+    const payload = JSON.parse(new TextDecoder().decode(fromB64Url(data))) as SessionPayload;
+    if (!isSessionFresh(payload, now)) return null;
+    return payload;
   } catch {
     return null;
   }

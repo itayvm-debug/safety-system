@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { getClientRole } from '@/lib/auth/client';
+import { clearAllSnapshots } from '@/lib/offline/cache';
 import ExportWizard from '@/components/export/ExportWizard';
 import AlertsBell from '@/components/alerts/AlertsBell';
 import {
@@ -83,6 +84,7 @@ export default function NavBar() {
         setSwitcherError(d.error ?? 'שגיאה בהחלפת חברה');
         return;
       }
+      clearAllSnapshots(); // offline lists of the previous company must not show in the new one
       broadcastSessionCompaniesChanged();
       window.location.replace('/dashboard');
     } catch {
@@ -94,6 +96,7 @@ export default function NavBar() {
 
   async function handleSignOut() {
     await fetch('/api/auth/logout', { method: 'POST' });
+    clearAllSnapshots();
     window.location.replace('/login');
   }
 

@@ -23,6 +23,7 @@ export default async function EditWorkerPage({ params }: { params: Promise<{ id:
     .from('workers')
     .select('*')
     .eq('id', id)
+    .eq('company_id', ctxResult.context.companyId)
     .single();
 
   if (error || !data) notFound();
