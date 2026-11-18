@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { weekLabel } from '@/lib/reviews/week';
+import { computeManagerStats } from '@/lib/reviews/managerStats';
 
 type Assignment = { id: string; worker_id: string; evaluator_manager_id: string | null };
 type Review = {
@@ -38,12 +39,8 @@ export default function ReviewsOwnerDashboard({ weekStart, assignments, reviews,
   const totalAssigned = assignments.length;
   const completionPct = totalAssigned > 0 ? Math.round((submittedReviews.length / totalAssigned) * 100) : 0;
 
-  // Per-manager completion
-  const managerStats = managers.map(m => {
-    const assigned = assignments.filter(a => a.evaluator_manager_id === m.id);
-    const submitted = submittedReviews.filter(r => r.evaluator_manager_id === m.id);
-    return { manager: m, assigned: assigned.length, submitted: submitted.length };
-  }).filter(s => s.assigned > 0).sort((a, b) => b.assigned - a.assigned);
+  // Per-manager completion (+ assignments that no listed site manager can review this week)
+  const { managerStats, unassigned } = computeManagerStats(assignments, submittedReviews, managers);
 
   // Company-wide average per dimension
   const ratingAverages = RATING_FIELDS.map(field => {
@@ -131,7 +128,7 @@ export default function ReviewsOwnerDashboard({ weekStart, assignments, reviews,
       )}
 
       {/* Per-manager completion */}
-      {managerStats.length > 0 && (
+      {(managerStats.length > 0 || unassigned > 0) && (
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-6">
           <div className="px-4 py-3 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-700">סטטוס לפי מנהל אתר</h2>
@@ -156,6 +153,19 @@ export default function ReviewsOwnerDashboard({ weekStart, assignments, reviews,
                 </div>
               );
             })}
+            {unassigned > 0 && (
+              <div className="px-4 py-3 flex items-center gap-3 bg-amber-50">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">ללא מנהל אתר</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    עובדים שאין להם מנהל אחראי פעיל — לא ניתן להעריך אותם השבוע. שייכו מנהל אחראי בכרטיס העובד לשבוע הבא.
+                  </p>
+                </div>
+                <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-800 shrink-0">
+                  {unassigned}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
