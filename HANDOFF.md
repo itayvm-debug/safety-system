@@ -150,7 +150,9 @@
 20. ~~הגבלת קצב לא פועלת~~ — **בוצע 2026-11-18:** המיגרציה `durable-rate-limiting.sql` הורצה; ניקוי יומי דרך `/api/maintenance/daily` (Vercel Cron 02:30 UTC); בנוסף נעילה לפי חשבון (10/15 דק'). `supabase/proposed/2026-11-18-rate-limiting/`.
 21. **סביבת בדיקות נפרדת:** פרויקט Supabase חדש = $0 לפי Supabase, אבל בארגון החינמי יש כבר 2 פרויקטים פעילים (SafeDoc, field-quotes) — המגבלה בתוכנית החינמית היא 2. אפשרויות: להשהות את field-quotes, לשדרג (בתשלום), או Branch ($0.01344 לשעה ≈ $10 לחודש אם רץ תמיד). בנוסף צריך לשכפל סכמה (אין מיגרציות מלאות במאגר). החלטה.
 22. **אימות דו-שלבי (MFA) לאדמינים** — פיצ'ר בפני עצמו (רישום, שחזור, זרימת כניסה). להחליט מי חייב ומה מנגנון השחזור לפני מימוש.
-23. **החלפת המפתח הציבורי:** לעבור ל-publishable key ולהשבית legacy keys — סוגר אפשרות שמפתח מאפריל שמור אצל מישהו. שינוי ב-Vercel + Supabase, לא בקוד. החלטה (ראה טיוטת ההערכה).
+23. **מפתחות ה-JWT הישנים (legacy):** אומת בלוגים (2026-11-18) שהאפליקציה **כבר** משתמשת רק ב-`sb_publishable_…` (התחברות) וב-`sb_secret_…` (DB/Storage); ללא שימוש אחר במפתחות הישנים חוץ מבדיקות שלי. **נשאר רק קליק של המשתמש:** Supabase Dashboard → Project Settings → API Keys → Legacy API keys → Disable. לא נדרש שינוי קוד או Vercel.
+
+אפשרויות מוכנות לבחירה (סביבת בדיקות, MFA): `docs/decisions/2026-11-18-test-environment-and-mfa.md`.
 
 מצב מלא של ממצאי דוח הביקורת: `docs/qa/2026-11-18-audit-report-status.md`.
 
@@ -180,6 +182,13 @@
 - עם התחברות (QA): `/offline-app.html` 404, `/api/maintenance/rate-limit-cleanup` 404, `/api/workers` 200.
 - ניסיון התחברות שגוי אחד → 401 גנרי; נרשמו `login` (עם IP) ו-`login-account` (בלי IP ובלי משתמש).
 - הערת היגיינה: מחיקת `public/offline-app.html` נכנסה בפועל ל-commit `2c2f35b` (הייתה כבר ב-stage) ולא ל-`a1aa51e`.
+
+**סבב "לפי סדר עדיפויות" (2026-11-18, פריסה `dpl_AX2mDKSQ9W6sGpjHcNqcFVN16iqY` = `d301646`):**
+- הרשאת קבצים (Mode B) — inner join במקום רשימת מזהי עובדים ב-URL (`2039daa`). חי: קובץ תדריך של QA 200 (PDF), נתיב זר 403, בלוגים השאילתה `workers!inner(company_id)` + סינון חברה. בדיקה חוצת-חברות חיה דולגה (קריאת נתיב של ולדמן נחסמה — נכון); מכוסה בבדיקת יחידה.
+- ממצאי P2 שלא נבדקו: הערה על ישות לא פעילה — תוקן כבר (C-06, יש בדיקה); תג רישיון — משתמש במנוע (`getProfessionalLicenseStatus`).
+- `docs/security/FINAL_RLS_MATRIX.md` נכתב מחדש מהמצב החי.
+- מפתחות legacy — לא בשימוש (החלטה 23).
+- 1030 בדיקות יחידה.
 
 ## 12. היסטוריה מפורטת
 - תמליל סשן VS Code: `%USERPROFILE%/.claude/projects/` (תיקיית הפרויקט `c--Users-itayv-OneDrive-…-CLAUDE`, סשן `a2727b09-4a5e-441b-82ef-2913c790058e`).
