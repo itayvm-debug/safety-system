@@ -68,6 +68,7 @@ SafeDoc — אפליקציית ווב מאובטחת לניהול מסמכי ב�
 - **מטמון לא-מקוון** (`lib/offline/cache.ts`): מפתחות גלובליים, מנוקים בכניסה/יציאה/החלפת חברה (`clearAllSnapshots`).
 - **AI לחילוץ זהות:** כבוי אלא אם `AI_IDENTITY_EXTRACTION_ENABLED=true` (החלטה עסקית פתוחה).
 - **Cron:** `lib/auth/cron.ts` — דורש `CRON_SECRET` (Bearer) מוגדר ב-Vercel. נתיב cron חדש — להוסיף גם ל-`PUBLIC` ב-`middleware.ts` (אחרת 401).
+- **אימות דו-שלבי (TOTP):** `lib/auth/totp.ts`, `mfa-store.ts`, `mfa-policy.ts`, `login-response.ts`. חובה לאדמיני פלטפורמה מ-2.12.2026. סוד מוצפן ב-`user_mfa_factors` עם `MFA_ENCRYPTION_KEY` (Vercel, Sensitive) — **אסור להחליף/למחוק את המפתח** (נועל את כל מי שהפעיל). session מונפק רק דרך `buildLoginResponse`. לא להפעיל אימות דו-שלבי על חשבון של המשתמש בבדיקות.
 - **הגבלת קצב:** `lib/rate-limit/db.ts` (פונקציה `rate_limit_check` ב-DB). התחברות: 10/15 דק' לפי IP **ו**-10/15 דק' לפי חשבון. נכשל פתוח עם `console.error`.
 
 ## כללים עסקיים קיימים
