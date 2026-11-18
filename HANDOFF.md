@@ -35,7 +35,7 @@
 - טבלת הנתיבים ב-build של Production: רק `/api/auth/login` ו-`/api/auth/logout` — `phone-login`/`check-phone` הוסרו. (בלי session כל `/api/*` מחזיר 401 מה-middleware, גם נתיב לא קיים — לכן 404 לא נראה מבחוץ.)
 - cron בלי סוד → 401.
 - לוגי Supabase אחרי הפריסה: כל בקשות השרת (`sb_secret_`) = 200, כולל `site_feedback` מה-Dashboard. Vercel runtime: 0 שגיאות ב-20 הדקות שאחרי הפריסה.
-- **לא אומת (דורש התחברות):** `/sw.js` = v8 עם session; כרטיס עובד מתעדכן בכניסה חוזרת באייפון.
+- **אומת ע"י המשתמש באייפון (2026-11-18):** תדריך חדש → כניסה חוזרת לכרטיס העובד מציגה את המצב המעודכן (SW v8 פעיל).
 - נקודת חזרה ל-Production: `vercel rollback` / promote ל-`dpl_HkHX8Wv1GRAQo4XmoG1PhkD5Pk64` (`cd6cb91`).
 
 ## 4. תיקוני הביקורת (`a15e2c3`, פורסמו)
@@ -71,7 +71,7 @@
 - [x] `AI_IDENTITY_EXTRACTION_ENABLED` לא מוגדר (= כבוי). `ANTHROPIC_API_KEY`/`COOKIE_SECRET` לא מוגדרים — לא נדרשים (fallback ל-`SESSION_SECRET`).
 - [x] SHA בפריסה = SHA שנדחף.
 - [x] מסלולי הטלפון הוסרו (טבלת נתיבים).
-- [ ] `/sw.js` = v8 עם session; כרטיס עובד מתעדכן בכניסה חוזרת — **דורש התחברות של המשתמש**.
+- [x] כרטיס עובד מתעדכן בכניסה חוזרת — אומת ע"י המשתמש באייפון.
 
 ## 7. SQL — מצב
 קבצים ב-`supabase/proposed/2026-11-17-audit-remediation/`, תוצאות ב-`results/`.
@@ -135,6 +135,12 @@
 13. הטבלה עם 9 השורות הייתה נגישה עם המפתח הציבורי עד 2026-11-18; אין עדות לגישה בחלון הלוגים (~21 שעות), ואין לוגים לפני כן — האם לבצע הערכת אירוע פרטיות?
 14. UX: רשימות מציגות snapshot ישן בשקט כשהשליפה נכשלת — להוסיף חיווי?
 15. משתני סביבה ישנים ב-Vercel (`ADMIN_PHONE/ADMIN_PASSWORD/VIEWER_PHONE/VIEWER_PASSWORD`) — הקוד לא קורא אותם; להסיר?
+16. חשבון Auth ישן `@safedoc.internal` (בלי profile/חברה, כניסה אחרונה 12.4.2026) — לחסום (`banned_until`, הפיך) או למחוק?
+17. `authorized_phones` (שורה אחת, לא בשימוש בקוד) — להסיר את `authorized_phones_select USING (true)` ואת הרשאות authenticated (כמו 07), או למחוק את הטבלה?
+18. Leaked Password Protection ב-Supabase Auth — להפעיל (ייתכן שדורש תוכנית בתשלום)?
+19. `AUTH_FLOW.md` מתאר התחברות בטלפון — לעדכן.
+
+מצב מלא של ממצאי דוח הביקורת: `docs/qa/2026-11-18-audit-report-status.md`.
 
 ## 11. חסמים
 - אימות עם התחברות (SW v8 / כרטיס עובד) — רק המשתמש.
