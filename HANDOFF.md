@@ -174,6 +174,13 @@
 | מסמכים | `AUTH_FLOW.md`, טיוטת הערכת חשיפה, CLAUDE.md | — |
 | בדיקות | 1027 יחידה; build מבודד 66/66 + דפדפן 30/30 | — |
 
+**אימות באתר החי** (פריסה `dpl_CQim6AQpexQm5FLhrmGvnYQzAoQa` = `7240860`):
+- CI ראשון ב-GitHub Actions: success (בדיקות, טיפוסים, lint, build) — run `44286310924`.
+- `vercel crons ls`: `/api/maintenance/daily 30 2 * * *` (במקום rate-limit-cleanup). הפעלה ידנית → `rpc/rate_limit_cleanup` 200 + `rpc/safedoc_health_check` 200, ללא שאילתת אדמינים (= אין התראה, כל הבדיקות עברו). בלי סוד → 401.
+- עם התחברות (QA): `/offline-app.html` 404, `/api/maintenance/rate-limit-cleanup` 404, `/api/workers` 200.
+- ניסיון התחברות שגוי אחד → 401 גנרי; נרשמו `login` (עם IP) ו-`login-account` (בלי IP ובלי משתמש).
+- הערת היגיינה: מחיקת `public/offline-app.html` נכנסה בפועל ל-commit `2c2f35b` (הייתה כבר ב-stage) ולא ל-`a1aa51e`.
+
 ## 12. היסטוריה מפורטת
 - תמליל סשן VS Code: `%USERPROFILE%/.claude/projects/` (תיקיית הפרויקט `c--Users-itayv-OneDrive-…-CLAUDE`, סשן `a2727b09-4a5e-441b-82ef-2913c790058e`).
 - סשן לשונית Code (2026-11-18): `local_22382344-543e-4c99-bc2d-2cc2d3172176`.
