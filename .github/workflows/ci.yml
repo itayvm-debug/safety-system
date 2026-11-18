@@ -1,0 +1,38 @@
+# SafeDoc CI — unit tests, types, lint and a production build on every push and pull request.
+# Runs with no secrets and no database: unit tests mock Supabase, and the build needs no .env.
+# The Playwright suites under tests/**/*.spec.ts are NOT run here (they target a live database).
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Type check
+        run: npx tsc --noEmit -p .
+      - name: Lint (application code)
+        run: npx eslint app lib components hooks middleware.ts
+      - name: Build
+        run: npx next build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'

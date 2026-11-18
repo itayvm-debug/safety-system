@@ -18,7 +18,7 @@
  */
 
 import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
@@ -49,7 +49,7 @@ const Q1: Record<string, string> = {}; // Internal QA resource IDs
 const Q2: Record<string, string> = {}; // Isolation QA 2 resource IDs
 
 // Service client — initialised in beforeAll, reused in afterAll
-let svc: ReturnType<typeof createClient> | undefined;
+let svc: SupabaseClient | undefined;
 
 // ── Env helper (mirrors global-setup) ────────────────────────────────────────
 function loadEnvLocal() {
