@@ -26,6 +26,13 @@ const csp = [
   "frame-src 'self' https://*.supabase.co",
 ].join('; ');
 
+// Static PDFs that the app itself shows in an <iframe> (briefing and height-ban templates).
+// With the global X-Frame-Options: DENY / frame-ancestors 'none' the browser refused to render
+// them even inside SafeDoc, so workers saw an empty box (found in the live QA round, 2026-11-18).
+// Same-origin framing only; every other path keeps DENY.
+export const SELF_FRAMEABLE_SOURCES = ['/briefing-templates/:path*', '/height-ban-templates/:path*'];
+const cspSelfFrame = csp.replace("frame-ancestors 'none'", "frame-ancestors 'self'");
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
@@ -41,6 +48,14 @@ const nextConfig: NextConfig = {
           ...(isProd ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' }] : []),
         ],
       },
+      // Must come after the global rule: for the same key the last matching rule wins.
+      ...SELF_FRAMEABLE_SOURCES.map((source) => ({
+        source,
+        headers: [
+          { key: 'Content-Security-Policy', value: cspSelfFrame },
+          { key: 'X-Frame-Options',         value: 'SAMEORIGIN' },
+        ],
+      })),
       {
         // sw.js must never be HTTP-cached so browsers always fetch the latest version
         source: '/sw.js',
