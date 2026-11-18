@@ -1,84 +1,58 @@
 # AUTH_FLOW.md — זרימת ההתחברות
 
+עודכן: 2026-11-18. מקור האמת הוא הקוד: `app/api/auth/login/route.ts`, `lib/auth/session.ts`, `middleware.ts`, `lib/auth/company-context.ts`.
+
 ## סקירה
 
-המערכת **אינה** משתמשת ב-Supabase Phone Auth, OTP, או SMS.
-ההתחברות מבוססת על רשימת מספרי טלפון מורשים בלבד.
+- התחברות בשם משתמש **או** מייל + סיסמה. אין התחברות בטלפון, OTP או SMS.
+- הסיסמה נבדקת מול Supabase Auth בצד השרת בלבד. הדפדפן לא מקבל טוקן של Supabase.
+- אחרי הבדיקה השרת מנפיק cookie חתום משלו (`safedoc_session`), וכל גישה לנתונים עוברת בשרת עם service role.
+- מסלולי הטלפון הישנים (`/api/auth/phone-login`, `/api/auth/check-phone`) **הוסרו** (2026-11-18). הטבלה `authorized_phones` נעולה לשרת בלבד ואינה חלק מההתחברות. החשבון הישן היחיד מסוג `@safedoc.internal` נחסם.
 
----
-
-## זרימה מלאה
-
-```
-משתמש מזין מספר טלפון
-        │
-        ▼
-POST /api/auth/phone-login
-        │
-        ├── נרמול מספר לפורמט E.164 (+972...)
-        │
-        ├── בדיקה מול authorized_phones (service role — עוקף RLS)
-        │       ├── לא קיים → 403 "מספר הטלפון אינו מורשה"
-        │       └── קיים → ממשיך
-        │
-        ├── חיפוש auth user לפי email פנימי (user-972...@safedoc.internal)
-        │       ├── לא קיים → admin.createUser(email, password, email_confirm: true)
-        │       └── קיים → ממשיך
-        │
-        └── מחזיר { email, password } ללקוח
-                │
-                ▼
-        supabase.auth.signInWithPassword(email, password)
-                │
-                ▼
-        session JWT נשמר בדפדפן → redirect ל-/workers
-```
-
----
-
-## הקשר בין `authorized_phones` ל-`auth.users`
-
-| טבלה | תפקיד | מנוהל |
-|------|--------|--------|
-| `authorized_phones` | רשימת מספרים מורשים (whitelist) | ידנית ב-Supabase Dashboard |
-| `auth.users` | משתמשי Supabase עם session | אוטומטית בכניסה ראשונה |
-
-**חשוב:** רשומה ב-`authorized_phones` לבדה אינה מספיקה.
-בכניסה הראשונה של מספר חדש, השרת יוצר `auth user` אוטומטית.
-ב-Supabase Dashboard ניתן לראות את המשתמשים תחת Authentication → Users.
-
----
-
-## credentials פנימיים
-
-לכל מספר טלפון נוצר זוג credentials קבועים ונגזרים:
+## זרימה
 
 ```
-email:    user-{digits}@safedoc.internal
-password: safedoc_{digits}_auth
+POST /api/auth/login  { identifier, password }
+  │
+  ├─ הגבלת קצב לפי IP: 10 ניסיונות / 15 דק'           → 429
+  ├─ שדות ריקים                                         → 401 (הודעה גנרית)
+  ├─ הגבלת קצב לפי חשבון: 10 ניסיונות / 15 דק'          → 429
+  │    (מפתח = hash של המזהה; נבדק גם למזהה לא קיים, כדי לא לחשוף אילו חשבונות קיימים)
+  │
+  ├─ מזהה בלי @ → חיפוש username ב-profiles (service role) → מייל
+  │    לא נמצא                                           → 401 (הודעה גנרית, השהיה 500ms)
+  │
+  ├─ supabase.auth.signInWithPassword(email, password)   ← anon key, בשרת בלבד
+  │    נכשל                                              → 401 (הודעה גנרית, השהיה 500ms)
+  │
+  ├─ profiles: role + is_active
+  │    חסר → 401 ;  is_active=false                      → 403 "המשתמש הושבת"
+  │
+  └─ תשובה + cookies:
+       safedoc_session   HMAC, httpOnly, 7 ימים — תוקף נאכף גם בשרת (loginAt)
+       role cookie       לתצוגה בלבד; השרת לא סומך עליו
+       consent cookie    רק אם קיימת הסכמה לגרסת התנאים הנוכחית ב-DB
+       active company    נקבע אוטומטית אם יש חברות פעילה אחת; אחרת נמחק → /select-company
+       audit_logs        action = login
 ```
 
-דוגמה למספר `+972538000993`:
-```
-email:    user-972538000993@safedoc.internal
-password: safedoc_972538000993_auth
-```
+## אחרי ההתחברות
 
-ה-credentials האלה **אינם נחשפים ל-UI** — הם מועברים בתשובת ה-API ומשמשים מיד לקריאת `signInWithPassword`.
+- **middleware** — כל נתיב שאינו ברשימת `PUBLIC` דורש session תקף. API בלי session → 401, דף → הפניה ל-`/login`.
+- **הקשר חברה** — `getCurrentCompanyContext()` / `requireCompanyAdminRole()` בודקים ב-DB בכל בקשה: profile פעיל, membership פעיל, חברה פעילה. `company_id` נלקח מה-session, אף פעם לא מהלקוח.
+- **אדמין פלטפורמה** — `requirePlatformAdmin` בודק את `profiles.role` ב-DB, לא את ה-cookie.
+- **Cron** — נתיבי cron ברשימת `PUBLIC` ומאומתים ב-`CRON_SECRET` (Bearer, השוואה בזמן קבוע; נדחה אם הסוד חסר).
 
----
+## שכבת ה-DB
 
-## מגבלות ידועות (MVP)
+- ל-`anon` ול-`authenticated` אין אף הרשאה על טבלאות, sequences או פונקציות ב-`public`, וגם ברירת המחדל לאובייקטים חדשים סגורה (2026-11-18).
+- ה-anon key משמש רק ל-`signInWithPassword` (Auth API). גם מי שמשיג בעצמו טוקן של Supabase עם הסיסמה שלו לא יכול לקרוא טבלאות.
+- `safedoc_health_check()` בודק את זה כל יום (`/api/maintenance/daily`) ושולח מייל לאדמיני הפלטפורמה אם משהו נפתח.
 
-1. **אין אימות דו-שלבי** — מי שיודע מספר טלפון מורשה יכול להתחבר.
-2. **credentials נגזרים מהטלפון** — אם מספר דולף, ניתן לחשב את ה-password. יש לשנות אם המערכת תיחשף לאינטרנט הציבורי.
-3. **אין ביטול session** — יציאה מהמערכת מנקה את הcookies בדפדפן, אך ה-token עדיין תקף עד פקיעתו.
-4. **`listUsers` בכניסה** — כרגע הקוד קורא לכל רשימת המשתמשים כדי לבדוק קיום. בסביבה עם משתמשים רבים יש לשנות לחיפוש ישיר.
+## מגבלות ידועות
 
----
-
-## שיפורים מומלצים לגרסה הבאה
-
-- החלף credentials קבועים ב-`admin.generateLink` עם מגיע signed magic link
-- הוסף rate limiting על `/api/auth/phone-login`
-- שמור `auth_user_id` ב-`authorized_phones` לקישור ישיר במקום `listUsers`
+1. **אין אימות דו-שלבי** — החלטה פתוחה (HANDOFF).
+2. **אין ביטול session מיידי ביציאה** — היציאה מוחקת את ה-cookie בדפדפן, אבל עותק שלו תקף עד 7 ימים מההתחברות. מחייב טבלת sessions — החלטה פתוחה 1.
+3. **הגבלת הקצב נכשלת פתוח** אם ה-DB לא זמין: הבקשה מאושרת, נכתב `console.error`, והבדיקה היומית מתריעה אם הפונקציה חסרה.
+4. **הגבלה לפי חשבון ניתנת לניצול לחסימה זמנית** של משתמש (10 ניסיונות כושלים בשמו) — עד 15 דקות. חלון מכוון.
+5. **Leaked Password Protection** של Supabase כבוי (זמין בתוכנית בתשלום) — החלטה פתוחה.

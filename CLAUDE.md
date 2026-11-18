@@ -49,23 +49,26 @@ SafeDoc — אפליקציית ווב מאובטחת לניהול מסמכי ב�
 | פעולה | פקודה | הערה |
 |---|---|---|
 | בדיקות יחידה | `npm test` (vitest) | לא נוגע ב-DB. אם worker קורס: `npx vitest run --pool=threads` |
-| טיפוסים | `npx tsc --noEmit -p .` | שגיאות קיימות ידועות: `tests/s11/isolation-final.spec.ts` (10) ו-`.next/*/validator.ts` ישן |
-| Lint | `npx eslint <קבצים ששונו>` | שגיאות קיימות ידועות ב-`promo/` ובחלק מ-`tests/**/*.spec.ts` |
+| טיפוסים | `npx tsc --noEmit -p .` | אמור להיות נקי. שגיאות ב-`.next/*/validator.ts` = תיקיית build ישנה מקומית (לא קיימת ב-CI) |
+| Lint | `npx eslint app lib components hooks middleware.ts` | קוד האפליקציה בלי שגיאות (אזהרות בלבד). שגיאות ידועות רק ב-`promo/` ובחלק מ-`tests/**/*.spec.ts` |
+| CI | `.github/workflows/ci.yml` | בכל push: בדיקות, טיפוסים, lint, build — בלי סודות ובלי DB |
 | בדיקת דפדפן מבודדת | `node tests/isolated/briefing-persistence.e2e.mjs --workdir <תיקייה מחוץ לפרויקט>` | מעתיק בלי `.env*`, Supabase מדומה בזיכרון, Chromium + Service Worker אמיתי |
 | Playwright הקיים (`tests/**/*.spec.ts`) | **לא להריץ** | `playwright.config.ts` טוען `.env.local` = Production. רק אחרי שתוקם סביבת בדיקות |
 | Build | `npm run build` | טוען `.env.local`. ל-build מבודד — להשתמש ברנר המבודד |
-| פריסה | `git push origin main` → Vercel | לעקוב אחרי הפריסה (MCP / `gh api repos/itayvm-debug/safety-system/commits/<sha>/status`) ולאמת באתר |
+| פריסה | `git push origin main` → Vercel | לעקוב: `vercel ls safety-system --environment production --meta githubCommitSha=<sha>` (Vercel CLI מחובר). לאמת באתר. commit של תיעוד/SQL/בדיקות בלבד לא נפרס (`ignoreCommand` ב-`vercel.json`) |
 
 ## ארכיטקטורה — כללים שאסור לשבור
 - **Auth:** שם משתמש + סיסמה (Supabase `signInWithPassword` בשרת) → cookie חתום `safedoc_session` (HMAC, 7 ימים, נאכף בשרת). מסלולי ההתחברות בטלפון (`phone-login`, `check-phone`) **הוסרו**. `authorized_phones` אינה מנגנון ההתחברות.
 - **הקשר חברה:** כל קריאה/כתיבה עוברת `getCurrentCompanyContext()` / `requireCompanyAdminRole()` (בודקים DB: profile פעיל, membership פעיל, חברה פעילה) ומסננת `company_id`. לעולם לא לסמוך על companyId מהלקוח.
 - **DB:** כל הגישה מהשרת עם `createServiceClient()` (service role). אין שימוש ב-client של הדפדפן מול טבלאות. אדמין פלטפורמה נבדק ב-DB (`requirePlatformAdmin`), לא מה-cookie.
+- **הרשאות DB (2026-11-18):** ל-`anon`/`authenticated` אין הרשאות ב-`public`, וברירת המחדל לאובייקטים חדשים סגורה. טבלה/פונקציה חדשה — RLS פעיל, בלי GRANT ללקוח. `safedoc_health_check()` רצה כל יום (`/api/maintenance/daily`) ומתריעה במייל לאדמיני הפלטפורמה. מיגרציה שהקוד תלוי בה — להוסיף לה בדיקה ב-health check.
 - **קבצים:** נתיבי העלאה חתומים (`issueUploadPath`), צירוף קובץ רק דרך `validateFileFields`. מחיקה אוטומטית מ-Storage רק לפי `AUTO_REMOVE_ON` ב-`lib/storage/file-paths.ts` (תמיד עם בדיקת הפניות). **לא למחוק היסטוריית תדריכים או מסמכים חתומים.**
 - **מנוע סטטוס משותף:** `lib/documents/status.ts` + `lib/documents/issues.ts` + `lib/documents/issue-data.ts`. Dashboard, `/issues`, התראות, דפי ישויות וייצוא חייבים להשתמש בהם. לא לשכפל לוגיקת סטטוס.
 - **Service Worker** (`public/sw.js`): שומר במטמון רק קבצים סטטיים ללא query. לעולם לא דפים/RSC/API. שינוי ב-SW = העלאת `CACHE_VERSION`.
 - **מטמון לא-מקוון** (`lib/offline/cache.ts`): מפתחות גלובליים, מנוקים בכניסה/יציאה/החלפת חברה (`clearAllSnapshots`).
 - **AI לחילוץ זהות:** כבוי אלא אם `AI_IDENTITY_EXTRACTION_ENABLED=true` (החלטה עסקית פתוחה).
-- **Cron:** `lib/auth/cron.ts` — דורש `CRON_SECRET` (Bearer) מוגדר ב-Vercel.
+- **Cron:** `lib/auth/cron.ts` — דורש `CRON_SECRET` (Bearer) מוגדר ב-Vercel. נתיב cron חדש — להוסיף גם ל-`PUBLIC` ב-`middleware.ts` (אחרת 401).
+- **הגבלת קצב:** `lib/rate-limit/db.ts` (פונקציה `rate_limit_check` ב-DB). התחברות: 10/15 דק' לפי IP **ו**-10/15 דק' לפי חשבון. נכשל פתוח עם `console.error`.
 
 ## כללים עסקיים קיימים
 - סטטוסים: valid / expiring_soon (≤14 יום) / expired / missing / not_required. סטטוס ישות = החמור ביותר.
