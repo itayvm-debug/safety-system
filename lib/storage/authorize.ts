@@ -186,28 +186,24 @@ export async function authorizeStorageObjectAccess(
 
   // ── Mode B: Worker-linked legacy ─────────────────────────────────────────
   // Phase 2 Batch 6: lifting_machine_appointments moved to Mode A.
-  const workerIds = companyWorkers.map(w => w.id);
+  // Ownership through an inner join on workers.company_id. Until 2026-11-18 this sent every
+  // worker id of the company in the query string (.in('worker_id', [...])): ~4 KB of URL at
+  // 112 workers, enough at a few hundred to exceed the gateway's URL limit and deny access.
+  if (companyWorkers.length > 0) {
+    const workerLinked = (table: string, column: string) =>
+      supabase.from(table).select('id, workers!inner(company_id)')
+        .eq(column, path)
+        .eq('workers.company_id', companyId)
+        .limit(1).maybeSingle()
+        .then((r: { data: unknown }) => r.data ? table : null);
 
-  if (workerIds.length > 0) {
     const workerLinkedChecks = await Promise.all([
-      supabase.from('safety_briefings').select('id').eq('file_url', path)
-        .in('worker_id', workerIds).limit(1).maybeSingle()
-        .then((r: { data: unknown }) => r.data ? 'safety_briefings' : null),
-      supabase.from('safety_briefings').select('id').eq('signature_url', path)
-        .in('worker_id', workerIds).limit(1).maybeSingle()
-        .then((r: { data: unknown }) => r.data ? 'safety_briefings' : null),
-      supabase.from('height_restrictions').select('id').eq('file_url', path)
-        .in('worker_id', workerIds).limit(1).maybeSingle()
-        .then((r: { data: unknown }) => r.data ? 'height_restrictions' : null),
-      supabase.from('height_restrictions').select('id').eq('signature_url', path)
-        .in('worker_id', workerIds).limit(1).maybeSingle()
-        .then((r: { data: unknown }) => r.data ? 'height_restrictions' : null),
-      supabase.from('professional_licenses').select('id').eq('file_url', path)
-        .in('worker_id', workerIds).limit(1).maybeSingle()
-        .then((r: { data: unknown }) => r.data ? 'professional_licenses' : null),
-      supabase.from('manager_licenses').select('id').eq('file_url', path)
-        .in('worker_id', workerIds).limit(1).maybeSingle()
-        .then((r: { data: unknown }) => r.data ? 'manager_licenses' : null),
+      workerLinked('safety_briefings', 'file_url'),
+      workerLinked('safety_briefings', 'signature_url'),
+      workerLinked('height_restrictions', 'file_url'),
+      workerLinked('height_restrictions', 'signature_url'),
+      workerLinked('professional_licenses', 'file_url'),
+      workerLinked('manager_licenses', 'file_url'),
     ]);
 
     const workerLinkedHit = workerLinkedChecks.find(t => t !== null);
