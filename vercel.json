@@ -11,6 +11,10 @@
     {
       "path": "/api/reviews/reminder-cron",
       "schedule": "0 6 * * 4"
+    },
+    {
+      "path": "/api/maintenance/rate-limit-cleanup",
+      "schedule": "30 2 * * *"
     }
   ]
 }

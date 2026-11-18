@@ -254,6 +254,7 @@ RETURNS TABLE(
   reset_at  TIMESTAMPTZ
 )
 LANGUAGE plpgsql
+SET search_path = public, pg_temp
 -- SECURITY INVOKER (default): runs as the calling role (service_role).
 -- service_role bypasses RLS so no SECURITY DEFINER is required.
 AS $$
@@ -352,6 +353,7 @@ CREATE OR REPLACE FUNCTION rate_limit_cleanup(
 )
 RETURNS INT
 LANGUAGE plpgsql
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_cutoff  TIMESTAMPTZ;
@@ -373,8 +375,10 @@ $$;
 -- Revoke default PUBLIC execute privilege, then grant to service_role only.
 -- anon and authenticated roles must never call these functions directly.
 
-REVOKE ALL ON FUNCTION rate_limit_check(text, text, integer, integer, inet, uuid) FROM PUBLIC;
-REVOKE ALL ON FUNCTION rate_limit_cleanup(integer)                                FROM PUBLIC;
+-- Supabase default privileges grant EXECUTE on new functions to anon and
+-- authenticated explicitly (not through PUBLIC), so revoke from them by name.
+REVOKE ALL ON FUNCTION rate_limit_check(text, text, integer, integer, inet, uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION rate_limit_cleanup(integer)                                FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION rate_limit_check(text, text, integer, integer, inet, uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION rate_limit_cleanup(integer)                                TO service_role;

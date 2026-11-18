@@ -27,6 +27,7 @@ const PUBLIC = [
   // Cron endpoints — secured by their own CRON_SECRET bearer token (lib/auth/cron.ts)
   '/api/reviews/reminder-cron',
   '/api/reviews/weekly-snapshot-cron',
+  '/api/maintenance/rate-limit-cleanup',
   // דפים ציבוריים
   '/terms',
   '/privacy',
