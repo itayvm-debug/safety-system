@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Tailwind scans every non-ignored file for class names. Prose and SQL are not UI:
+   a Windows path such as "CLAUDE\a2727b09" in HANDOFF.md was read as a CSS escape
+   for an invalid code point and failed the build (2026-11-18). */
+@source not "../**/*.md";
+@source not "../supabase";
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
