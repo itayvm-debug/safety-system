@@ -40,6 +40,11 @@ const PUBLIC = [
   '/data-retention',
   '/legal-consent',
 ];
+// PWA shell files — no data; exact paths only. Behind the session they were redirected to /login
+// when signed out, so the Service Worker could not update ("script resource is behind a redirect"),
+// the login page had no manifest, and the login page could be precached as the offline page.
+const PUBLIC_FILES = new Set(['/sw.js', '/manifest.json', '/offline.html']);
+
 const ADMIN_PATHS = ['/admin', '/api/admin'];
 
 export async function middleware(request: NextRequest) {
@@ -63,7 +68,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (PUBLIC.some(p => pathname.startsWith(p))) {
+  if (PUBLIC_FILES.has(pathname) || PUBLIC.some(p => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
