@@ -62,3 +62,6 @@ next-env.d.ts
 "סיסמא לאתר.txt"
 *.credentials.txt
 *.password.txt
+
+# Claude Code personal settings (project settings in .claude/settings.json are shared)
+.claude/settings.local.json
