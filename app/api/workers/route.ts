@@ -2,6 +2,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { normalizeIdentityValue } from '@/lib/workers/normalize';
+import { optionalPhone, optionalText } from '@/lib/validation/fields';
 
 export async function GET(request: NextRequest) {
   const { context, error } = await getCurrentCompanyContext();
@@ -43,9 +44,17 @@ export async function POST(request: NextRequest) {
   const { companyId } = context;
 
   const body = await request.json();
-  const { full_name, is_foreign_worker, national_id, passport_number, phone, notes, project_name } = body;
+  const { is_foreign_worker, national_id, passport_number } = body;
 
-  if (!full_name?.trim()) return NextResponse.json({ error: 'שם מלא נדרש' }, { status: 400 });
+  const fullName = optionalText(body.full_name, 'שם מלא', 200);
+  if (!fullName.ok) return NextResponse.json({ error: fullName.error }, { status: 400 });
+  if (!fullName.value) return NextResponse.json({ error: 'שם מלא נדרש' }, { status: 400 });
+  const phone = optionalPhone(body.phone);
+  const notes = optionalText(body.notes, 'הערות', 2000);
+  const projectName = optionalText(body.project_name, 'שם הפרויקט', 200);
+  for (const f of [phone, notes, projectName]) {
+    if (!f.ok) return NextResponse.json({ error: f.error }, { status: 400 });
+  }
 
   const isForeign = !!is_foreign_worker;
   const nationalIdNorm   = normalizeIdentityValue(national_id);
@@ -83,15 +92,15 @@ export async function POST(request: NextRequest) {
     .from('workers')
     .insert({
       company_id: companyId,
-      full_name: full_name.trim(),
+      full_name: fullName.value,
       worker_type: isForeign ? 'foreign' : 'israeli',
       is_foreign_worker: isForeign,
       national_id: nationalIdNorm,
       passport_number: passportNorm,
       id_number: nationalIdNorm ?? passportNorm,
-      phone: phone?.trim() || null,
-      notes: notes?.trim() || null,
-      project_name: project_name?.trim() || null,
+      phone: phone.ok ? phone.value : null,
+      notes: notes.ok ? notes.value : null,
+      project_name: projectName.ok ? projectName.value : null,
     })
     .select()
     .single();

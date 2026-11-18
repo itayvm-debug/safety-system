@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole, getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { optionalPhone } from '@/lib/validation/fields';
 
 export async function GET(request: NextRequest) {
   const { context, error } = await getCurrentCompanyContext();
@@ -42,6 +43,8 @@ export async function POST(request: NextRequest) {
   if (!worker_id) return NextResponse.json({ error: 'worker_id נדרש' }, { status: 400 });
   if (!machine_name?.trim()) return NextResponse.json({ error: 'שם המכונה נדרש' }, { status: 400 });
   if (!appointer_name?.trim()) return NextResponse.json({ error: 'שם הממנה נדרש' }, { status: 400 });
+  const appointerPhone = optionalPhone(appointer_phone);
+  if (!appointerPhone.ok) return NextResponse.json({ error: appointerPhone.error }, { status: 400 });
 
   const supabase = createServiceClient();
 
@@ -111,7 +114,7 @@ export async function POST(request: NextRequest) {
       machines: Array.isArray(machines) && machines.length > 0 ? machines : null,
       appointer_name: appointer_name.trim(),
       appointer_role: appointer_role?.trim() || null,
-      appointer_phone: appointer_phone?.trim() || null,
+      appointer_phone: appointerPhone.value,
       appointer_address: appointer_address?.trim() || null,
       appointer_zip: appointer_zip?.trim() || null,
       appointment_date: appointment_date || new Date().toISOString().split('T')[0],

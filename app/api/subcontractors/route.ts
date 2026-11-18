@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { optionalPhone, optionalText } from '@/lib/validation/fields';
 
 export async function GET() {
   const { context, error } = await getCurrentCompanyContext();
@@ -24,20 +25,28 @@ export async function POST(request: NextRequest) {
   if (error) return error;
   const { companyId } = context;
 
-  const body = await request.json();
-  const { name, contact_name, phone, notes } = body;
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'בקשה לא תקינה' }, { status: 400 });
 
-  if (!name?.trim()) return NextResponse.json({ error: 'שם קבלן נדרש' }, { status: 400 });
+  const name = optionalText(body.name, 'שם קבלן', 200);
+  if (!name.ok) return NextResponse.json({ error: name.error }, { status: 400 });
+  if (!name.value) return NextResponse.json({ error: 'שם קבלן נדרש' }, { status: 400 });
+  const contactName = optionalText(body.contact_name, 'איש קשר', 200);
+  const phone = optionalPhone(body.phone);
+  const notes = optionalText(body.notes, 'הערות', 2000);
+  for (const f of [contactName, phone, notes]) {
+    if (!f.ok) return NextResponse.json({ error: f.error }, { status: 400 });
+  }
 
   const supabase = createServiceClient();
   const { data, error: dbError } = await supabase
     .from('subcontractors')
     .insert({
       company_id: companyId,
-      name: name.trim(),
-      contact_name: contact_name?.trim() || null,
-      phone: phone?.trim() || null,
-      notes: notes?.trim() || null,
+      name: name.value,
+      contact_name: contactName.ok ? contactName.value : null,
+      phone: phone.ok ? phone.value : null,
+      notes: notes.ok ? notes.value : null,
     })
     .select()
     .single();

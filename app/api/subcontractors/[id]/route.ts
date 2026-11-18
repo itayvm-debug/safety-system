@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { optionalPhone, optionalText } from '@/lib/validation/fields';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -36,23 +37,43 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const supabase = createServiceClient();
   const { data: existing } = await supabase
     .from('subcontractors')
-    .select('id')
+    .select('id, phone')
     .eq('id', id)
     .eq('company_id', companyId)
     .maybeSingle();
 
   if (!existing) return NextResponse.json({ error: 'קבלן לא נמצא' }, { status: 404 });
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'בקשה לא תקינה' }, { status: 400 });
   const patch: Partial<Record<PatchField, unknown>> = {};
   for (const field of PATCH_ALLOWED) {
     if (field in body) patch[field] = body[field];
   }
 
-  if (patch.name !== undefined && !String(patch.name ?? '').trim()) {
-    return NextResponse.json({ error: 'שם קבלן נדרש' }, { status: 400 });
+  if (patch.name !== undefined) {
+    const name = optionalText(patch.name, 'שם קבלן', 200);
+    if (!name.ok) return NextResponse.json({ error: name.error }, { status: 400 });
+    if (!name.value) return NextResponse.json({ error: 'שם קבלן נדרש' }, { status: 400 });
+    patch.name = name.value;
   }
-  if (patch.name !== undefined) patch.name = String(patch.name).trim();
+  const textChecks = [
+    ['contact_name', () => optionalText(patch.contact_name, 'איש קשר', 200)],
+    ['phone', () => optionalPhone(patch.phone, (existing as { phone: string | null }).phone)],
+    ['notes', () => optionalText(patch.notes, 'הערות', 2000)],
+  ] as const;
+  for (const [field, check] of textChecks) {
+    if (patch[field] === undefined) continue;
+    const r = check();
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 });
+    patch[field] = r.value;
+  }
+  if (patch.is_archived !== undefined && typeof patch.is_archived !== 'boolean') {
+    return NextResponse.json({ error: 'ערך לא תקין' }, { status: 400 });
+  }
+  if (patch.responsible_worker_id != null && typeof patch.responsible_worker_id !== 'string') {
+    return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
+  }
 
   // Validate responsible_worker_id belongs to the same company
   if ('responsible_worker_id' in patch && patch.responsible_worker_id) {

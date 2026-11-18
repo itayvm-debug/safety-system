@@ -3,6 +3,8 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { validateSubcontractorOwnership } from '@/lib/subcontractors/ownership';
 import { validateFileFields, cleanupAfterChange, replacedPaths } from '@/lib/storage/file-paths';
+import { optionalPhone, optionalText } from '@/lib/validation/fields';
+import { normalizeIdentityValue } from '@/lib/workers/normalize';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -105,13 +107,20 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const { companyId } = context;
 
   const body = await request.json();
-  const { full_name, is_foreign_worker, national_id, passport_number, phone, notes, project_name } = body;
+  const { is_foreign_worker, national_id, passport_number } = body;
 
-  if (!full_name?.trim()) return NextResponse.json({ error: 'שם מלא נדרש' }, { status: 400 });
+  const fullName = optionalText(body.full_name, 'שם מלא', 200);
+  if (!fullName.ok) return NextResponse.json({ error: fullName.error }, { status: 400 });
+  if (!fullName.value) return NextResponse.json({ error: 'שם מלא נדרש' }, { status: 400 });
+  const notes = optionalText(body.notes, 'הערות', 2000);
+  const projectName = optionalText(body.project_name, 'שם הפרויקט', 200);
+  for (const f of [notes, projectName]) {
+    if (!f.ok) return NextResponse.json({ error: f.error }, { status: 400 });
+  }
 
   const isForeign = !!is_foreign_worker;
-  const nationalIdNorm = national_id?.trim() || null;
-  const passportNorm   = passport_number?.trim() || null;
+  const nationalIdNorm = normalizeIdentityValue(national_id);
+  const passportNorm   = normalizeIdentityValue(passport_number);
 
   if (!isForeign && !nationalIdNorm)
     return NextResponse.json({ error: 'מספר תעודת זהות נדרש' }, { status: 400 });
@@ -119,6 +128,15 @@ export async function PUT(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'מספר דרכון נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();
+
+  // An unchanged phone saved before validation existed is kept as is (looked up only when needed)
+  let phone = optionalPhone(body.phone);
+  if (!phone.ok) {
+    const { data: current } = await supabase
+      .from('workers').select('phone').eq('id', workerId).eq('company_id', companyId).maybeSingle();
+    phone = optionalPhone(body.phone, (current as { phone: string | null } | null)?.phone ?? null);
+    if (!phone.ok) return NextResponse.json({ error: phone.error }, { status: 400 });
+  }
 
   // Duplicate check scoped to this company, excluding the worker being updated
   if (!isForeign && nationalIdNorm) {
@@ -145,15 +163,15 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const { data, error: dbError } = await supabase
     .from('workers')
     .update({
-      full_name:         full_name.trim(),
+      full_name:         fullName.value,
       worker_type:       isForeign ? 'foreign' : 'israeli',
       is_foreign_worker: isForeign,
       national_id:       isForeign ? null : nationalIdNorm,
       passport_number:   isForeign ? passportNorm : null,
       id_number:         isForeign ? passportNorm : nationalIdNorm,
-      phone:             phone?.trim() || null,
-      notes:             notes?.trim() || null,
-      project_name:      project_name?.trim() || null,
+      phone:             phone.value,
+      notes:             notes.ok ? notes.value : null,
+      project_name:      projectName.ok ? projectName.value : null,
     })
     .eq('id', workerId)
     .eq('company_id', companyId)
