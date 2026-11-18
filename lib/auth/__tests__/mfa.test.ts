@@ -54,7 +54,7 @@ vi.mock('@/lib/auth/api', async (orig) => ({ ...(await orig<object>()), requireP
 import { base32Decode, base32Encode, totpAt, totpStep, verifyTotp, otpauthUri } from '@/lib/auth/totp';
 import { encryptSecret, decryptSecret } from '@/lib/auth/mfa-crypto';
 import { signMfaPending, verifyMfaPending, signSession, verifySession, SESSION_COOKIE_NAME } from '@/lib/auth/session';
-import { MFA_PENDING_COOKIE_NAME, isMfaEnforced, MFA_ENFORCE_FROM } from '@/lib/auth/mfa-policy';
+import { MFA_PENDING_COOKIE_NAME, isMfaEnforced, MFA_ENFORCE_FROM, MFA_REQUIRED_ROLES, isMfaRequiredForRole } from '@/lib/auth/mfa-policy';
 import { POST as login } from '@/app/api/auth/login/route';
 import { POST as verify } from '@/app/api/auth/mfa/verify/route';
 import { GET as mfaStatus, POST as enrol, PUT as confirmEnrol } from '@/app/api/account/mfa/route';
@@ -235,22 +235,44 @@ describe('reset by another platform admin', () => {
   });
 });
 
-describe('enforcement for platform admins', () => {
-  it('the deadline is 14 days after the decision', () => {
+describe('policy: optional two-factor', () => {
+  it('the dormant deadline constant is unchanged', () => {
     expect(MFA_ENFORCE_FROM.toISOString()).toBe('2026-12-01T22:00:00.000Z');
     expect(isMfaEnforced(new Date('2026-11-30T12:00:00Z'))).toBe(false);
     expect(isMfaEnforced(new Date('2026-12-02T12:00:00Z'))).toBe(true);
   });
 
-  it('after the deadline an admin without a factor signs in limited to the enrolment page', async () => {
+  it('owner decision (2026-11-18): optional for everyone — no role is required', () => {
+    expect(MFA_REQUIRED_ROLES).toEqual([]);
+    expect(isMfaRequiredForRole('admin')).toBe(false);
+    expect(isMfaRequiredForRole('user')).toBe(false);
+    // the mechanism stays available if roles are listed again
+    expect(isMfaRequiredForRole('admin', ['admin'])).toBe(true);
+    expect(isMfaRequiredForRole(null, ['admin'])).toBe(false);
+  });
+
+  it('after the old deadline an admin without a factor still gets a full session', async () => {
     vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-12-05T08:00:00Z'));
     try {
       db.profiles[0].role = 'admin';
       const res = await login(post('/api/auth/login', { identifier: 'qa', password: 'pw' }));
-      expect(await res.json()).toMatchObject({ mfaSetupRequired: true });
+      expect(await res.json()).not.toHaveProperty('mfaSetupRequired');
       const s = await verifySession(cookieValue(res, SESSION_COOKIE_NAME)!);
-      expect(s?.mfaSetupRequired).toBe(true);
+      expect(s?.mfaSetupRequired).toBeUndefined();
     } finally { vi.useRealTimers(); }
+  });
+
+  it('whoever enabled two-factor is still asked for a code, admin or not', async () => {
+    db.profiles[0].role = 'admin';
+    await enrolVerified();
+    const res = await login(post('/api/auth/login', { identifier: 'qa', password: 'pw' }));
+    expect(await res.json()).toEqual({ mfaRequired: true });
+  });
+
+  it('the account page reports two-factor as not required for an admin', async () => {
+    db.profiles[0].role = 'admin';
+    currentSession = { userId: U, email: 'qa@example.test', username: 'qa', role: 'admin', loginAt: Date.now() };
+    expect((await (await mfaStatus()).json()).required).toBe(false);
   });
 
   it('middleware: a limited session reaches only the enrolment page; the code step is public', async () => {

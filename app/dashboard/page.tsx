@@ -7,7 +7,7 @@ import { buildAllIssues, countByEntity, EntityCounts } from '@/lib/documents/iss
 import { buildNoteIssues, buildEntityMap } from '@/lib/documents/notes';
 import { loadIssueData } from '@/lib/documents/issue-data';
 import { hasVerifiedFactor } from '@/lib/auth/mfa-store';
-import { daysUntilEnforcement } from '@/lib/auth/mfa-policy';
+import { daysUntilEnforcement, isMfaRequiredForRole } from '@/lib/auth/mfa-policy';
 import { DashboardOfflineCapture } from '@/components/pwa/DashboardOfflineCapture';
 
 export const dynamic = 'force-dynamic';
@@ -179,7 +179,7 @@ export default async function DashboardPage() {
   const dataIncomplete = issueData.failed || issueData.truncated;
 
   // Two-factor reminder for platform admins without a factor (14-day transition, then enforced at sign-in)
-  const mfaReminderDays = isAdmin && !(await hasVerifiedFactor(supabase, userId).catch(() => true)) ? daysUntilEnforcement() : null;
+  const mfaReminderDays = isMfaRequiredForRole(platformRole) && !(await hasVerifiedFactor(supabase, userId).catch(() => true)) ? daysUntilEnforcement() : null;
 
   // site_feedback is a platform-level table (no company_id). Only platform admins see the count.
   let feedbackCount = 0;
