@@ -41,7 +41,7 @@ SafeDoc — אפליקציית ווב מאובטחת לניהול מסמכי ב�
 | Vercel | פריסה אוטומטית מ-Git: push ל-`main` = Production, push לענף אחר = Preview (לאמת ב-MCP). כתובת חיה: `https://safety-system-henna.vercel.app` |
 | Supabase | פרויקט `rwpahefpexizaicrrxoc` = **Production** (אין פרויקט בדיקות). Bucket פרטי `worker-files` |
 | MCP | `.mcp.json`: `supabase` (מוגבל לפרויקט הזה), `vercel`. הזדהות OAuth דרך `/mcp` |
-| GitHub CLI | `gh` (מותקן ב-`%LOCALAPPDATA%\Microsoft\WinGet\Links`) — מצב ריצה Vercel נראה גם ב-commit statuses של GitHub |
+| GitHub CLI | `gh` 2.104 (winget, ב-PATH של המשתמש; נתיב מלא: `%LOCALAPPDATA%\Microsoft\WinGet\Packages\GitHub.cli_Microsoft.Winget.Source_8wekyb3d8bbwe\bin\gh.exe`) — מצב פריסת Vercel נראה גם ב-commit statuses של GitHub |
 
 **`.env.local` מצביע ל-Production** (כולל service role וסיסמאות). אין להדפיס אותו. כל פקודה שטוענת אותו (`next dev`, `next build`, `npx playwright test`) עובדת מול הנתונים החיים.
 
