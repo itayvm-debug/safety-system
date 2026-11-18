@@ -135,8 +135,9 @@
 13. הטבלה עם 9 השורות הייתה נגישה עם המפתח הציבורי עד 2026-11-18; אין עדות לגישה בחלון הלוגים (~21 שעות), ואין לוגים לפני כן — האם לבצע הערכת אירוע פרטיות?
 14. UX: רשימות מציגות snapshot ישן בשקט כשהשליפה נכשלת — להוסיף חיווי?
 15. משתני סביבה ישנים ב-Vercel (`ADMIN_PHONE/ADMIN_PASSWORD/VIEWER_PHONE/VIEWER_PASSWORD`) — הקוד לא קורא אותם; להסיר?
-16. חשבון Auth ישן `@safedoc.internal` (בלי profile/חברה, כניסה אחרונה 12.4.2026) — לחסום (`banned_until`, הפיך) או למחוק?
-17. `authorized_phones` (שורה אחת, לא בשימוש בקוד) — להסיר את `authorized_phones_select USING (true)` ואת הרשאות authenticated (כמו 07), או למחוק את הטבלה?
+16. ~~חשבון Auth ישן `@safedoc.internal`~~ — **הוחלט ובוצע 2026-11-18:** נחסם (`banned_until` 2999) ו-refresh token 17 בוטל. לא נמחק. נשאר לשקול מחיקה בעתיד.
+17. ~~`authorized_phones`~~ — **הוחלט ובוצע 2026-11-18:** המדיניות הוסרה והרשאות anon/authenticated בוטלו. הטבלה (שורה אחת) נשמרה. קבצים: `supabase/proposed/2026-11-18-authorized-phones-legacy-user/`.
+20. **הגבלת קצב לא פועלת ב-Production (נמצא 2026-11-18):** המיגרציה `supabase/migrations/durable-rate-limiting.sql` מעולם לא הורצה — אין `rate_limit_events` ואין `rate_limit_check()`. כל קריאה מחזירה 404 (מאות ביום, גם ב-17.11) והקוד מאפשר (fail-open). כלומר אין הגבלה על ניסיונות התחברות (מתוכנן: 10 ל-15 דק' לכל IP), העלאות, ייצוא וקישורים חתומים. להחלטה: להריץ את המיגרציה (תוספתית, rollback מתועד בקובץ). שיקולים: עמודת `ip` שומרת IP גולמי (מידע אישי) ו-`rate_limit_cleanup()` לא מחובר ל-cron — צריך לחבר כדי שה-IP יימחק אחרי 24 שעות.
 18. Leaked Password Protection ב-Supabase Auth — להפעיל (ייתכן שדורש תוכנית בתשלום)?
 19. `AUTH_FLOW.md` מתאר התחברות בטלפון — לעדכן.
 
