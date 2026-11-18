@@ -13,7 +13,7 @@ import type { WorkerWithDocuments, Vehicle, HeavyEquipment, LiftingEquipment, En
 type Supabase = ReturnType<typeof createServiceClient>;
 
 export const WORKER_ISSUE_SELECT =
-  '*, documents(id,doc_type,file_url,expiry_date,is_required), safety_briefings(id,briefed_at,expires_at,created_at), height_restrictions(id,expires_at,created_at), lifting_machine_appointments(id), professional_licenses(id,file_url,expiry_date,license_type), manager_licenses(id,file_url,expiry_date,license_type), vehicles(id,vehicle_number,vehicle_licenses(id,file_url,expiry_date),vehicle_insurances(id,insurance_type,file_url,expiry_date)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id,name)';
+  '*, documents(id,doc_type,file_url,expiry_date,is_required), safety_briefings(id,briefed_at,expires_at,created_at), height_restrictions(id,expires_at,created_at), lifting_machine_appointments(id), professional_licenses(id,file_url,expiry_date,license_type), manager_licenses(id,file_url,expiry_date,license_type), vehicles(id,vehicle_number,is_active,is_archived,vehicle_licenses(id,file_url,expiry_date),vehicle_insurances(id,insurance_type,file_url,expiry_date)), subcontractor:subcontractors!workers_subcontractor_id_fkey(id,name)';
 export const VEHICLE_ISSUE_SELECT =
   '*, vehicle_licenses(id,file_url,expiry_date), vehicle_insurances(id,insurance_type,file_url,expiry_date), assigned_manager:workers!vehicles_assigned_manager_id_fkey(id,full_name)';
 export const HEAVY_ISSUE_SELECT =

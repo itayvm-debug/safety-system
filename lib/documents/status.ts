@@ -203,23 +203,10 @@ export function getWorkerStatus(worker: WorkerWithDocuments): DocumentStatus {
 
   // מנהל עבודה: רכב מטבלת vehicles (אופציונלי); נהיגה/מקצועיים מ-manager_licenses — תמיד
   if (worker.is_responsible_site_manager) {
-    // רכב — רק אם קיים רכב מקושר בטבלת vehicles
-    const linkedVehicle = (worker.vehicles ?? [])[0] ?? null;
-    if (linkedVehicle) {
-      const lic = (linkedVehicle.vehicle_licenses ?? [])[0] ?? null;
-      const vLicStatus = getDocumentStatus(lic?.file_url ?? null, lic?.expiry_date ?? null, true, true);
-      if (STATUS_SEVERITY[vLicStatus] > STATUS_SEVERITY[worstStatus]) worstStatus = vLicStatus;
-
-      const mandatoryIns = (linkedVehicle.vehicle_insurances ?? []).find(
-        (i) => i.insurance_type === 'ביטוח חובה'
-      );
-      const insStatus = getDocumentStatus(
-        mandatoryIns?.file_url ?? null,
-        mandatoryIns?.expiry_date ?? null,
-        true,
-        true
-      );
-      if (STATUS_SEVERITY[insStatus] > STATUS_SEVERITY[worstStatus]) worstStatus = insStatus;
+    // רכבים — כל הרכבים הפעילים שאינם בארכיון; הסטטוס החמור ביותר (P1·5)
+    for (const vehicle of getActiveManagerVehicles(worker)) {
+      const vStatus = getVehicleStatus(vehicle);
+      if (STATUS_SEVERITY[vStatus] > STATUS_SEVERITY[worstStatus]) worstStatus = vStatus;
     }
 
     // רישיון נהיגה + רישיונות מקצועיים של מנהל — נדרשים אם קיימים
@@ -283,6 +270,15 @@ export const STATUS_LABELS: Record<DocumentStatus, string> = {
 };
 
 /** סטטוס רכב: רישיון רכב + ביטוח חובה חובה; מקיף/צד ג אופציונליים */
+/**
+ * רכבי מנהל עבודה שנספרים לסטטוס שלו: פעילים ולא בארכיון (P1·5).
+ * עד 2026-11-18 נספר רק הרכב הראשון ברשימה (ללא סדר מוגדר), כולל רכבים בארכיון.
+ * שדה חסר (loader שלא שלף is_active / is_archived) נחשב פעיל — לא מסתירים ליקוי.
+ */
+export function getActiveManagerVehicles(worker: { vehicles?: Vehicle[] | null }): Vehicle[] {
+  return (worker.vehicles ?? []).filter((v) => v.is_active !== false && v.is_archived !== true);
+}
+
 export function getVehicleStatus(vehicle: Vehicle): DocumentStatus {
   let worst: DocumentStatus = 'valid';
 

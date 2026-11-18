@@ -14,6 +14,7 @@ import {
   getBriefingStatus,
   getLatestCompletedSafetyBriefing,
   getHeightCombinedStatus,
+  getActiveManagerVehicles,
   STATUS_SEVERITY,
 } from '@/lib/documents/status';
 
@@ -102,15 +103,15 @@ export function buildWorkerIssues(worker: WorkerWithDocuments): Issue[] {
       const ls = toIssue(getDocumentStatus(lic.file_url, lic.expiry_date, true, !!lic.expiry_date));
       if (ls) issues.push({ ...base, id: `worker-${worker.id}-manlicense-${lic.id}`, status: ls, problem: lic.license_type });
     }
-    const linkedVehicle = (worker.vehicles ?? [])[0] ?? null;
-    if (linkedVehicle) {
-      const vLic = (linkedVehicle.vehicle_licenses ?? [])[0] ?? null;
+    // כל הרכבים הפעילים שאינם בארכיון (P1·5) — אותו כלל כמו getWorkerStatus
+    for (const vehicle of getActiveManagerVehicles(worker)) {
+      const vLic = (vehicle.vehicle_licenses ?? [])[0] ?? null;
       const vls = toIssue(getDocumentStatus(vLic?.file_url ?? null, vLic?.expiry_date ?? null, true, true));
-      if (vls) issues.push({ ...base, id: `worker-${worker.id}-vehlicense`, status: vls, problem: `רישיון רכב (${linkedVehicle.vehicle_number})` });
+      if (vls) issues.push({ ...base, id: `worker-${worker.id}-vehlicense-${vehicle.id}`, status: vls, problem: `רישיון רכב (${vehicle.vehicle_number})` });
 
-      const mIns = (linkedVehicle.vehicle_insurances ?? []).find((i) => i.insurance_type === 'ביטוח חובה');
+      const mIns = (vehicle.vehicle_insurances ?? []).find((i) => i.insurance_type === 'ביטוח חובה');
       const ins = toIssue(getDocumentStatus(mIns?.file_url ?? null, mIns?.expiry_date ?? null, true, true));
-      if (ins) issues.push({ ...base, id: `worker-${worker.id}-vehins`, status: ins, problem: `ביטוח חובה רכב (${linkedVehicle.vehicle_number})` });
+      if (ins) issues.push({ ...base, id: `worker-${worker.id}-vehins-${vehicle.id}`, status: ins, problem: `ביטוח חובה רכב (${vehicle.vehicle_number})` });
     }
   }
 
