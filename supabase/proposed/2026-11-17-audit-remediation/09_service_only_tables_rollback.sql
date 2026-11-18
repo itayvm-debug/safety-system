@@ -22,10 +22,14 @@ BEGIN;
 -- ── Level A ──────────────────────────────────────────────────────
 ALTER TABLE public.site_feedback DISABLE ROW LEVEL SECURITY;
 
--- ── Level B (template; replace with preflight section 15) ────────
--- GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.site_feedback                  TO anon, authenticated;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.manager_insurances             TO anon, authenticated;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.legal_acceptances_dedup_backup TO anon, authenticated;
+-- ── Level B (from the live preflight of 2026-11-18, section 15) ──
+-- Exact statements: results/2026-11-18_06_section15_rollback.sql (51 statements).
+-- Grants, identical for the three tables, all from grantor postgres, no grant option:
+--   anon and authenticated: DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+-- No PUBLIC, column or sequence grants existed. Uncomment to apply Level B:
+-- GRANT DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+--   ON TABLE public.site_feedback, public.manager_insurances, public.legal_acceptances_dedup_backup
+--   TO anon, authenticated;
 -- ALTER TABLE public.manager_insurances             DISABLE ROW LEVEL SECURITY;
 -- ALTER TABLE public.legal_acceptances_dedup_backup DISABLE ROW LEVEL SECURITY;
 -- (ALTER TABLE public.site_feedback DISABLE ROW LEVEL SECURITY is in Level A above)

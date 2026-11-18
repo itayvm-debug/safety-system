@@ -33,7 +33,9 @@
 | ESLint | אומת היום: 23 שגיאות, כולן ב-`promo/` ו-`tests/**/*.spec.ts` שלא שונו; קבצי `app/`/`lib/` — אזהרות בלבד | `npx eslint .` |
 | Build מבודד (Turbopack + webpack) | דווח (2026-11-17): עובר, 65/65 דפים | עותק בלי `.env*` |
 | בדיקת דפדפן מבודדת (תדריך) | דווח (2026-11-17): 30/30 על התיקון; 3 כשלים על `cd6cb91` | `tests/isolated/` |
-| האתר החי | אומת היום: `/api/health` = ok. **הגרסה הפרוסה לא אומתה** (`sw.js` מפנה ל-login ללא session) | סעיף 1.2 |
+| האתר החי | אומת היום: `/api/health` = ok | |
+| הגרסה ב-Production | **אומת (2026-11-18, Vercel CLI):** פריסה פעילה `dpl_HkHX8Wv1GRAQo4XmoG1PhkD5Pk64` מ-16.11 = commit `cd6cb91` (תואם ל-commit status ב-GitHub). שלושת ה-commits המקומיים **לא** באוויר | `vercel inspect safety-system-henna.vercel.app` |
+| משתני סביבה ב-Vercel (שמות בלבד) | **אומת:** `CRON_SECRET` מוגדר ל-Production+Preview; `AI_IDENTITY_EXTRACTION_ENABLED` לא מוגדר (= כבוי). קיימים גם `ADMIN_PHONE/ADMIN_PASSWORD/VIEWER_PHONE/VIEWER_PASSWORD` ישנים | `vercel env ls` |
 
 ## 4. תיקוני הביקורת שב-`a15e2c3` (מקומי)
 - **P0-2:** הוסרו `api/auth/phone-login` ו-`api/auth/check-phone`.
@@ -58,9 +60,9 @@
 השלכה סבירה שלא נבדקה בדפדפן: אחרי החלפת חברה באותו מכשיר, דפי שרת (Dashboard) יכלו להציג נתוני החברה הקודמת עד רענון מלא. v8 סוגר זאת.
 
 ## 6. לפני פריסה ל-Production (רשימת בדיקה)
-- [ ] `CRON_SECRET` מוגדר ב-Vercel Production (אחרת שלושת ה-cron יחזירו 401).
+- [x] `CRON_SECRET` מוגדר ב-Vercel Production (אומת 2026-11-18, `vercel env ls`).
 - [ ] לוודא שאין תלות של הקוד במיגרציות שלא הורצו (03/05/07 אינם תנאי לקוד).
-- [ ] `AI_IDENTITY_EXTRACTION_ENABLED` לא מוגדר (= כבוי) עד החלטה.
+- [x] `AI_IDENTITY_EXTRACTION_ENABLED` לא מוגדר (= כבוי) — אומת 2026-11-18.
 - [ ] משתמשים פעילים עם session ישן מ-7 ימים יתבקשו להתחבר מחדש — צפוי.
 - [ ] אחרי פריסה: SHA בפריסה = SHA שנדחף; `/sw.js` (עם session) = v8; `/api/auth/phone-login` = 404; כרטיס עובד מתעדכן בכניסה חוזרת.
 
@@ -87,9 +89,13 @@
 | Git (push/fetch) | עובד — Git Credential Manager |
 | GitHub CLI `gh` | הותקן (winget). **לא מחובר** — דורש `gh auth login` של המשתמש (העתקת הטוקן מ-GCM נחסמה ע"י בדיקת ההרשאות האוטומטית) |
 | Supabase MCP | מוגדר ב-`.mcp.json` (פרויקט `rwpahefpexizaicrrxoc`). השרת עונה 401 = דורש OAuth של המשתמש |
-| Vercel MCP | מוגדר ב-`.mcp.json`. השרת עונה 401 = דורש OAuth של המשתמש |
+| Vercel MCP | מוגדר ב-`.mcp.json`. השרת עונה 401 = דורש OAuth של המשתמש (`/mcp` → vercel → Authenticate) |
+| **Vercel CLI** | **מחובר (2026-11-18):** 66.1.0 גלובלי, `vercel whoami` = `itayvm-debug`, צוות `itayvm-debugs-projects` (hobby). חלופה מלאה ל-MCP לפריסות/inspect/env (שמות) |
+| Vercel plugin ל-Claude Code | הותקן (user scope, `vercel-plugin@vercel`), נטען רק בסשן חדש. כולל MCP משלו ל-`mcp.vercel.com` ו-hooks; טלמטריית שימוש ל-`telemetry.vercel.com` (שמות skills + מזהה התקנה). כיבוי: `VERCEL_PLUGIN_TELEMETRY=off` |
 | דפדפן | Playwright + Chromium 1228 מותקנים; הרנר המבודד עובד |
-| Supabase/Vercel CLI | לא מותקנים (MCP מספק את הצורך) |
+| Supabase CLI | לא מותקן (`supabase login` לא עובד ללא TTY; MCP הוא המסלול) |
+
+**אזהרה:** `vercel link` / `vercel env pull` מורידים סודות ל-`.env.local` בתיקייה. לא להריץ בתוך הפרויקט (ידרוס את `.env.local` הקיים). לבדיקות CLI — תיקייה זמנית ומחיקת `.env.local` מיד.
 
 הרשאות Claude Code: `.claude/settings.json` (משותף: מצב auto, allow ל-git/npm/npx/node/gh/vercel/supabase ול-MCP, deny לקריאת `.env*`, force-push, `reset --hard`, `git clean`, מחיקת פרויקטים). `.claude/settings.local.json` (אישי, ignored): הפעלת שרתי ה-MCP של הפרויקט.
 
