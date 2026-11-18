@@ -69,6 +69,9 @@ export async function checkRateLimitDb(
   });
 
   if (error || !data || !Array.isArray(data) || data.length === 0) {
+    // Never silent: until 2026-11-18 the function did not exist in production and every
+    // limit failed open unnoticed. The daily health check also alerts on a missing function.
+    console.error('[rate-limit] check unavailable, request allowed:', action, error?.message ?? 'empty result');
     // Fail-open: allow the request if the DB function is unreachable.
     // This happens before the durable-rate-limiting migration has been applied,
     // or during a transient DB outage. Change to fail-closed here if required.
@@ -101,6 +104,22 @@ export async function rateLimitLoginDb(ip: string): Promise<RateLimitResult> {
     10,
     15 * 60,
     ip,            // raw IP → stored in the ip INET column (GDPR: PII)
+    undefined
+  );
+}
+
+/**
+ * Per-account login limit: 10 attempts / 15 minutes per identifier (username or e-mail),
+ * independent of IP, so rotating addresses does not allow unlimited guessing on one account.
+ * The identifier is hashed for the key; no IP or user id is stored for this action.
+ */
+export async function rateLimitLoginAccountDb(identifier: string): Promise<RateLimitResult> {
+  return checkRateLimitDb(
+    hashKey(`account:${identifier.trim().toLowerCase()}`),
+    'login-account',
+    10,
+    15 * 60,
+    undefined,
     undefined
   );
 }

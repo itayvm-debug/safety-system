@@ -8,7 +8,7 @@ import {
 } from '@/lib/auth/session';
 import { ACTIVE_COMPANY_COOKIE_NAME, ACTIVE_COMPANY_MAX_AGE } from '@/lib/auth/active-company';
 import { createServiceClient } from '@/lib/supabase/server';
-import { rateLimitLoginDb } from '@/lib/rate-limit/db';
+import { rateLimitLoginDb, rateLimitLoginAccountDb } from '@/lib/rate-limit/db';
 import { getClientIp } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit/log';
 import { CONSENT_COOKIE_NAME, CONSENT_COOKIE_MAX_AGE, CURRENT_CONSENT_VERSION } from '@/lib/auth/consent';
@@ -40,6 +40,22 @@ export async function POST(request: NextRequest) {
 
     if (!identifier || !password) {
       return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
+    }
+
+    // Per-account limit, independent of IP (checked for unknown identifiers too, so the
+    // response does not reveal which accounts exist).
+    const accountRl = await rateLimitLoginAccountDb(identifier);
+    if (!accountRl.allowed) {
+      return NextResponse.json(
+        { error: 'יותר מדי ניסיונות כניסה. נסה שנית בעוד מספר דקות.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.ceil((accountRl.resetAt - Date.now()) / 1000)),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      );
     }
 
     const service = createServiceClient();
