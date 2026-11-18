@@ -71,7 +71,7 @@ export default function ReviewReportsClient({ companyName, currentWeek, previous
         {/* Week selector */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">שבוע</label>
-          <select
+          <select aria-label="שבוע"
             value={weekStart}
             onChange={e => setWeekStart(e.target.value)}
             className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -105,7 +105,7 @@ export default function ReviewReportsClient({ companyName, currentWeek, previous
         {scope === 'manager' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">מנהל אתר</label>
-            <select
+            <select aria-label="מנהל אתר"
               value={managerId}
               onChange={e => setManagerId(e.target.value)}
               className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -118,7 +118,7 @@ export default function ReviewReportsClient({ companyName, currentWeek, previous
         {scope === 'individual' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">עובד</label>
-            <select
+            <select aria-label="עובד"
               value={workerId}
               onChange={e => setWorkerId(e.target.value)}
               className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"

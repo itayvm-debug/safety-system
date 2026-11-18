@@ -69,7 +69,7 @@ export default function EquipmentForm({ equipment }: Props) {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">תיאור הציוד <span className="text-red-500">*</span></label>
-        <input
+        <input aria-label="תיאור הציוד"
           type="text"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -121,28 +121,28 @@ export default function EquipmentForm({ equipment }: Props) {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">יצרן</label>
-            <input type="text" value={form.manufacturer}
+            <input aria-label="יצרן" type="text" value={form.manufacturer}
               onChange={(e) => setForm({ ...form, manufacturer: e.target.value })}
               placeholder="שם היצרן"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">מספר מזהה</label>
-            <input type="text" value={form.machine_identifier} dir="ltr"
+            <input aria-label="מספר מזהה" type="text" value={form.machine_identifier} dir="ltr"
               onChange={(e) => setForm({ ...form, machine_identifier: e.target.value })}
               placeholder="מספר סידורי / מזהה"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">עומס עבודה בטוח</label>
-            <input type="text" value={form.safe_working_load}
+            <input aria-label="עומס עבודה בטוח" type="text" value={form.safe_working_load}
               onChange={(e) => setForm({ ...form, safe_working_load: e.target.value })}
               placeholder="למשל: 5 טון"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">סוג הפעלה</label>
-            <select value={form.power_type}
+            <select aria-label="סוג הפעלה" value={form.power_type}
               onChange={(e) => setForm({ ...form, power_type: e.target.value })}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white">
               <option value="">— בחר —</option>

@@ -346,6 +346,7 @@ function ResponsibleWorkerSelector({
         ) : (
           <button
             onClick={() => { setOpen(true); loadWorkers(); }}
+            aria-label={`איש קשר: ${currentName ?? 'לא משויך'} — לחץ לשינוי`}
             className={`text-sm hover:underline transition-colors ${
               currentName
                 ? 'text-green-700 font-medium hover:text-green-800'
@@ -389,7 +390,7 @@ function SubcontractorForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">שם קבלן *</label>
-        <input
+        <input aria-label="שם קבלן"
           type="text"
           value={form.name}
           onChange={(e) => onChange({ ...form, name: e.target.value })}
@@ -400,7 +401,7 @@ function SubcontractorForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">איש קשר</label>
-        <input
+        <input aria-label="איש קשר"
           type="text"
           value={form.contact_name}
           onChange={(e) => onChange({ ...form, contact_name: e.target.value })}
@@ -411,7 +412,7 @@ function SubcontractorForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">טלפון</label>
-        <input
+        <input aria-label="טלפון"
           type="tel"
           value={form.phone}
           onChange={(e) => onChange({ ...form, phone: e.target.value })}
@@ -423,7 +424,7 @@ function SubcontractorForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">הערות</label>
-        <textarea
+        <textarea aria-label="הערות"
           value={form.notes}
           onChange={(e) => onChange({ ...form, notes: e.target.value })}
           placeholder="הערות נוספות..."

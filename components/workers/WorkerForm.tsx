@@ -95,7 +95,7 @@ export default function WorkerForm({ worker }: WorkerFormProps) {
         <label className="block text-sm font-medium text-gray-700 mb-1">
           שם מלא <span className="text-red-500">*</span>
         </label>
-        <input
+        <input aria-label="שם מלא"
           type="text"
           value={formData.full_name}
           onChange={(e) => setFormData((p) => ({ ...p, full_name: e.target.value }))}
@@ -144,7 +144,7 @@ export default function WorkerForm({ worker }: WorkerFormProps) {
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {identifierLabel} <span className="text-red-500">*</span>
         </label>
-        <input
+        <input aria-label={identifierLabel}
           type="text"
           value={identifierValue}
           onChange={(e) => handleIdentifierChange(e.target.value)}

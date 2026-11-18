@@ -279,7 +279,7 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
 
           <div className="flex items-center gap-2 mb-3">
             <label className="text-sm text-gray-500 whitespace-nowrap">תוקף:</label>
-            <input type="date" value={displayExpiry} onChange={(e) => handleExpiryChange(e.target.value)}
+            <input type="date" aria-label="תאריך תוקף התסקיר" value={displayExpiry} onChange={(e) => handleExpiryChange(e.target.value)}
               className={`flex-1 px-2 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 ${hasPending ? 'border-orange-300' : 'border-gray-200'}`}
               dir="ltr" />
           </div>

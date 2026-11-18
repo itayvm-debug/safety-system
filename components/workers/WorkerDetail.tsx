@@ -14,7 +14,7 @@ import {
   Vehicle,
   Subcontractor,
   ALL_DOCUMENT_TYPES,
-  DOCUMENT_TYPE_LABELS,
+  documentTypeLabel,
 } from '@/types';
 import { getWorkerIdentifierLabel, getWorkerIdentifierValue } from '@/lib/workers/identifier';
 import { getDocumentStatus, getWorkerStatus, isWorkVisaLocked } from '@/lib/documents/status';
@@ -653,6 +653,7 @@ function SubcontractorSelector({
       ) : (
         <button
           onClick={() => { setOpen(true); loadList(); }}
+          aria-label={`קבלן משנה: ${currentName ?? 'לא משויך'} — לחץ לשינוי`}
           className="text-sm text-gray-700 hover:text-orange-600 hover:underline"
         >
           {saving ? 'שומר...' : currentName ?? 'לחץ לשיוך'}
@@ -753,6 +754,7 @@ function ManagerSelector({
       ) : (
         <button
           onClick={() => { setOpen(true); loadList(); }}
+          aria-label={`מנהל עבודה: ${currentName ?? 'לא משויך'} — לחץ לשינוי`}
           className="text-sm text-gray-700 hover:text-blue-600 hover:underline"
         >
           {saving ? 'שומר...' : currentName ?? (worker.responsible_manager_id && !loaded ? 'טוען...' : 'לחץ לשיוך')}
@@ -1167,7 +1169,7 @@ function DocumentCard({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="font-medium text-gray-900">
-            {DOCUMENT_TYPE_LABELS[docType as Exclude<DocumentType, 'optional_license'>]}
+            {documentTypeLabel(docType, !!isForeignWorker)}
           </h3>
           {document?.updated_at && (
             <span className="text-xs text-gray-300">
@@ -1184,7 +1186,7 @@ function DocumentCard({
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-500 whitespace-nowrap">תוקף:</label>
             <input
-              type="date"
+              type="date" aria-label={`תוקף ${documentTypeLabel(docType, !!isForeignWorker)}`}
               value={localExpiry}
               onChange={(e) => setLocalExpiry(e.target.value)}
               readOnly={!isOnline}
@@ -1220,7 +1222,7 @@ function DocumentCard({
       <div className="space-y-2">
         {isOnline && (
           <FileUploadZone
-            ariaLabel={DOCUMENT_TYPE_LABELS[docType as Exclude<DocumentType, 'optional_license'>]}
+            ariaLabel={documentTypeLabel(docType, !!isForeignWorker)}
             folder="documents"
             onUploaded={handleFileUploaded}
             currentFileName={hasFile ? 'קובץ קיים' : undefined}

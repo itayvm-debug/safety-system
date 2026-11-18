@@ -82,7 +82,7 @@ export default function VehicleForm({ vehicle, workers, onSaved, defaultManagerI
           <label className="block text-sm font-medium text-gray-700 mb-1">
             סוג רכב <span className="text-red-500">*</span>
           </label>
-          <input
+          <input aria-label="סוג רכב"
             type="text"
             list="vehicle-type-presets"
             value={formData.vehicle_type}
@@ -96,7 +96,7 @@ export default function VehicleForm({ vehicle, workers, onSaved, defaultManagerI
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">דגם</label>
-          <input
+          <input aria-label="דגם"
             type="text"
             value={formData.model}
             onChange={(e) => set('model', e.target.value)}
@@ -111,7 +111,7 @@ export default function VehicleForm({ vehicle, workers, onSaved, defaultManagerI
           <label className="block text-sm font-medium text-gray-700 mb-1">
             מספר רכב <span className="text-red-500">*</span>
           </label>
-          <input
+          <input aria-label="מספר רכב"
             type="text"
             value={formData.vehicle_number}
             onChange={(e) => set('vehicle_number', e.target.value)}

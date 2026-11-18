@@ -363,7 +363,7 @@ export default function NewWorkerWizard() {
           </label>
           {hasExtracted && <ConfidenceBadge field={extraction?.extracted?.full_name} />}
         </div>
-        <input
+        <input aria-label="שם מלא"
           type="text"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
@@ -388,7 +388,7 @@ export default function NewWorkerWizard() {
             />
           )}
         </div>
-        <input
+        <input aria-label={isForeign ? 'מספר דרכון' : 'מספר תעודת זהות'}
           type="text"
           value={isForeign ? passportNumber : nationalId}
           onChange={(e) =>
@@ -411,7 +411,7 @@ export default function NewWorkerWizard() {
       {/* טלפון */}
       <div>
         <label className="text-sm font-medium text-gray-700 block mb-1">טלפון</label>
-        <input
+        <input aria-label="טלפון"
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
@@ -424,7 +424,7 @@ export default function NewWorkerWizard() {
       {/* הערות */}
       <div>
         <label className="text-sm font-medium text-gray-700 block mb-1">הערות</label>
-        <textarea
+        <textarea aria-label="הערות"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}

@@ -270,7 +270,7 @@ export default function SettingsClient({ companyId, companyName, initialSettings
         <form onSubmit={saveBranding} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">שם תצוגה</label>
-            <input type="text" value={draft.displayName}
+            <input aria-label="שם תצוגה" type="text" value={draft.displayName}
               onChange={e => setDraft(p => ({ ...p, displayName: e.target.value }))}
               placeholder={companyName}
               className={inputCls} />
@@ -279,7 +279,7 @@ export default function SettingsClient({ companyId, companyName, initialSettings
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">צבע ראשי</label>
               <div className="flex gap-2 items-center">
-                <input type="color" value={draft.primaryColor}
+                <input aria-label="צבע ראשי" type="color" value={draft.primaryColor}
                   onChange={e => setDraft(p => ({ ...p, primaryColor: e.target.value }))}
                   className="w-10 h-10 rounded border border-gray-300 cursor-pointer" />
                 <input type="text" value={draft.primaryColor} dir="ltr"
@@ -290,7 +290,7 @@ export default function SettingsClient({ companyId, companyName, initialSettings
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">צבע משני</label>
               <div className="flex gap-2 items-center">
-                <input type="color" value={draft.secondaryColor}
+                <input aria-label="צבע משני" type="color" value={draft.secondaryColor}
                   onChange={e => setDraft(p => ({ ...p, secondaryColor: e.target.value }))}
                   className="w-10 h-10 rounded border border-gray-300 cursor-pointer" />
                 <input type="text" value={draft.secondaryColor} dir="ltr"
@@ -301,7 +301,7 @@ export default function SettingsClient({ companyId, companyName, initialSettings
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">צבע הדגשה</label>
               <div className="flex gap-2 items-center">
-                <input type="color" value={draft.accentColor}
+                <input aria-label="צבע הדגשה" type="color" value={draft.accentColor}
                   onChange={e => setDraft(p => ({ ...p, accentColor: e.target.value }))}
                   className="w-10 h-10 rounded border border-gray-300 cursor-pointer" />
                 <input type="text" value={draft.accentColor} dir="ltr"

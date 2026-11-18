@@ -90,7 +90,7 @@ export default function AuditPage() {
           <option value="legal_consent.accept">legal_consent.accept</option>
         </select>
         <input
-          type="date"
+          type="date" aria-label="מתאריך"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -98,7 +98,7 @@ export default function AuditPage() {
         />
         <div className="flex gap-2">
           <input
-            type="date"
+            type="date" aria-label="עד תאריך"
             value={to}
             onChange={(e) => setTo(e.target.value)}
             className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"

@@ -365,7 +365,7 @@ export default function ExportWizard({ onClose }: Props) {
 
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">חיפוש חופשי</label>
-                    <input
+                    <input aria-label="חיפוש חופשי"
                       type="text"
                       value={filters.search}
                       onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
@@ -377,7 +377,7 @@ export default function ExportWizard({ onClose }: Props) {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">סטטוס</label>
-                      <select
+                      <select aria-label="סטטוס"
                         value={filters.status}
                         onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value as Filters['status'] }))}
                         className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -391,7 +391,7 @@ export default function ExportWizard({ onClose }: Props) {
                     {reportType === 'issues' && (
                       <div>
                         <label className="block text-xs text-gray-500 mb-1">סוג ישות</label>
-                        <select
+                        <select aria-label="סוג ישות"
                           value={filters.entity_type}
                           onChange={(e) => setFilters((f) => ({ ...f, entity_type: e.target.value as Filters['entity_type'] }))}
                           className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -410,7 +410,7 @@ export default function ExportWizard({ onClose }: Props) {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs text-gray-500 mb-1">קבלן משנה</label>
-                        <select
+                        <select aria-label="קבלן משנה"
                           value={filters.subcontractor_id}
                           onChange={(e) => setFilters((f) => ({ ...f, subcontractor_id: e.target.value }))}
                           className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -422,7 +422,7 @@ export default function ExportWizard({ onClose }: Props) {
                       {reportType !== 'issues' && (
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">מנהל עבודה</label>
-                          <select
+                          <select aria-label="מנהל עבודה"
                             value={filters.manager_id}
                             onChange={(e) => setFilters((f) => ({ ...f, manager_id: e.target.value }))}
                             className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"

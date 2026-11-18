@@ -7,6 +7,7 @@ import {
   Document,
   REQUIRED_DOCUMENT_TYPES_FOR_FOREIGN,
   REQUIRED_DOCUMENT_TYPES_FOR_ISRAELI,
+  documentTypeLabel,
 } from '@/types';
 import {
   getDocumentStatus,
@@ -65,16 +66,11 @@ export function buildWorkerIssues(worker: WorkerWithDocuments): Issue[] {
       .map((d) => [d.doc_type as DocumentType, d])
   );
 
-  const DOC_LABELS: Partial<Record<DocumentType, string>> = {
-    id_document: 'תעודת זהות',
-    work_visa: 'אשרת עבודה',
-  };
-
   for (const docType of requiredTypes) {
     if (docType === 'height_permit') continue;
     // אותה פונקציה בדיוק כמו getWorkerStatus — כולל נעילת אשרה לעובד זר
     const s = toIssue(getWorkerRequiredDocStatus(worker.is_foreign_worker, docType, docMap.get(docType)));
-    if (s) issues.push({ ...base, id: `worker-${worker.id}-${docType}`, status: s, problem: DOC_LABELS[docType] ?? docType });
+    if (s) issues.push({ ...base, id: `worker-${worker.id}-${docType}`, status: s, problem: documentTypeLabel(docType, worker.is_foreign_worker) });
   }
 
   // אישור עבודה בגובה — משתמש בפונקציה המשותפת מ-status.ts (אותה לוגיקה כמו getWorkerStatus)

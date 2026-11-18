@@ -274,7 +274,7 @@ function AddLicenseForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-gray-500 mb-1 block">מספר רישיון</label>
-          <input
+          <input aria-label="מספר רישיון"
             type="text"
             value={licenseNumber}
             onChange={(e) => setLicenseNumber(e.target.value)}
@@ -286,7 +286,7 @@ function AddLicenseForm({
         <div>
           <label className="text-xs text-gray-500 mb-1 block">תאריך תוקף <span className="text-red-500">*</span></label>
           <input
-            type="date"
+            type="date" aria-label="תאריך תוקף הרישיון"
             value={expiryDate}
             onChange={(e) => setExpiryDate(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -297,7 +297,7 @@ function AddLicenseForm({
 
       <div>
         <label className="text-xs text-gray-500 mb-1 block">הערות</label>
-        <input
+        <input aria-label="הערות"
           type="text"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}

@@ -101,7 +101,7 @@ function AddSingleLicenseButton({
     <div className="bg-white border border-orange-200 rounded-xl p-3 space-y-2">
       <div className="flex items-center gap-2">
         <label className="text-xs text-gray-500 whitespace-nowrap">תאריך תוקף:</label>
-        <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)}
+        <input type="date" aria-label="תאריך תוקף הרישיון" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)}
           className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" dir="ltr" />
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}

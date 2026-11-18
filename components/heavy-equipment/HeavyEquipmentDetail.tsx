@@ -354,7 +354,7 @@ function InsuranceRow({
       {editingExpiry ? (
         <div className="flex items-center gap-2 mb-2">
           <input
-            type="date"
+            type="date" aria-label="תאריך תוקף חדש"
             value={newExpiry}
             onChange={(e) => setNewExpiry(e.target.value)}
             className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -449,7 +449,7 @@ function EmptyInsuranceRow({
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <label className="text-xs text-gray-500 whitespace-nowrap">תאריך תוקף:</label>
-            <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} dir="ltr"
+            <input type="date" aria-label="תאריך תוקף הביטוח" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} dir="ltr"
               className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}
@@ -689,7 +689,7 @@ function EquipmentFileCard({
       <div className="flex items-center gap-2 mb-3">
         <label className="text-sm text-gray-500 whitespace-nowrap">תוקף:</label>
         <input
-          type="date" value={expiry} onChange={(e) => onExpiryChange(e.target.value)}
+          type="date" aria-label={`תוקף ${label}`} value={expiry} onChange={(e) => onExpiryChange(e.target.value)}
           className={`flex-1 px-2 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 ${isPending ? 'border-orange-300' : 'border-gray-200'}`}
           dir="ltr"
         />

@@ -46,7 +46,7 @@ export default function SubmitFeedbackForm() {
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">שם מלא *</label>
-          <input
+          <input aria-label="שם מלא"
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
@@ -56,7 +56,7 @@ export default function SubmitFeedbackForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">נושא *</label>
-          <input
+          <input aria-label="נושא"
             type="text"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
@@ -66,7 +66,7 @@ export default function SubmitFeedbackForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">תוכן *</label>
-          <textarea
+          <textarea aria-label="תוכן"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="תאר את הבעיה, ההצעה או ההערה..."

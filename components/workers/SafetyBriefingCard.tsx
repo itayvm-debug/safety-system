@@ -270,7 +270,7 @@ function SystemBriefingFlow({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">שם המדריך</label>
-            <input
+            <input aria-label="שם המדריך"
               type="text"
               value={conductedBy}
               onChange={(e) => setConductedBy(e.target.value)}
@@ -416,13 +416,13 @@ function ExternalModeForm({ workerId, onClose, onSaved }: { workerId: string; on
     <div className="mt-3 border-t border-gray-100 pt-3 space-y-3">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">תאריך ביצוע</label>
-        <input type="date" value={briefedAt} max={today} onChange={(e) => setBriefedAt(e.target.value)}
+        <input type="date" aria-label="תאריך ביצוע התדריך" value={briefedAt} max={today} onChange={(e) => setBriefedAt(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" dir="ltr" />
         <p className="text-xs text-gray-400 mt-0.5">תוקף: שנה מתאריך ביצוע</p>
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">מבצע התדריך (אופציונלי)</label>
-        <input type="text" value={conductedBy} onChange={(e) => setConductedBy(e.target.value)} placeholder="שם מנהל העבודה"
+        <input aria-label="מבצע התדריך (אופציונלי)" type="text" value={conductedBy} onChange={(e) => setConductedBy(e.target.value)} placeholder="שם מנהל העבודה"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
       </div>
       <div>

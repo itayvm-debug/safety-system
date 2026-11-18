@@ -435,7 +435,7 @@ function AddExistingModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">כתובת מייל *</label>
-          <input
+          <input aria-label="כתובת מייל"
             type="email" required dir="ltr"
             value={email}
             onChange={e => setEmail(e.target.value)}
@@ -445,7 +445,7 @@ function AddExistingModal({
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">תפקיד בחברה</label>
-          <select value={role} onChange={e => setRole(e.target.value as CompanyRole)} className={inputCls}>
+          <select aria-label="תפקיד בחברה" value={role} onChange={e => setRole(e.target.value as CompanyRole)} className={inputCls}>
             <option value="member">צופה</option>
             <option value="admin">מנהל</option>
             <option value="owner">בעלים</option>
@@ -677,7 +677,7 @@ function CreateUserModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">שם מלא *</label>
-          <input
+          <input aria-label="שם מלא"
             type="text" required
             value={form.full_name} onChange={e => set('full_name', e.target.value)}
             placeholder="ישראל ישראלי"
@@ -687,7 +687,7 @@ function CreateUserModal({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">שם משתמש *</label>
-            <input
+            <input aria-label="שם משתמש"
               type="text" required
               value={form.username} onChange={e => set('username', e.target.value)}
               placeholder="israel-israeli"
@@ -697,7 +697,7 @@ function CreateUserModal({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">תפקיד בחברה</label>
-            <select value={form.companyRole} onChange={e => set('companyRole', e.target.value)} className={inputCls}>
+            <select aria-label="תפקיד בחברה" value={form.companyRole} onChange={e => set('companyRole', e.target.value)} className={inputCls}>
               <option value="member">צופה</option>
               <option value="admin">מנהל</option>
               <option value="owner">בעלים</option>
@@ -706,7 +706,7 @@ function CreateUserModal({
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">מייל</label>
-          <input
+          <input aria-label="מייל"
             type="email"
             value={form.email} onChange={e => set('email', e.target.value)}
             placeholder="mail@example.com"
@@ -716,7 +716,7 @@ function CreateUserModal({
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">תפקיד עסקי</label>
-          <input
+          <input aria-label="תפקיד עסקי"
             type="text"
             value={form.job_title} onChange={e => set('job_title', e.target.value)}
             placeholder="מנהל בטיחות"
@@ -725,7 +725,7 @@ function CreateUserModal({
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">סיסמה ראשונית *</label>
-          <input
+          <input aria-label="סיסמה ראשונית"
             type="password" required minLength={8}
             value={form.password} onChange={e => set('password', e.target.value)}
             placeholder="לפחות 8 תווים"

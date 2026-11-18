@@ -249,7 +249,7 @@ function AddMemberModal({
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">מזהה משתמש (user_id) *</label>
-            <input
+            <input aria-label="מזהה משתמש (user_id)"
               type="text" required dir="ltr"
               value={form.user_id} onChange={e => setForm(p => ({ ...p, user_id: e.target.value }))}
               placeholder="uuid של המשתמש"
@@ -258,7 +258,7 @@ function AddMemberModal({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">תפקיד</label>
-            <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value as CompanyRole }))} className={inputCls}>
+            <select aria-label="תפקיד" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value as CompanyRole }))} className={inputCls}>
               <option value="member">חבר</option>
               <option value="admin">מנהל</option>
               <option value="owner">בעלים</option>

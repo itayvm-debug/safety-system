@@ -730,12 +730,12 @@ function EditUserModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">שם מלא *</label>
-          <input type="text" required value={form.full_name} onChange={e => set('full_name', e.target.value)} className={inputCls} />
+          <input aria-label="שם מלא" type="text" required value={form.full_name} onChange={e => set('full_name', e.target.value)} className={inputCls} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">הרשאת פלטפורמה *</label>
-            <select value={form.role} onChange={e => set('role', e.target.value)} className={inputCls}>
+            <select aria-label="הרשאת פלטפורמה" value={form.role} onChange={e => set('role', e.target.value)} className={inputCls}>
               <option value="user">משתמש רגיל</option>
               <option value="admin">מנהל פלטפורמה</option>
             </select>
@@ -743,12 +743,12 @@ function EditUserModal({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">תפקיד עסקי</label>
-            <input type="text" value={form.job_title} onChange={e => set('job_title', e.target.value)} placeholder="מנהל בטיחות" className={inputCls} />
+            <input aria-label="תפקיד עסקי" type="text" value={form.job_title} onChange={e => set('job_title', e.target.value)} placeholder="מנהל בטיחות" className={inputCls} />
           </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">מייל לדוחות שבועיים</label>
-          <input type="email" value={form.report_email} onChange={e => set('report_email', e.target.value)}
+          <input aria-label="מייל לדוחות שבועיים" type="email" value={form.report_email} onChange={e => set('report_email', e.target.value)}
             placeholder="admin@company.com" dir="ltr" className={inputCls} />
           <p className="text-xs text-gray-400 mt-1">
             {form.role === 'admin' ? 'אדמין פעיל עם מייל זה יקבל דוחות שבועיים' : 'רק מנהלי פלטפורמה מקבלים דוחות שבועיים'}
@@ -861,7 +861,7 @@ function ResetPasswordModal({ user, onClose }: { user: UserWithMemberships; onCl
         ) : (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">סיסמה חדשה</label>
-            <input type="password" value={manualPwd} onChange={e => setManualPwd(e.target.value)}
+            <input aria-label="סיסמה חדשה" type="password" value={manualPwd} onChange={e => setManualPwd(e.target.value)}
               placeholder="לפחות 8 תווים" minLength={8} className={inputCls} />
           </div>
         )}

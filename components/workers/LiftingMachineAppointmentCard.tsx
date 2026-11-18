@@ -296,7 +296,7 @@ function MachineForm({
       <Field label="עומס עבודה בטוח" value={entry.safe_working_load} onChange={(v) => onUpdate({ safe_working_load: v })} placeholder="למשל: 5 טון" />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">סוג הפעלה</label>
-        <select value={entry.power_type} onChange={(e) => onUpdate({ power_type: e.target.value as PowerType | '' })}
+        <select aria-label="סוג הפעלה" value={entry.power_type} onChange={(e) => onUpdate({ power_type: e.target.value as PowerType | '' })}
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white text-sm">
           <option value="">— בחר —</option>
           {(Object.entries(POWER_TYPE_LABELS) as [PowerType, string][]).map(([v, l]) => (
@@ -676,7 +676,7 @@ export default function LiftingMachineAppointmentCard({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">תאריך מינוי</label>
-                    <input type="date" value={form.appointment_date} onChange={(e) => setField('appointment_date', e.target.value)}
+                    <input type="date" aria-label="תאריך מינוי" value={form.appointment_date} onChange={(e) => setField('appointment_date', e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm" dir="ltr" />
                   </div>
                 </>

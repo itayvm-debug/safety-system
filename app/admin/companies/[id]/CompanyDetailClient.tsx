@@ -204,39 +204,39 @@ function EditCompanyModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">שם החברה *</label>
-              <input type="text" required value={form.name} onChange={e => set('name', e.target.value)} className={inputCls} />
+              <input aria-label="שם החברה" type="text" required value={form.name} onChange={e => set('name', e.target.value)} className={inputCls} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">שם באנגלית</label>
-              <input type="text" value={form.name_en} onChange={e => set('name_en', e.target.value)} dir="ltr" className={inputCls} />
+              <input aria-label="שם באנגלית" type="text" value={form.name_en} onChange={e => set('name_en', e.target.value)} dir="ltr" className={inputCls} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-            <input type="text" value={form.slug} onChange={e => set('slug', e.target.value)} dir="ltr" className={inputCls} />
+            <input aria-label="Slug" type="text" value={form.slug} onChange={e => set('slug', e.target.value)} dir="ltr" className={inputCls} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">ח.פ.</label>
-              <input type="text" value={form.registration} onChange={e => set('registration', e.target.value)} className={inputCls} />
+              <input aria-label="ח.פ." type="text" value={form.registration} onChange={e => set('registration', e.target.value)} className={inputCls} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">טלפון</label>
-              <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} className={inputCls} />
+              <input aria-label="טלפון" type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} className={inputCls} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">כתובת</label>
-            <input type="text" value={form.address} onChange={e => set('address', e.target.value)} className={inputCls} />
+            <input aria-label="כתובת" type="text" value={form.address} onChange={e => set('address', e.target.value)} className={inputCls} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">מייל יצירת קשר</label>
-              <input type="email" value={form.contact_email} onChange={e => set('contact_email', e.target.value)} dir="ltr" className={inputCls} />
+              <input aria-label="מייל יצירת קשר" type="email" value={form.contact_email} onChange={e => set('contact_email', e.target.value)} dir="ltr" className={inputCls} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">מייל בטיחות</label>
-              <input type="email" value={form.safety_email} onChange={e => set('safety_email', e.target.value)} dir="ltr" className={inputCls} />
+              <input aria-label="מייל בטיחות" type="email" value={form.safety_email} onChange={e => set('safety_email', e.target.value)} dir="ltr" className={inputCls} />
             </div>
           </div>
           {error && (

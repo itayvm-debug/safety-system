@@ -177,7 +177,7 @@ export default function LoginPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 שם משתמש או מייל
               </label>
-              <input
+              <input aria-label="שם משתמש או מייל"
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
@@ -197,7 +197,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">סיסמה</label>
-              <input
+              <input aria-label="סיסמה"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

@@ -313,6 +313,15 @@ export const DOCUMENT_TYPE_LABELS: Record<Exclude<DocumentType, 'optional_licens
   work_visa: 'אשרת עבודה',
 };
 
+/**
+ * Display name of a worker document. A foreign worker's identity document is a passport —
+ * until 2026-11-18 it was shown as "תעודת זהות" next to "מספר דרכון".
+ */
+export function documentTypeLabel(docType: DocumentType, isForeignWorker: boolean): string {
+  if (docType === 'id_document' && isForeignWorker) return 'דרכון';
+  return DOCUMENT_TYPE_LABELS[docType as Exclude<DocumentType, 'optional_license'>] ?? docType;
+}
+
 export const REQUIRED_DOCUMENT_TYPES: Exclude<DocumentType, 'optional_license'>[] = [
   'id_document',
   'height_permit',
