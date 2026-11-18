@@ -10,6 +10,8 @@ interface Props {
   required?: boolean;
   disabled?: boolean;
   variant?: 'zone' | 'button';
+  /** Accessible name of the upload control, e.g. "קובץ תדריך בטיחות". Falls back to label. */
+  ariaLabel?: string;
 }
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -51,7 +53,9 @@ export default function FileUploadZone({
   required,
   disabled,
   variant = 'zone',
+  ariaLabel,
 }: Props) {
+  const accessibleName = `העלאת ${ariaLabel ?? label ?? 'קובץ'}`;
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState('');
@@ -121,6 +125,7 @@ export default function FileUploadZone({
           type="button"
           onClick={() => !disabled && !uploading && inputRef.current?.click()}
           disabled={disabled || uploading}
+          aria-label={accessibleName}
           className={`text-sm px-3 py-1.5 border rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition-colors ${dragOver ? 'border-orange-400 bg-orange-50 text-orange-600' : 'border-gray-200'}`}
         >
           {uploading ? progress : dragOver ? 'שחרר כאן' : uploaded ? 'החלף מסמך' : 'העלה מסמך'}
@@ -132,6 +137,8 @@ export default function FileUploadZone({
           className="hidden"
           onChange={handleInput}
           disabled={disabled || uploading}
+          aria-label={accessibleName}
+          tabIndex={-1}
         />
         {error && <span className="text-xs text-red-600 block mt-1">{error}</span>}
       </span>
@@ -151,6 +158,16 @@ export default function FileUploadZone({
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={() => !disabled && !uploading && inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if ((e.key === 'Enter' || e.key === ' ') && !disabled && !uploading) {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-label={accessibleName}
+        aria-disabled={disabled || uploading || undefined}
         className={`
           relative flex flex-col items-center justify-center gap-2
           border-2 border-dashed rounded-xl px-4 py-5 transition-all cursor-pointer
@@ -192,6 +209,8 @@ export default function FileUploadZone({
           className="hidden"
           onChange={handleInput}
           disabled={disabled || uploading}
+          aria-label={accessibleName}
+          tabIndex={-1}
         />
       </div>
 

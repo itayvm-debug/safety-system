@@ -288,6 +288,7 @@ export default function LiftingEquipmentDetail({ equipment }: { equipment: Lifti
 
           <div className="space-y-2">
             <FileUploadZone
+              ariaLabel="קובץ תסקיר"
               folder="lifting-equipment"
               onUploaded={handleFileUploaded}
               currentFileName={eq.inspection_file_url ? 'קובץ קיים' : undefined}

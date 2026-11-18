@@ -1220,6 +1220,7 @@ function DocumentCard({
       <div className="space-y-2">
         {isOnline && (
           <FileUploadZone
+            ariaLabel={DOCUMENT_TYPE_LABELS[docType as Exclude<DocumentType, 'optional_license'>]}
             folder="documents"
             onUploaded={handleFileUploaded}
             currentFileName={hasFile ? 'קובץ קיים' : undefined}

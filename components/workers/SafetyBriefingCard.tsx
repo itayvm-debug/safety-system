@@ -428,6 +428,7 @@ function ExternalModeForm({ workerId, onClose, onSaved }: { workerId: string; on
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">קובץ/תמונה של התדריך</label>
         <FileUploadZone
+          ariaLabel="קובץ תדריך בטיחות"
           folder="documents"
           onUploaded={(path) => setFileUrl(path)}
           currentFileName={fileUrl ? 'קובץ הועלה' : undefined}

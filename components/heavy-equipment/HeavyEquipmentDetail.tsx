@@ -382,6 +382,7 @@ function InsuranceRow({
       {error && <p className="text-xs text-red-600 mb-1">{error}</p>}
       <div className="space-y-2">
         <FileUploadZone
+          ariaLabel={insurance.insurance_type}
           folder="heavy-equipment"
           onUploaded={handleFileUploaded}
           currentFileName={insurance.file_url ? 'קובץ קיים' : undefined}
@@ -698,6 +699,7 @@ function EquipmentFileCard({
 
       <div className="space-y-2">
         <FileUploadZone
+          ariaLabel={label}
           folder="heavy-equipment"
           onUploaded={handleFileUploaded}
           currentFileName={fileUrl ? 'קובץ קיים' : undefined}

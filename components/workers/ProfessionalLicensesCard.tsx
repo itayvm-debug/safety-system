@@ -127,6 +127,7 @@ function LicenseRow({
       {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
       <div className="space-y-2">
         <FileUploadZone
+          ariaLabel={`רישיון ${license.license_type}`}
           folder="documents"
           onUploaded={(path) => handleFileUploaded(path)}
           currentFileName={license.file_url ? 'קובץ קיים' : undefined}

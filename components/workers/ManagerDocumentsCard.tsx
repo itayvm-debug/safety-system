@@ -178,6 +178,7 @@ function ManagerFileRow({
       {error && <p className="text-xs text-red-600 mb-1">{error}</p>}
       <div className="space-y-2">
         <FileUploadZone
+          ariaLabel={label}
           folder="documents"
           onUploaded={handleFileUploaded}
           currentFileName={fileUrl ? 'קובץ קיים' : undefined}
