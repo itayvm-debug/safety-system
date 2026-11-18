@@ -8,6 +8,8 @@ export type AuditAction =
   | 'access_denied'
   | 'rate_limit_triggered'
   | 'password_reset_initiated'
+  | 'mfa_enrolled'
+  | 'mfa_reset'
   // ── Workers ──────────────────────────────────────────────────────
   | 'worker.create'
   | 'worker.update'

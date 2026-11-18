@@ -29,7 +29,7 @@ BEGIN
     'safety_briefings', 'height_restrictions', 'professional_licenses', 'manager_licenses',
     'vehicles', 'vehicle_licenses', 'vehicle_insurances', 'heavy_equipment', 'heavy_equipment_insurances',
     'lifting_equipment', 'lifting_machine_appointments', 'subcontractors', 'entity_notes',
-    'site_feedback', 'legal_acceptances', 'audit_logs']) x
+    'site_feedback', 'legal_acceptances', 'audit_logs', 'user_mfa_factors']) x
   WHERE to_regclass('public.' || x) IS NULL;
   check_name := 'required tables'; ok := v IS NULL; detail := coalesce('missing: ' || v, 'present'); RETURN NEXT;
 

@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { buildAllIssues, countByEntity, EntityCounts } from '@/lib/documents/issues';
 import { buildNoteIssues, buildEntityMap } from '@/lib/documents/notes';
 import { loadIssueData } from '@/lib/documents/issue-data';
+import { hasVerifiedFactor } from '@/lib/auth/mfa-store';
+import { daysUntilEnforcement } from '@/lib/auth/mfa-policy';
 import { DashboardOfflineCapture } from '@/components/pwa/DashboardOfflineCapture';
 
 export const dynamic = 'force-dynamic';
@@ -165,7 +167,7 @@ export default async function DashboardPage() {
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');
   }
-  const { companyId, platformRole, companyRole } = ctxResult.context;
+  const { companyId, platformRole, companyRole, userId } = ctxResult.context;
   const isAdmin = platformRole === 'admin';
   const canManage = companyRole !== 'member';
 
@@ -175,6 +177,9 @@ export default async function DashboardPage() {
   // and reports query failures instead of rendering them as "הכל תקין" (P1·7)
   const issueData = await loadIssueData(supabase, companyId);
   const dataIncomplete = issueData.failed || issueData.truncated;
+
+  // Two-factor reminder for platform admins without a factor (14-day transition, then enforced at sign-in)
+  const mfaReminderDays = isAdmin && !(await hasVerifiedFactor(supabase, userId).catch(() => true)) ? daysUntilEnforcement() : null;
 
   // site_feedback is a platform-level table (no company_id). Only platform admins see the count.
   let feedbackCount = 0;
@@ -225,6 +230,19 @@ export default async function DashboardPage() {
         <h1 className="text-3xl font-bold text-gray-900 mt-4 mb-1">SafeDoc</h1>
         <p className="text-sm text-gray-500">מערכת ניהול מסמכי בטיחות לעובדים וכלים</p>
       </div>
+
+      {mfaReminderDays !== null && (
+        <div role="alert" className="flex items-center gap-3 bg-amber-50 border border-amber-300 rounded-2xl px-5 py-4 mb-6">
+          <span className="text-amber-500 shrink-0"><IconAlert /></span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-800">נדרש להפעיל אימות דו-שלבי</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              למנהלי מערכת אימות דו-שלבי הוא חובה{mfaReminderDays > 0 ? ` — נותרו ${mfaReminderDays} ימים` : ''}.
+            </p>
+          </div>
+          <Link href="/account/security" className="text-sm font-semibold text-amber-800 underline shrink-0">להפעלה</Link>
+        </div>
+      )}
 
       {dataIncomplete && (
         <div role="alert" className="flex items-center gap-3 bg-red-50 border border-red-300 rounded-2xl px-5 py-4 mb-6">

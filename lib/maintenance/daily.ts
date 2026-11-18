@@ -9,6 +9,7 @@
  * went unnoticed; this job exists so that such states raise an alert.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { isMfaCryptoConfigured } from '@/lib/auth/mfa-crypto';
 
 export const RATE_LIMIT_RETENTION_HOURS = 24;
 
@@ -45,6 +46,9 @@ export async function runDailyMaintenance(db: SupabaseClient, sendAlert: AlertSe
   for (const c of checks) {
     if (!c.ok) failures.push(`${c.check_name}: ${c.detail}`);
   }
+
+  // Without this key no one with two-factor sign-in can log in
+  if (!isMfaCryptoConfigured()) failures.push('MFA_ENCRYPTION_KEY missing or invalid in the environment');
 
   let alerted = 0;
   if (failures.length > 0) {

@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import {
-  signSession,
-  SESSION_COOKIE_NAME,
-  ROLE_COOKIE_NAME,
-  COOKIE_MAX_AGE,
-} from '@/lib/auth/session';
-import { ACTIVE_COMPANY_COOKIE_NAME, ACTIVE_COMPANY_MAX_AGE } from '@/lib/auth/active-company';
+import { signMfaPending } from '@/lib/auth/session';
 import { createServiceClient } from '@/lib/supabase/server';
 import { rateLimitLoginDb, rateLimitLoginAccountDb } from '@/lib/rate-limit/db';
 import { getClientIp } from '@/lib/rate-limit';
-import { auditLog } from '@/lib/audit/log';
-import { CONSENT_COOKIE_NAME, CONSENT_COOKIE_MAX_AGE, CURRENT_CONSENT_VERSION } from '@/lib/auth/consent';
-import { LEGAL } from '@/lib/legal/config';
+import { buildLoginResponse } from '@/lib/auth/login-response';
+import { hasVerifiedFactor } from '@/lib/auth/mfa-store';
+import { MFA_PENDING_COOKIE_NAME, MFA_PENDING_MAX_AGE_SECONDS } from '@/lib/auth/mfa-policy';
 
 const GENERIC_ERROR = 'שם משתמש או סיסמה שגויים';
 const INACTIVE_ERROR = 'המשתמש הושבת. פנה למנהל המערכת.';
@@ -107,93 +101,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: INACTIVE_ERROR }, { status: 403 });
     }
 
-    const token = await signSession({
-      userId: profile.id,
-      email: profile.email,
-      username: profile.username ?? '',
-      role: profile.role as 'admin' | 'user',
-      loginAt: Date.now(),
-    });
-
-    // בדיקת חברים — auto-select עבור משתמש עם חברה אחת בלבד
-    const { data: memberships } = await service
-      .from('company_members')
-      .select('company_id')
-      .eq('user_id', profile.id)
-      .eq('is_active', true);
-
-    // ה-DB הוא מקור האמת — שחזר consent cookie רק אם קיימת הסכמה לגרסה הנוכחית
-    const { data: existingConsent } = await service
-      .from('legal_acceptances')
-      .select('id')
-      .eq('user_id', profile.id)
-      .eq('terms_version', LEGAL.termsVersion)
-      .eq('privacy_version', LEGAL.privacyVersion)
-      .eq('accepted_terms', true)
-      .eq('accepted_privacy', true)
-      .limit(1)
-      .maybeSingle();
-
-    const isProd = process.env.NODE_ENV === 'production';
-    const response = NextResponse.json({ role: profile.role });
-
-    response.cookies.set({
-      name: SESSION_COOKIE_NAME,
-      value: token,
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'lax',
-      maxAge: COOKIE_MAX_AGE,
-      path: '/',
-    });
-
-    response.cookies.set({
-      name: ROLE_COOKIE_NAME,
-      value: profile.role,
-      httpOnly: false,
-      secure: isProd,
-      sameSite: 'lax',
-      maxAge: COOKIE_MAX_AGE,
-      path: '/',
-    });
-
-    // שחזר consent cookie רק אם קיימת הסכמה תקפה לגרסה הנוכחית
-    if (existingConsent) {
+    // Second factor: with a verified TOTP factor the password alone does not sign in.
+    // A short-lived signed cookie carries the user to POST /api/auth/mfa/verify.
+    if (await hasVerifiedFactor(service, profile.id)) {
+      const pending = await signMfaPending(profile.id, MFA_PENDING_MAX_AGE_SECONDS);
+      const response = NextResponse.json({ mfaRequired: true });
       response.cookies.set({
-        name:     CONSENT_COOKIE_NAME,
-        value:    CURRENT_CONSENT_VERSION,
+        name: MFA_PENDING_COOKIE_NAME,
+        value: pending,
         httpOnly: true,
-        secure:   isProd,
-        sameSite: 'lax',
-        maxAge:   CONSENT_COOKIE_MAX_AGE,
-        path:     '/',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: MFA_PENDING_MAX_AGE_SECONDS,
+        path: '/',
       });
+      return response;
     }
 
-    // Auto-select active company for single-membership users — skip /select-company entirely
-    // For 2+ memberships: clear any stale cookie so /select-company is shown
-    if (memberships && memberships.length === 1) {
-      response.cookies.set({
-        name:     ACTIVE_COMPANY_COOKIE_NAME,
-        value:    memberships[0].company_id,
-        httpOnly: true,
-        secure:   isProd,
-        sameSite: 'lax',
-        maxAge:   ACTIVE_COMPANY_MAX_AGE,
-        path:     '/',
-      });
-    } else {
-      response.cookies.set({ name: ACTIVE_COMPANY_COOKIE_NAME, value: '', maxAge: 0, path: '/', httpOnly: true, sameSite: 'lax' });
-    }
-
-    void auditLog({
-      user_id: profile.id,
-      user_email: profile.email,
-      action: 'login',
-      ip_address: request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? null,
-    });
-
-    return response;
+    return buildLoginResponse(service, profile, request, { mfaVerified: false });
   } catch {
     return NextResponse.json({ error: 'שגיאת שרת' }, { status: 500 });
   }

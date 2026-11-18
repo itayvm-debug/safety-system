@@ -29,6 +29,8 @@ export interface SessionPayload {
   username: string;
   role: 'admin' | 'user';
   loginAt: number;
+  /** Platform admin past the MFA deadline without a factor: only the enrolment page is reachable. */
+  mfaSetupRequired?: boolean;
 }
 
 function encode(s: string): ArrayBuffer {
@@ -86,6 +88,41 @@ export async function verifySession(token: string, now = Date.now()): Promise<Se
     const payload = JSON.parse(new TextDecoder().decode(fromB64Url(data))) as SessionPayload;
     if (!isSessionFresh(payload, now)) return null;
     return payload;
+  } catch {
+    return null;
+  }
+}
+
+// ── Two-factor: short-lived token between the password step and the code step ──
+// Signed with a key derived for this purpose only, so it can never pass as a session token
+// (and a session token can never pass as this one).
+
+interface MfaPendingPayload { purpose: 'mfa_pending'; userId: string; exp: number }
+
+async function getMfaPendingKey(): Promise<CryptoKey> {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error('SESSION_SECRET לא מוגדר ב-ENV');
+  return crypto.subtle.importKey('raw', encode(`${secret}:mfa-pending:v1`), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
+}
+
+export async function signMfaPending(userId: string, maxAgeSeconds: number, now = Date.now()): Promise<string> {
+  const payload: MfaPendingPayload = { purpose: 'mfa_pending', userId, exp: now + maxAgeSeconds * 1000 };
+  const data = toB64Url(encode(JSON.stringify(payload)));
+  const sig = await crypto.subtle.sign('HMAC', await getMfaPendingKey(), encode(data));
+  return `${data}.${toB64Url(sig)}`;
+}
+
+export async function verifyMfaPending(token: string | undefined, now = Date.now()): Promise<string | null> {
+  try {
+    if (!token) return null;
+    const dot = token.lastIndexOf('.');
+    if (dot < 0) return null;
+    const data = token.slice(0, dot);
+    const ok = await crypto.subtle.verify('HMAC', await getMfaPendingKey(), fromB64Url(token.slice(dot + 1)), encode(data));
+    if (!ok) return null;
+    const p = JSON.parse(new TextDecoder().decode(fromB64Url(data))) as Partial<MfaPendingPayload>;
+    if (p.purpose !== 'mfa_pending' || typeof p.userId !== 'string' || typeof p.exp !== 'number' || p.exp < now) return null;
+    return p.userId;
   } catch {
     return null;
   }

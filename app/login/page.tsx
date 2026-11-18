@@ -9,6 +9,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Second step: shown when the account has two-factor sign-in
+  const [mfaStep, setMfaStep] = useState(false);
+  const [code, setCode] = useState('');
+
+  function finishLogin(data: { mfaSetupRequired?: boolean }) {
+    clearAllSnapshots(); // never show a previous user's cached lists
+    window.location.href = data.mfaSetupRequired ? '/account/security' : '/dashboard';
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -22,8 +30,33 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'שגיאה בהתחברות'); return; }
-      clearAllSnapshots(); // never show a previous user's cached lists
-      window.location.href = '/dashboard';
+      if (data.mfaRequired) { setPassword(''); setMfaStep(true); return; }
+      finishLogin(data);
+    } catch {
+      setError('שגיאת תקשורת — נסה שנית');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCode(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/mfa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'קוד שגוי');
+        setCode('');
+        if (res.status === 401 && /פג תוקף/.test(data.error ?? '')) setMfaStep(false);
+        return;
+      }
+      finishLogin(data);
     } catch {
       setError('שגיאת תקשורת — נסה שנית');
     } finally {
@@ -87,7 +120,58 @@ export default function LoginPage() {
             <p className="text-sm text-gray-500 mt-1">ניהול מסמכי בטיחות</p>
           </div>
 
-          {/* טופס */}
+          {mfaStep ? (
+            <form onSubmit={handleCode} className="space-y-4">
+              <div>
+                <label htmlFor="mfa-code" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  קוד מאפליקציית האימות
+                </label>
+                <p id="mfa-code-help" className="text-xs text-gray-500 mb-2">
+                  פתח את אפליקציית האימות בטלפון והקלד את 6 הספרות שמופיעות תחת SafeDoc.
+                </p>
+                <input
+                  id="mfa-code"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  required
+                  autoFocus
+                  autoComplete="one-time-code"
+                  aria-describedby="mfa-code-help"
+                  dir="ltr"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-2xl tracking-[0.5em] text-center
+                             focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                />
+              </div>
+
+              {error && (
+                <div role="alert" aria-live="assertive" className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || code.length !== 6}
+                className="w-full bg-orange-500 text-white py-3.5 rounded-xl font-semibold text-base
+                           hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed
+                           transition-colors shadow-sm"
+              >
+                {loading ? 'מאמת...' : 'אישור'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMfaStep(false); setCode(''); setError(''); }}
+                className="w-full text-sm text-gray-500 hover:text-gray-700"
+              >
+                חזרה למסך הכניסה
+              </button>
+            </form>
+          ) : (
+          /* טופס */
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -143,6 +227,7 @@ export default function LoginPage() {
               {loading ? 'מתחבר...' : 'כניסה למערכת'}
             </button>
           </form>
+          )}
         </div>
 
         {/* זכויות יוצרים — גלוי בכל מסך, צבע מותאם לרקע */}

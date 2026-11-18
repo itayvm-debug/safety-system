@@ -250,6 +250,12 @@ export default function NavBar() {
             >
               משוב
             </Link>
+            <Link
+              href="/account/security"
+              className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap"
+            >
+              אבטחת חשבון
+            </Link>
             {/* More dropdown — always visible on desktop for admin; contains secondary links */}
             {isAdmin && (
               <div className="relative" ref={moreRef}>
@@ -438,6 +444,9 @@ export default function NavBar() {
               )}
               <Link href="/submit-feedback" className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                 משוב
+              </Link>
+              <Link href="/account/security" className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                אבטחת חשבון
               </Link>
               {isAdmin && (
                 <Link href="/feedback" className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">

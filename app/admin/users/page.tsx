@@ -19,6 +19,10 @@ export default async function PlatformUsersPage() {
     `)
     .order('full_name', { ascending: true });
 
+  // Which users have two-factor sign-in (only the flag — secrets never leave the server)
+  const { data: factors } = await supabase.from('user_mfa_factors').select('user_id').not('verified_at', 'is', null);
+  const mfaUsers = new Set((factors ?? []).map((f: { user_id: string }) => f.user_id));
+
   const users: UserWithMemberships[] = (data ?? []).map((u: Record<string, unknown>) => {
     const rawMembers = (u.company_members as Array<Record<string, unknown>> | null) ?? [];
     return {
@@ -31,6 +35,7 @@ export default async function PlatformUsersPage() {
       job_title:    u.job_title    as string | null,
       report_email: u.report_email as string | null,
       created_at:   u.created_at   as string,
+      mfa_enabled:  mfaUsers.has(u.id as string),
       memberships: rawMembers.map(cm => {
         const rawCo = cm.companies as Record<string, unknown> | Record<string, unknown>[] | null;
         const co = Array.isArray(rawCo) ? (rawCo[0] ?? null) : rawCo;

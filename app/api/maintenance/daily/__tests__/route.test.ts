@@ -48,7 +48,18 @@ beforeEach(() => {
   process.env.CRON_SECRET = 'cron-test-secret';
   process.env.RESEND_API_KEY = 're_test';
   process.env.REPORT_FROM_EMAIL = 'reports@example.test';
+  process.env.MFA_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
   sendSpy.mockResolvedValue({ data: { id: 'x' }, error: null });
+});
+
+describe('two-factor key check', () => {
+  it('fails the daily run when MFA_ENCRYPTION_KEY is missing', async () => {
+    delete process.env.MFA_ENCRYPTION_KEY;
+    rpcReturns({ data: OK_ROWS, error: null });
+    const r = await runDailyMaintenance({ rpc: rpcSpy } as never, vi.fn().mockResolvedValue(1));
+    expect(r.ok).toBe(false);
+    expect(r.failures).toContain('MFA_ENCRYPTION_KEY missing or invalid in the environment');
+  });
 });
 
 describe('GET /api/maintenance/daily', () => {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySession, SESSION_COOKIE_NAME, ROLE_COOKIE_NAME } from '@/lib/auth/session';
 import { CONSENT_COOKIE_NAME, CURRENT_CONSENT_VERSION } from '@/lib/auth/consent';
+import { MFA_SETUP_ALLOWED_PATHS } from '@/lib/auth/mfa-policy';
 
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -22,6 +23,8 @@ const PUBLIC = [
   '/login',
   '/api/auth/login',
   '/api/auth/logout',
+  // Second sign-in step: no session yet; guarded by the signed safedoc_mfa_pending cookie
+  '/api/auth/mfa/verify',
   '/api/reports/weekly-status',
   '/api/health',
   // Cron endpoints — secured by their own CRON_SECRET bearer token (lib/auth/cron.ts)
@@ -83,6 +86,14 @@ export async function middleware(request: NextRequest) {
     response.cookies.set({ name: SESSION_COOKIE_NAME, value: '', maxAge: 0, path: '/', httpOnly: true, sameSite: 'lax' });
     response.cookies.set({ name: ROLE_COOKIE_NAME, value: '', maxAge: 0, path: '/', httpOnly: false, sameSite: 'lax' });
     return response;
+  }
+
+  // A platform admin past the MFA deadline without a factor: enrolment page only
+  if (session.mfaSetupRequired && !MFA_SETUP_ALLOWED_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`))) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'נדרש להפעיל אימות דו-שלבי' }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL('/account/security', request.url));
   }
 
   // בדיקת הסכמה לתנאים — רק לדפים (לא API) ולא לנתיבי admin שכבר בודקים

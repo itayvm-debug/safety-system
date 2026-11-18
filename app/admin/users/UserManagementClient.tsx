@@ -33,6 +33,8 @@ export interface UserWithMemberships {
   job_title:    string | null;
   report_email: string | null;
   created_at:   string;
+  /** Two-factor sign-in active (verified factor) */
+  mfa_enabled?: boolean;
   memberships:  Membership[];
 }
 
@@ -263,6 +265,20 @@ function UserRow({
   onToggle: (updated: UserWithMemberships) => void;
 }) {
   const [toggling, setToggling] = useState(false);
+  const [mfaResetting, setMfaResetting] = useState(false);
+
+  async function handleMfaReset() {
+    if (!confirm(`לאפס את האימות הדו-שלבי של ${u.full_name}? בכניסה הבאה תידרש רק סיסמה, ו${u.role === 'admin' ? 'כמנהל מערכת יחויב להפעיל מחדש' : 'יוכל להפעיל מחדש'}.`)) return;
+    setMfaResetting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${u.id}/mfa`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) onToggle({ ...u, mfa_enabled: false });
+      else alert(data.error || 'שגיאה באיפוס');
+    } finally {
+      setMfaResetting(false);
+    }
+  }
 
   async function handleToggle() {
     if (!confirm(`${u.is_active ? 'להשבית' : 'להפעיל מחדש'} את ${u.full_name}?`)) return;
@@ -337,6 +353,12 @@ function UserRow({
             className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap">
             אפס סיסמה
           </button>
+          {u.mfa_enabled && (
+            <button onClick={handleMfaReset} disabled={mfaResetting}
+              className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap disabled:opacity-50">
+              {mfaResetting ? '...' : 'אפס אימות דו-שלבי'}
+            </button>
+          )}
           <button
             onClick={handleToggle}
             disabled={toggling}
