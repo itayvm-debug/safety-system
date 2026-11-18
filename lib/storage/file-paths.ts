@@ -97,6 +97,10 @@ export async function checkAttachablePath(params: {
   return { ok: false, status: 403, error: 'הקובץ אינו שייך לחברה זו' };
 }
 
+/** Columns that are shown as <img> and therefore must reference an image file. */
+export const IMAGE_COLUMNS: ReadonlySet<string> = new Set(['photo_url', 'image_url']);
+const IMAGE_EXT = /\.(jpe?g|png|webp)$/i;
+
 /**
  * Validates every file field present in `fields` (undefined = not sent, skipped).
  * Returns normalized values to store, or a ready error response.
@@ -121,6 +125,11 @@ export async function validateFileFields(
     });
     if (!decision.ok) {
       return { ok: false, error: NextResponse.json({ error: decision.error }, { status: decision.status }) };
+    }
+    // A photo column must hold an image (found in the live QA round: a PDF was accepted as a
+    // vehicle photo and rendered as a broken image). Documents may still be PDFs.
+    if (IMAGE_COLUMNS.has(key) && decision.path && !IMAGE_EXT.test(decision.path)) {
+      return { ok: false, error: NextResponse.json({ error: 'יש להעלות תמונה (JPG, PNG או WEBP)' }, { status: 400 }) };
     }
     values[key] = decision.path;
   }

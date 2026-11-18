@@ -162,6 +162,23 @@ describe('validateFileFields', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error.status).toBe(403);
   });
+
+  // Live QA round 2026-11-18: a PDF was accepted as a vehicle photo (broken <img>)
+  it.each(['image_url', 'photo_url'])('refuses a PDF in the photo column %s', async (col) => {
+    const { client } = fakeSupabase();
+    const r = await validateFileFields(client, A, { [col]: issueUploadPath(A, 'vehicles', 'pdf') });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.status).toBe(400);
+  });
+
+  it('still accepts images in photo columns and PDFs in document columns, and null clears', async () => {
+    const { client } = fakeSupabase();
+    const img = issueUploadPath(A, 'photos', 'webp');
+    const doc = issueUploadPath(A, 'documents', 'pdf');
+    expect((await validateFileFields(client, A, { photo_url: img })).ok).toBe(true);
+    expect((await validateFileFields(client, A, { inspection_file_url: doc })).ok).toBe(true);
+    expect(await validateFileFields(client, A, { image_url: null })).toEqual({ ok: true, values: { image_url: null } });
+  });
 });
 
 describe('removeStorageIfUnreferenced', () => {
