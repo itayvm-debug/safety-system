@@ -114,7 +114,8 @@ function DrawingCanvas({ onStroke, className, style }: {
 
   const down = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
+    // Keeps the stroke when the finger slides past the edge; never let it block drawing
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* pointer already released */ }
     const ctx = e.currentTarget.getContext('2d'); if (!ctx) return;
     drawing.current = true;
     const p = pos(e);
