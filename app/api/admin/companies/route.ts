@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
 import { auditLog } from '@/lib/audit/log';
 import { optionalPhone } from '@/lib/validation/fields';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function GET() {
   const { error } = await requireAdmin();
@@ -23,7 +24,9 @@ export async function POST(request: NextRequest) {
   if (error) return error;
 
   try {
-    const body = await request.json();
+    const jsonIn = await readJsonObject(request, ['address', 'contact_email', 'logoUrl', 'name', 'name_en', 'registration', 'safety_email', 'slug']);
+    if (!jsonIn.ok) return jsonIn.error;
+    const body = jsonIn.body;
     const {
       name, name_en, slug, registration, address, phone,
       contact_email, safety_email, logo_url: logoUrl,

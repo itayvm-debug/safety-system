@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentCompanyContext } from '@/lib/auth/company-context';
 import { createServiceClient } from '@/lib/supabase/server';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function POST(request: NextRequest) {
   const { context, error } = await getCurrentCompanyContext();
@@ -11,7 +12,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const jsonIn = await readJsonObject(request, ['email', 'full_name', 'job_title', 'username']);
+    if (!jsonIn.ok) return jsonIn.error;
+    const body = jsonIn.body;
     const { full_name, username, email, password, job_title, companyRole } = body;
 
     if (!full_name?.trim() || !username?.trim() || !password) {

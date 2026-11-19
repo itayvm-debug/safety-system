@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { ACTIVE_COMPANY_COOKIE_NAME, ACTIVE_COMPANY_MAX_AGE } from '@/lib/auth/active-company';
 import { createServiceClient } from '@/lib/supabase/server';
+import { readJsonObject } from '@/lib/http/json-body';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -18,7 +19,9 @@ export async function POST(request: NextRequest) {
 
   let company_id: string | undefined;
   try {
-    const body = await request.json();
+    const jsonIn = await readJsonObject(request);
+    if (!jsonIn.ok) return jsonIn.error;
+    const body = jsonIn.body;
     company_id = body?.company_id;
   } catch {
     return NextResponse.json({ error: 'גוף הבקשה אינו תקין' }, { status: 400 });

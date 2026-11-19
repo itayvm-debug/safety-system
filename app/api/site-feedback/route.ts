@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAuth, requireAdmin } from '@/lib/auth/api';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function GET() {
   const { error: authError } = await requireAdmin();
@@ -20,7 +21,9 @@ export async function POST(request: NextRequest) {
   const { error: authError } = await requireAuth();
   if (authError) return authError;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request, ['content', 'full_name', 'subject']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { full_name, subject, content } = body;
 
   if (!full_name?.trim()) return NextResponse.json({ error: 'שם מלא נדרש' }, { status: 400 });

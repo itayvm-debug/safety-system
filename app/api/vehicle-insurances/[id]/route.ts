@@ -2,6 +2,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { validateFileFields, cleanupAfterChange, replacedPaths } from '@/lib/storage/file-paths';
+import { readJsonObject } from '@/lib/http/json-body';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const { companyId } = context;
 
   const { id } = await params;
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { file_url, expiry_date, insurance_type } = body;
 
   const supabase = createServiceClient();

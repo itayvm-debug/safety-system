@@ -7,6 +7,7 @@ import { getClientIp } from '@/lib/rate-limit';
 import { buildLoginResponse } from '@/lib/auth/login-response';
 import { hasVerifiedFactor } from '@/lib/auth/mfa-store';
 import { MFA_PENDING_COOKIE_NAME, MFA_PENDING_MAX_AGE_SECONDS } from '@/lib/auth/mfa-policy';
+import { readJsonObject } from '@/lib/http/json-body';
 
 const GENERIC_ERROR = 'שם משתמש או סיסמה שגויים';
 const INACTIVE_ERROR = 'המשתמש הושבת. פנה למנהל המערכת.';
@@ -24,7 +25,9 @@ export async function POST(request: NextRequest) {
     const rl = await rateLimitLoginDb(ip);
     if (!rl.allowed) return tooManyAttempts(rl.resetAt);
 
-    const body = await request.json();
+    const jsonIn = await readJsonObject(request);
+    if (!jsonIn.ok) return jsonIn.error;
+    const body = jsonIn.body;
     const identifier = String(body.identifier ?? '').trim().toLowerCase();
     const password = String(body.password ?? '');
 

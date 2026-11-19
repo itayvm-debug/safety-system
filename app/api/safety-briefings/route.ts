@@ -2,6 +2,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { validateFileFields, cleanupAfterChange } from '@/lib/storage/file-paths';
+import { readJsonObject } from '@/lib/http/json-body';
 
 function daysInMonth(year: number, month: number): number {
   if (month === 2) return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 29 : 28;
@@ -33,7 +34,9 @@ export async function POST(request: NextRequest) {
   if (error) return error;
   const { companyId } = context;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request, ['conducted_by']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { worker_id, mode, language, conducted_by, signature_url, file_url, briefed_at } = body;
 
   if (!worker_id || !mode || !briefed_at) {
@@ -91,7 +94,9 @@ export async function DELETE(request: NextRequest) {
   if (error) return error;
   const { companyId } = context;
 
-  const { briefing_id } = await request.json();
+  const jsonIn = await readJsonObject(request);
+  if (!jsonIn.ok) return jsonIn.error;
+  const { briefing_id } = jsonIn.body;
   if (!briefing_id) return NextResponse.json({ error: 'briefing_id נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();

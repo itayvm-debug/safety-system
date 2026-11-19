@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { normalizeIdentityValue } from '@/lib/workers/normalize';
 import { optionalPhone, optionalText } from '@/lib/validation/fields';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function GET(request: NextRequest) {
   const { context, error } = await getCurrentCompanyContext();
@@ -43,7 +44,9 @@ export async function POST(request: NextRequest) {
   if (error) return error;
   const { companyId } = context;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { is_foreign_worker, national_id, passport_number } = body;
 
   const fullName = optionalText(body.full_name, 'שם מלא', 200);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { validateFileFields, cleanupAfterChange, replacedPaths } from '@/lib/storage/file-paths';
+import { readJsonObject } from '@/lib/http/json-body';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -42,7 +43,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     .maybeSingle();
   if (!existing) return NextResponse.json({ error: 'רכב לא נמצא' }, { status: 404 });
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request, ['model', 'notes', 'project_name', 'vehicle_color', 'vehicle_number', 'vehicle_type']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const {
     vehicle_type, model, vehicle_number, vehicle_color,
     image_url, assigned_manager_id, project_name, notes,

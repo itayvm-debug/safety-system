@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { validateFileFields, cleanupAfterChange, replacedPaths } from '@/lib/storage/file-paths';
+import { readJsonObject } from '@/lib/http/json-body';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -39,7 +40,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   if (!existing) return NextResponse.json({ error: 'ביטוח לא נמצא' }, { status: 404 });
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { file_url, expiry_date, insurance_type } = body;
 
   // P1·1 — the client may only attach a file issued to / owned by this company

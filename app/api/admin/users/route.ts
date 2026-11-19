@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function GET() {
   const { error } = await requireAdmin();
@@ -21,7 +22,9 @@ export async function POST(request: NextRequest) {
   if (error) return error;
 
   try {
-    const body = await request.json();
+    const jsonIn = await readJsonObject(request, ['company_id', 'email', 'full_name', 'job_title', 'username']);
+    if (!jsonIn.ok) return jsonIn.error;
+    const body = jsonIn.body;
     const { full_name, username, email, password, role, job_title, company_id } = body;
 
     if (!full_name?.trim() || !username?.trim() || !password || !role) {

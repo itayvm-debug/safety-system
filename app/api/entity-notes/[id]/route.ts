@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { readJsonObject } from '@/lib/http/json-body';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -21,7 +22,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   if (!existing) return NextResponse.json({ error: 'הערה לא נמצאה' }, { status: 404 });
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { content, status } = body;
 
   const updates: Record<string, unknown> = {};

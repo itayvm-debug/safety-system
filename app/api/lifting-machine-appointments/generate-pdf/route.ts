@@ -2,13 +2,16 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { PDFDocument } from 'pdf-lib';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function POST(request: NextRequest) {
   const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
   const { companyId } = context;
 
-  const { appointment_id, overlay_image_b64 } = await request.json();
+  const jsonIn = await readJsonObject(request);
+  if (!jsonIn.ok) return jsonIn.error;
+  const { appointment_id, overlay_image_b64 } = jsonIn.body;
   if (!appointment_id || !overlay_image_b64) {
     return NextResponse.json(
       { error: 'appointment_id ו-overlay_image_b64 נדרשים' },

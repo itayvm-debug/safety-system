@@ -3,13 +3,16 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { isWorkVisaLocked } from '@/lib/documents/status';
 import { validateFileFields, cleanupAfterChange, replacedPaths } from '@/lib/storage/file-paths';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function POST(request: NextRequest) {
   const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
   const { companyId } = context;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request, ['license_name']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { worker_id, doc_type, license_name, file_url, expiry_date, is_required } = body;
 
   if (!worker_id || !doc_type) return NextResponse.json({ error: 'worker_id ו-doc_type נדרשים' }, { status: 400 });
@@ -111,7 +114,9 @@ export async function DELETE(request: NextRequest) {
   if (error) return error;
   const { companyId } = context;
 
-  const { doc_id } = await request.json();
+  const jsonIn = await readJsonObject(request);
+  if (!jsonIn.ok) return jsonIn.error;
+  const { doc_id } = jsonIn.body;
   if (!doc_id) return NextResponse.json({ error: 'doc_id נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();

@@ -5,6 +5,7 @@ import { validateSubcontractorOwnership } from '@/lib/subcontractors/ownership';
 import { validateFileFields, cleanupAfterChange, replacedPaths } from '@/lib/storage/file-paths';
 import { optionalPhone, optionalText } from '@/lib/validation/fields';
 import { normalizeIdentityValue } from '@/lib/workers/normalize';
+import { readJsonObject } from '@/lib/http/json-body';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -47,7 +48,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (error) return error;
   const { companyId } = context;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const patch: Partial<Record<PatchField, unknown>> = {};
   for (const field of PATCH_ALLOWED) {
     if (field in body) patch[field] = body[field];
@@ -106,7 +109,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
   if (error) return error;
   const { companyId } = context;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { is_foreign_worker, national_id, passport_number } = body;
 
   const fullName = optionalText(body.full_name, 'שם מלא', 200);

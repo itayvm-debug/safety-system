@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/api';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { error: authError } = await requireAdmin();
   if (authError) return authError;
 
   const { id } = await params;
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
 
   const allowed = ['is_handled', 'is_starred', 'handled_at'] as const;
   const updates: Record<string, unknown> = {};

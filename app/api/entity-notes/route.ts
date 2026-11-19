@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole, getCurrentCompanyContext } from '@/lib/auth/company-context';
 import { resolveEntityCompany } from '@/lib/company/resolve-entity-company';
 import type { EntityType } from '@/types';
+import { readJsonObject } from '@/lib/http/json-body';
 
 const VALID_TYPES: EntityType[] = ['worker', 'vehicle', 'heavy_equipment', 'lifting_equipment', 'subcontractor'];
 
@@ -45,7 +46,9 @@ export async function POST(request: NextRequest) {
   if (error) return error;
   const { companyId, username } = context;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request, ['content']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { entity_type, entity_id, content, status } = body;
 
   if (!entity_type || !entity_id) return NextResponse.json({ error: 'entity_type ו-entity_id נדרשים' }, { status: 400 });

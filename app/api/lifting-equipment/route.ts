@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function GET() {
   const { context, error } = await requireCompanyAdminRole();
@@ -24,7 +25,9 @@ export async function POST(request: NextRequest) {
   if (error) return error;
   const { companyId } = context;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request, ['description', 'project_name']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { description, subcontractor_id, project_name } = body;
 
   if (!description?.trim()) return NextResponse.json({ error: 'תיאור נדרש' }, { status: 400 });

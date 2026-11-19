@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { createServiceClient } from '@/lib/supabase/server';
 import { CompanySettingsSchema, resolveCompanySettings } from '@/lib/company/settings';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function GET() {
   const { context, error } = await requireCompanyAdminRole();
@@ -26,7 +27,9 @@ export async function PATCH(request: NextRequest) {
   if (error) return error;
 
   try {
-    const body = await request.json();
+    const jsonIn = await readJsonObject(request);
+    if (!jsonIn.ok) return jsonIn.error;
+    const body = jsonIn.body;
 
     const parsed = CompanySettingsSchema.safeParse(body);
     if (!parsed.success) {

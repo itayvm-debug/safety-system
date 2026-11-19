@@ -3,13 +3,16 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { addYears } from 'date-fns';
 import { validateFileFields, cleanupAfterChange } from '@/lib/storage/file-paths';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function POST(request: NextRequest) {
   const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
   const { companyId } = context;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request, ['conducted_by']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { worker_id, language, conducted_by, file_url, signature_url } = body;
 
   if (!worker_id) return NextResponse.json({ error: 'worker_id נדרש' }, { status: 400 });
@@ -57,7 +60,9 @@ export async function DELETE(request: NextRequest) {
   if (error) return error;
   const { companyId } = context;
 
-  const { restriction_id } = await request.json();
+  const jsonIn = await readJsonObject(request);
+  if (!jsonIn.ok) return jsonIn.error;
+  const { restriction_id } = jsonIn.body;
   if (!restriction_id) return NextResponse.json({ error: 'restriction_id נדרש' }, { status: 400 });
 
   const supabase = createServiceClient();

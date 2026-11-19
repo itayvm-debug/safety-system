@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentCompanyContext } from '@/lib/auth/company-context';
 import { createServiceClient } from '@/lib/supabase/server';
+import { readJsonObject } from '@/lib/http/json-body';
 
 type Params = { params: Promise<{ memberId: string }> };
 
@@ -15,7 +16,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const { memberId } = await params;
 
   try {
-    const body = await request.json();
+    const jsonIn = await readJsonObject(request);
+    if (!jsonIn.ok) return jsonIn.error;
+    const body = jsonIn.body;
     const updates: Record<string, unknown> = {};
 
     if ('role' in body) {

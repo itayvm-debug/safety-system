@@ -2,6 +2,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { validateSubcontractorOwnership } from '@/lib/subcontractors/ownership';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function GET() {
   const { context, error } = await requireCompanyAdminRole();
@@ -23,7 +24,9 @@ export async function POST(request: NextRequest) {
   const { context, error } = await requireCompanyAdminRole();
   if (error) return error;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request, ['description', 'license_number', 'machine_identifier', 'manufacturer', 'power_type', 'project_name']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { description, license_number, subcontractor_id, project_name,
           manufacturer, machine_identifier, safe_working_load, power_type } = body;
 

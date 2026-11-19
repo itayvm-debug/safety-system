@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
+import { readJsonObject } from '@/lib/http/json-body';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -28,7 +29,9 @@ export async function POST(request: NextRequest, { params }: Params) {
   const { id: companyId } = await params;
 
   try {
-    const body = await request.json();
+    const jsonIn = await readJsonObject(request, ['user_id']);
+    if (!jsonIn.ok) return jsonIn.error;
+    const body = jsonIn.body;
     const { user_id, role } = body;
 
     if (!user_id?.trim()) {

@@ -2,6 +2,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole, getCurrentCompanyContext } from '@/lib/auth/company-context';
 import { optionalPhone } from '@/lib/validation/fields';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function GET(request: NextRequest) {
   const { context, error } = await getCurrentCompanyContext();
@@ -29,7 +30,9 @@ export async function POST(request: NextRequest) {
   if (error) return error;
   const { companyId, username } = context;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request, ['appointer_address', 'appointer_name', 'appointer_role', 'appointer_zip', 'machine_identifier', 'machine_name', 'manufacturer', 'safe_working_load', 'worker_address', 'worker_father_name', 'worker_profession']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const {
     worker_id, equipment_id,
     machine_name, manufacturer, machine_identifier, safe_working_load, power_type,

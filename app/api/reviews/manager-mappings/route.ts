@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function GET() {
   const { context, error } = await requireCompanyAdminRole();
@@ -27,10 +28,9 @@ export async function POST(request: NextRequest) {
   if (error) return error;
   const { companyId, userId } = context;
 
-  const body = await request.json().catch(() => null);
-  if (!body) return NextResponse.json({ error: 'body נדרש' }, { status: 400 });
-
-  const { manager_worker_id, user_id } = body as Record<string, string>;
+  const jsonIn = await readJsonObject(request, ['manager_worker_id', 'user_id']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const { manager_worker_id, user_id } = jsonIn.body as Record<string, string | undefined>;
   if (!manager_worker_id?.trim()) return NextResponse.json({ error: 'manager_worker_id נדרש' }, { status: 400 });
   if (!user_id?.trim())           return NextResponse.json({ error: 'user_id נדרש' }, { status: 400 });
 

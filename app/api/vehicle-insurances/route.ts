@@ -2,6 +2,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { validateFileFields } from '@/lib/storage/file-paths';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function GET(request: NextRequest) {
   const { context, error } = await getCurrentCompanyContext();
@@ -38,7 +39,9 @@ export async function POST(request: NextRequest) {
   if (error) return error;
   const { companyId } = context;
 
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request, ['insurance_type']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { vehicle_id, insurance_type, file_url, expiry_date } = body;
 
   if (!vehicle_id) return NextResponse.json({ error: 'vehicle_id נדרש' }, { status: 400 });

@@ -21,8 +21,12 @@ export async function POST(
 
   const { id } = await params;
   const body = await request.json().catch(() => ({}));
+  const supplied = body && typeof body === 'object' ? (body as { password?: unknown }).password : undefined;
+  if (supplied != null && typeof supplied !== 'string') {
+    return NextResponse.json({ error: 'ערך לא תקין בשדה password' }, { status: 400 });
+  }
 
-  const newPassword: string = body.password?.trim() || generatePassword();
+  const newPassword: string = (supplied as string | undefined)?.trim() || generatePassword();
 
   if (newPassword.length < 8) {
     return NextResponse.json({ error: 'הסיסמה חייבת להכיל לפחות 8 תווים' }, { status: 400 });

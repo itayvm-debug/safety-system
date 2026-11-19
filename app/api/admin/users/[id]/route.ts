@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
 import { auditLog } from '@/lib/audit/log';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function PATCH(
   request: NextRequest,
@@ -11,7 +12,9 @@ export async function PATCH(
   if (error) return error;
 
   const { id } = await params;
-  const body = await request.json();
+  const jsonIn = await readJsonObject(request, ['job_title', 'report_email']);
+  if (!jsonIn.ok) return jsonIn.error;
+  const body = jsonIn.body;
   const { full_name, role, job_title, is_active, report_email } = body;
 
   if (role !== undefined && !['admin', 'user'].includes(role)) {

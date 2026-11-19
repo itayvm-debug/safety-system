@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCompanyAdminRole, getCurrentCompanyContext } from '@/lib/auth/company-context';
 import { createServiceClient } from '@/lib/supabase/server';
+import { readJsonObject } from '@/lib/http/json-body';
 
 export async function GET() {
   const { context, error } = await requireCompanyAdminRole();
@@ -26,7 +27,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const jsonIn = await readJsonObject(request, ['email']);
+    if (!jsonIn.ok) return jsonIn.error;
+    const body = jsonIn.body;
     const { email, role } = body;
 
     if (!email?.trim()) {

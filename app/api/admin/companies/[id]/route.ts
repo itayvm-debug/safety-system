@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
 import { optionalPhone } from '@/lib/validation/fields';
+import { readJsonObject } from '@/lib/http/json-body';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -42,7 +43,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const { id } = await params;
 
   try {
-    const body = await request.json();
+    const jsonIn = await readJsonObject(request);
+    if (!jsonIn.ok) return jsonIn.error;
+    const body = jsonIn.body;
     const allowed = ['name', 'name_en', 'slug', 'registration', 'address', 'phone', 'contact_email', 'safety_email', 'is_active', 'logo_url'];
     const updates: Record<string, unknown> = {};
     for (const key of allowed) {
