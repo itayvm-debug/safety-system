@@ -782,7 +782,8 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
   const [fileUploadError, setFileUploadError] = useState('');
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  // Rear camera first: the site manager photographs the worker (owner, 2026-11-19: "only selfie")
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
 
   useEffect(() => {
     if (!worker.photo_url) return;
@@ -824,7 +825,7 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
     ctx.fillStyle = 'white';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('מקם את פניך במסגרת', cx, cy + ry + 28);
+    ctx.fillText('מקם את פני העובד במסגרת', cx, cy + ry + 28);
   }, []);
 
   async function startStream(mode: 'user' | 'environment') {
@@ -1000,15 +1001,20 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
             ) : (
               <>
                 {/* כפתור החלפת מצלמה */}
-                <button onClick={flipCamera} className="w-10 h-10 rounded-full border border-white/40 text-white flex items-center justify-center hover:bg-white/10" title={facingMode === 'user' ? 'עבור למצלמה אחורית' : 'עבור למצלמה קדמית'}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                <button onClick={flipCamera}
+                  className="w-20 flex flex-col items-center gap-1 text-white text-[11px] leading-tight hover:opacity-80"
+                  aria-label={facingMode === 'user' ? 'עבור למצלמה אחורית' : 'עבור למצלמה קדמית (סלפי)'}>
+                  <span className="w-10 h-10 rounded-full border border-white/40 flex items-center justify-center">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </span>
+                  {facingMode === 'user' ? 'מצלמה אחורית' : 'סלפי'}
                 </button>
                 {/* כפתור צילום */}
                 <button onClick={capturePhoto} className="w-16 h-16 rounded-full bg-white border-4 border-orange-400 hover:bg-orange-50 transition-colors shadow-lg" aria-label="צלם" />
                 {/* placeholder לסימטריה */}
-                <div className="w-10 h-10" />
+                <div className="w-20 h-10" />
               </>
             )}
           </div>

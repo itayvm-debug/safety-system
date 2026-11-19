@@ -5,7 +5,7 @@
  *  2. The signing box was too narrow (height-ban: 110px). Both forms now use one tall pad.
  */
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { TEMPLATE_PAGE_COUNTS } from '@/lib/documents/template-pages';
@@ -16,30 +16,42 @@ import { inkBounds, fitInBox } from '@/lib/documents/signature-fit';
 const ROOT = join(__dirname, '..', '..', '..');
 const read = (p: string) => readFileSync(join(ROOT, p), 'utf8');
 
+function pdfsUnder(dir: string): string[] {
+  return readdirSync(join(ROOT, 'public', dir), { recursive: true, encoding: 'utf8' })
+    .filter((f) => f.endsWith('.pdf'))
+    .map((f) => `/${dir}/${f.replace(/\\/g, '/')}`);
+}
+
 describe('template page images', () => {
-  for (const [kind, langs] of Object.entries(TEMPLATE_PAGE_COUNTS)) {
-    for (const [lang, count] of Object.entries(langs)) {
-      it(`${kind}/${lang}: one image per PDF page (re-run scripts/render-template-pages.py if this fails)`, async () => {
-        const pdf = await PDFDocument.load(readFileSync(join(ROOT, 'public', `${kind}-templates`, `${lang}.pdf`)));
-        expect(pdf.getPageCount()).toBe(count);
-        const urls = templatePageUrls(`/${kind}-templates/${lang}.pdf`)!;
-        expect(urls).toHaveLength(count);
-        for (const u of urls) expect(existsSync(join(ROOT, 'public', u))).toBe(true);
-      });
-    }
+  for (const [path, count] of Object.entries(TEMPLATE_PAGE_COUNTS)) {
+    it(`${path}: one image per PDF page (re-run scripts/render-template-pages.py if this fails)`, async () => {
+      const pdf = await PDFDocument.load(readFileSync(join(ROOT, 'public', path)));
+      expect(pdf.getPageCount()).toBe(count);
+      const urls = templatePageUrls(path)!;
+      expect(urls).toHaveLength(count);
+      for (const u of urls) expect(existsSync(join(ROOT, 'public', u))).toBe(true);
+    });
   }
 
-  it('covers every built-in briefing language and the height-ban languages', () => {
+  // Field report 2026-11-19: the company's own templates (overrides/natan-valdman) had no page
+  // images, fell back to a PDF iframe, and the iPhone showed only page 1.
+  it('every template PDF shipped in public/ — including company overrides — has page images', () => {
+    const all = [...pdfsUnder('briefing-templates'), ...pdfsUnder('height-ban-templates')];
+    expect(all.some((p) => p.includes('/overrides/'))).toBe(true);
+    for (const p of all) expect(templatePageUrls(p), p).not.toBeNull();
     for (const path of Object.values(SAFEDOC_DEFAULT_TEMPLATE_PATHS)) expect(templatePageUrls(path)).not.toBeNull();
-    for (const lang of ['hebrew', 'arabic', 'english', 'russian', 'thai']) {
-      expect(templatePageUrls(`/height-ban-templates/${lang}.pdf`)).not.toBeNull();
-    }
   });
 
-  it('returns null for a company-specific template (shown in an in-app frame instead)', () => {
+  it('maps an override to the pages folder next to it', () => {
+    expect(templatePageUrls('/briefing-templates/overrides/natan-valdman/hebrew.pdf')?.[0])
+      .toBe('/briefing-templates/overrides/natan-valdman/pages/hebrew-1.webp');
+  });
+
+  it('returns null for a template the app does not ship (shown in an in-app frame instead)', () => {
     expect(templatePageUrls('/company-templates/acme/hebrew.pdf')).toBeNull();
     expect(templatePageUrls('https://evil.example/briefing-templates/hebrew.pdf')).toBeNull();
     expect(templatePageUrls('/briefing-templates/klingon.pdf')).toBeNull();
+    expect(templatePageUrls('constructor')).toBeNull();
   });
 });
 
