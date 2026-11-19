@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { getPhotoUrl } from '@/lib/storage/photo-url-client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HeavyEquipment, HeavyEquipmentInsurance } from '@/types';
@@ -485,10 +486,9 @@ function EquipmentImageUploader({
 
   useEffect(() => {
     if (!imageUrl) return;
-    fetch(`/api/signed-url?path=${encodeURIComponent(imageUrl)}`)
-      .then((r) => r.json())
-      .then((d) => { if (d.url) setImgSrc(d.url); })
-      .catch(() => {});
+    let cancelled = false;
+    void getPhotoUrl(imageUrl).then((url) => { if (!cancelled && url) setImgSrc(url); });
+    return () => { cancelled = true; };
   }, [imageUrl]);
 
   async function uploadBlob(file: File | Blob, filename?: string) {

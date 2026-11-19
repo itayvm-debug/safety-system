@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { getPhotoUrl } from '@/lib/storage/photo-url-client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { WorkerWithDocuments, DocumentStatus } from '@/types';
@@ -319,10 +320,7 @@ function ManagerFilterHeader({
   useEffect(() => {
     if (!manager.photo_url) return;
     let cancelled = false;
-    fetch(`/api/signed-url?path=${encodeURIComponent(manager.photo_url)}`)
-      .then((r) => r.json())
-      .then((d) => { if (!cancelled && d.url) setPhotoSrc(d.url); })
-      .catch(() => {});
+    void getPhotoUrl(manager.photo_url).then((url) => { if (!cancelled && url) setPhotoSrc(url); });
     return () => { cancelled = true; };
   }, [manager.photo_url]);
 
@@ -434,10 +432,7 @@ function WorkerCard({
   useEffect(() => {
     if (!worker.photo_url) return;
     let cancelled = false;
-    fetch(`/api/signed-url?path=${encodeURIComponent(worker.photo_url)}`)
-      .then((r) => r.json())
-      .then((d) => { if (!cancelled && d.url) setPhotoSrc(d.url); })
-      .catch(() => {});
+    void getPhotoUrl(worker.photo_url).then((url) => { if (!cancelled && url) setPhotoSrc(url); });
     return () => { cancelled = true; };
   }, [worker.photo_url]);
 

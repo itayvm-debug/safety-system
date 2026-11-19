@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { getPhotoUrl } from '@/lib/storage/photo-url-client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { HeavyEquipment } from '@/types';
@@ -24,10 +25,7 @@ function HeavyEquipmentRow({ eq: initialEq }: { eq: HeavyEquipment }) {
   useEffect(() => {
     if (!eq.image_url) return;
     let cancelled = false;
-    fetch(`/api/signed-url?path=${encodeURIComponent(eq.image_url)}`)
-      .then((r) => r.json())
-      .then((d) => { if (!cancelled && d.url) setImgSrc(d.url); })
-      .catch(() => {});
+    void getPhotoUrl(eq.image_url).then((url) => { if (!cancelled && url) setImgSrc(url); });
     return () => { cancelled = true; };
   }, [eq.image_url]);
   const leftBorder: Record<string, string> = {

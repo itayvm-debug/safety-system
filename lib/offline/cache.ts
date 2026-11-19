@@ -1,3 +1,5 @@
+import { clearPhotoUrlCache } from '@/lib/storage/photo-url-client';
+
 const PREFIX = 'safedoc_snap_';
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -29,6 +31,7 @@ export function loadSnapshot<T>(key: string): T | null {
  */
 export function clearAllSnapshots(storage: Pick<Storage, 'length' | 'key' | 'removeItem'> | null =
   typeof localStorage === 'undefined' ? null : localStorage): void {
+  clearPhotoUrlCache(); // signed photo links of the previous user/company
   if (!storage) return;
   try {
     const keys: string[] = [];

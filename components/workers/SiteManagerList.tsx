@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { getPhotoUrl } from '@/lib/storage/photo-url-client';
 import Link from 'next/link';
 import { WorkerWithDocuments } from '@/types';
 import { getWorkerStatus } from '@/lib/documents/status';
@@ -116,10 +117,7 @@ function ManagerCard({ manager }: { manager: WorkerWithDocuments }) {
   useEffect(() => {
     if (!manager.photo_url) return;
     let cancelled = false;
-    fetch(`/api/signed-url?path=${encodeURIComponent(manager.photo_url)}`)
-      .then((r) => r.json())
-      .then((d) => { if (!cancelled && d.url) setPhotoSrc(d.url); })
-      .catch(() => {});
+    void getPhotoUrl(manager.photo_url).then((url) => { if (!cancelled && url) setPhotoSrc(url); });
     return () => { cancelled = true; };
   }, [manager.photo_url]);
 

@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
+import { getPhotoUrl } from '@/lib/storage/photo-url-client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -787,10 +788,9 @@ function PhotoUploader({ worker }: { worker: WorkerWithDocuments }) {
 
   useEffect(() => {
     if (!worker.photo_url) return;
-    fetch(`/api/signed-url?path=${encodeURIComponent(worker.photo_url)}`)
-      .then((r) => r.json())
-      .then((d) => { if (d.url) setPhotoSrc(d.url); })
-      .catch(() => {});
+    let cancelled = false;
+    void getPhotoUrl(worker.photo_url).then((url) => { if (!cancelled && url) setPhotoSrc(url); });
+    return () => { cancelled = true; };
   }, [worker.photo_url]);
 
   const drawOverlay = useCallback(() => {
