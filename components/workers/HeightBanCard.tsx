@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState } from 'react';
+import TemplateViewer from '@/components/documents/TemplateViewer';
+import SignaturePad from '@/components/documents/SignaturePad';
+import { fitInBox } from '@/lib/documents/signature-fit';
 import {
   HeightRestriction,
   BriefingLanguage,
@@ -234,7 +237,7 @@ function HeightBanForm({
 
       {/* שלב 2: צפייה ב-PDF המקורי */}
       {step === 'content' && (
-        <PdfViewer
+        <TemplateViewer title="איסור עבודה בגובה"
           src={`/height-ban-templates/${language}.pdf`}
           onContinue={() => setStep('sign')}
           onBack={() => setStep('language')}
@@ -246,7 +249,7 @@ function HeightBanForm({
         <>
           <div>
             <p className="text-sm font-medium text-gray-700 mb-1">חתימת העובד</p>
-            <SignatureCanvas onCapture={setSignatureDataUrl} />
+            <SignaturePad onCapture={setSignatureDataUrl} />
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="space-y-2">
@@ -261,105 +264,6 @@ function HeightBanForm({
           </div>
         </>
       )}
-    </div>
-  );
-}
-
-// ─── צפייה ב-PDF המקורי ─────────────────────────────────────────
-function PdfViewer({
-  src,
-  onContinue,
-  onBack,
-}: {
-  src: string;
-  onContinue: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <div>
-      <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-100" style={{ height: '420px' }}>
-        <iframe
-          src={src}
-          className="w-full h-full"
-          title="מסמך בטיחות"
-        />
-      </div>
-      <p className="text-xs text-gray-400 mt-1.5">
-        אם המסמך אינו מוצג —{' '}
-        <a href={src} target="_blank" rel="noopener noreferrer" className="text-orange-500 underline">פתח בלשונית חדשה</a>
-      </p>
-      <div className="flex gap-2 mt-3">
-        <button onClick={onContinue} className="px-4 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600">
-          קראתי והבנתי — המשך לחתימה ←
-        </button>
-        <button onClick={onBack} className="px-3 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50">חזרה</button>
-      </div>
-    </div>
-  );
-}
-
-// ─── לוח חתימה ────────────────────────────────────────────────
-function SignatureCanvas({ onCapture }: { onCapture: (dataUrl: string) => void }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const drawing = useRef(false);
-  const hasSignatureRef = useRef(false);
-  const [hasSignature, setHasSignature] = useState(false);
-
-  function pos(e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) {
-    const r = canvas.getBoundingClientRect();
-    const sx = canvas.width / r.width, sy = canvas.height / r.height;
-    if ('touches' in e) return { x: (e.touches[0].clientX - r.left) * sx, y: (e.touches[0].clientY - r.top) * sy };
-    return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
-  }
-
-  const start = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext('2d'); if (!ctx) return;
-    drawing.current = true;
-    const p = pos(e, canvas);
-    ctx.beginPath(); ctx.moveTo(p.x, p.y);
-  }, []);
-
-  const move = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    if (!drawing.current) return;
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext('2d'); if (!ctx) return;
-    const p = pos(e, canvas);
-    ctx.lineTo(p.x, p.y);
-    ctx.strokeStyle = '#111'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.stroke();
-    hasSignatureRef.current = true;
-    setHasSignature(true);
-  }, []);
-
-  const end = useCallback(() => {
-    drawing.current = false;
-    if (hasSignatureRef.current && canvasRef.current) {
-      onCapture(canvasRef.current.toDataURL('image/png'));
-    }
-  }, [onCapture]);
-
-  function clear() {
-    const canvas = canvasRef.current; if (!canvas) return;
-    canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
-    hasSignatureRef.current = false;
-    setHasSignature(false);
-    onCapture('');
-  }
-
-  return (
-    <div>
-      <canvas ref={canvasRef} width={600} height={140}
-        className="border-2 border-dashed border-gray-300 rounded-lg w-full touch-none bg-white cursor-crosshair"
-        style={{ maxHeight: '110px' }}
-        onMouseDown={start} onMouseMove={move} onMouseUp={end} onMouseLeave={end}
-        onTouchStart={start} onTouchMove={move} onTouchEnd={end} />
-      <div className="flex gap-2 mt-1.5">
-        <button type="button" onClick={clear} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 border border-gray-200 rounded hover:bg-gray-50">נקה</button>
-        {hasSignature && <p className="text-xs text-green-600 py-1">✓ חתימה נקלטה אוטומטית</p>}
-      </div>
     </div>
   );
 }
@@ -492,7 +396,8 @@ async function renderFooterCanvas({
     const sigW = 220, sigH = 90;
     const sigX = Math.round((W - sigW) / 2);
     const sigY = 148;
-    ctx.drawImage(img, sigX, sigY, sigW, sigH);
+    const fit = fitInBox(img.naturalWidth, img.naturalHeight, { x: sigX, y: sigY, w: sigW, h: sigH });
+    ctx.drawImage(img, fit.x, fit.y, fit.w, fit.h);
 
     // קו חתימה
     ctx.strokeStyle = '#94a3b8';

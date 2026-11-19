@@ -1,6 +1,9 @@
 ﻿'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState } from 'react';
+import TemplateViewer from '@/components/documents/TemplateViewer';
+import SignaturePad from '@/components/documents/SignaturePad';
+import { fitInBox } from '@/lib/documents/signature-fit';
 import FileUploadZone from '@/components/FileUploadZone';
 import {
   SafetyBriefing,
@@ -294,7 +297,7 @@ function SystemBriefingFlow({
 
       {/* שלב 2: הצגת PDF המקורי */}
       {step === 'briefing' && resolvedTemplateUrl && (
-        <PdfViewer
+        <TemplateViewer title="תדריך בטיחות"
           src={resolvedTemplateUrl}
           onContinue={() => setStep('sign')}
           onBack={() => setStep('language')}
@@ -306,7 +309,7 @@ function SystemBriefingFlow({
         <>
           <div>
             <p className="text-sm font-medium text-gray-700 mb-1">חתימת העובד</p>
-            <SignatureCanvas onCapture={setSignatureDataUrl} />
+            <SignaturePad onCapture={setSignatureDataUrl} />
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="space-y-2">
@@ -330,60 +333,6 @@ function SystemBriefingFlow({
           </div>
         </>
       )}
-    </div>
-  );
-}
-
-// ─── צפייה ב-PDF המקורי ─────────────────────────────────────────
-// Desktop (≥640px): inline iframe — works on all desktop browsers.
-// Mobile (<640px): Safari on iPhone cannot render PDFs in iframes.
-//   Show a full-width "open to read" card instead so the user can
-//   read the document in the native browser viewer and return to sign.
-function PdfViewer({
-  src,
-  onContinue,
-  onBack,
-}: {
-  src: string;
-  onContinue: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <div>
-      {/* Desktop: inline iframe */}
-      <div className="hidden sm:block border border-gray-200 rounded-xl overflow-hidden bg-gray-100" style={{ height: '420px' }}>
-        <iframe
-          src={src}
-          className="w-full h-full"
-          title="מסמך בטיחות"
-        />
-      </div>
-
-      {/* Mobile: open-in-browser card (iOS Safari cannot display PDFs in iframes) */}
-      <div className="sm:hidden flex flex-col items-center justify-center gap-4 border border-gray-200 rounded-xl bg-gray-50 py-10 px-6 text-center">
-        <div className="text-4xl">📄</div>
-        <p className="text-sm text-gray-700 font-medium">לחץ לפתיחת מסמך הבטיחות לקריאה</p>
-        <a
-          href={src}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block px-5 py-3 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 active:bg-orange-700"
-        >
-          פתח לקריאה ←
-        </a>
-        <p className="text-xs text-gray-400">לאחר קריאת המסמך, חזור לכאן וסמן &#34;קראתי והבנתי&#34;</p>
-      </div>
-
-      <p className="text-xs text-gray-400 mt-1.5">
-        אם המסמך אינו מוצג —{' '}
-        <a href={src} target="_blank" rel="noopener noreferrer" className="text-orange-500 underline">פתח בלשונית חדשה</a>
-      </p>
-      <div className="flex gap-2 mt-3">
-        <button onClick={onContinue} className="px-4 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600">
-          קראתי והבנתי — המשך לחתימה ←
-        </button>
-        <button onClick={onBack} className="px-3 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50">חזרה</button>
-      </div>
     </div>
   );
 }
@@ -441,87 +390,6 @@ function ExternalModeForm({ workerId, onClose, onSaved }: { workerId: string; on
           {saving ? 'שומר...' : 'שמור תדריך'}
         </button>
         <button onClick={onClose} className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50">ביטול</button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Canvas חתימה ───────────────────────────────────────────────
-function SignatureCanvas({ onCapture }: { onCapture: (dataUrl: string) => void }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const drawing = useRef(false);
-  const hasSignatureRef = useRef(false);
-  const [hasSignature, setHasSignature] = useState(false);
-
-  // Size the canvas buffer to match its CSS-rendered size × devicePixelRatio.
-  // pos() already maps CSS coords → buffer coords via (canvas.width / rect.width),
-  // so we must NOT also call ctx.scale(dpr) — that would double-scale coordinates.
-  useEffect(() => {
-    const canvas = canvasRef.current; if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    if (rect.width === 0) return;
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
-  }, []);
-
-  function pos(e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) {
-    const r = canvas.getBoundingClientRect();
-    const sx = canvas.width / r.width, sy = canvas.height / r.height;
-    if ('touches' in e) return { x: (e.touches[0].clientX - r.left) * sx, y: (e.touches[0].clientY - r.top) * sy };
-    return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
-  }
-
-  const start = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext('2d'); if (!ctx) return;
-    drawing.current = true;
-    const p = pos(e, canvas);
-    ctx.beginPath(); ctx.moveTo(p.x, p.y);
-  }, []);
-
-  const move = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    if (!drawing.current) return;
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext('2d'); if (!ctx) return;
-    const p = pos(e, canvas);
-    ctx.lineTo(p.x, p.y);
-    ctx.strokeStyle = '#111';
-    ctx.lineWidth = 2.5 * (window.devicePixelRatio || 1);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.stroke();
-    hasSignatureRef.current = true;
-    setHasSignature(true);
-  }, []);
-
-  // Auto-capture on stroke end — no need for a separate "confirm" button
-  const end = useCallback(() => {
-    drawing.current = false;
-    if (hasSignatureRef.current && canvasRef.current) {
-      onCapture(canvasRef.current.toDataURL('image/png'));
-    }
-  }, [onCapture]);
-
-  function clear() {
-    const canvas = canvasRef.current; if (!canvas) return;
-    canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
-    hasSignatureRef.current = false;
-    setHasSignature(false);
-    onCapture('');
-  }
-
-  return (
-    <div>
-      <canvas ref={canvasRef}
-        className="border-2 border-dashed border-gray-300 rounded-lg w-full touch-none bg-white cursor-crosshair"
-        style={{ height: 'clamp(160px, 22vw, 200px)', display: 'block' }}
-        onMouseDown={start} onMouseMove={move} onMouseUp={end} onMouseLeave={end}
-        onTouchStart={start} onTouchMove={move} onTouchEnd={end} />
-      <div className="flex gap-2 mt-1.5">
-        <button type="button" onClick={clear} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 border border-gray-200 rounded hover:bg-gray-50">נקה</button>
-        {hasSignature && <p className="text-xs text-green-600 py-1">✓ חתימה נקלטה אוטומטית</p>}
       </div>
     </div>
   );
@@ -595,7 +463,8 @@ async function renderFooterCanvas({
     });
     const sigW = 220, sigH = 80;
     const SX = Math.round((W - sigW) / 2);
-    ctx.drawImage(sigImg, SX, 92, sigW, sigH);
+    const fit = fitInBox(sigImg.naturalWidth, sigImg.naturalHeight, { x: SX, y: 92, w: sigW, h: sigH });
+    ctx.drawImage(sigImg, fit.x, fit.y, fit.w, fit.h);
     ctx.strokeStyle = '#94a3b8';
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(SX, 176); ctx.lineTo(SX + sigW, 176); ctx.stroke();
