@@ -59,6 +59,13 @@ describe('briefing and height-ban forms', () => {
     expect(src).not.toMatch(/target="_blank"|window\.open/);
   });
 
+  // Field report 2026-11-19 (iPhone, installed app): only page 1 was visible — lazy pages never loaded
+  it('loads every template page eagerly', () => {
+    const src = read('components/documents/TemplateViewer.tsx');
+    expect(src).not.toMatch(/'lazy'|"lazy"/);
+    expect(src).toMatch(/loading="eager"/);
+  });
+
   it('the signing pad is at least 200px tall and has a full-screen mode', () => {
     const src = read('components/documents/SignaturePad.tsx');
     expect(src).toMatch(/clamp\(200px/);

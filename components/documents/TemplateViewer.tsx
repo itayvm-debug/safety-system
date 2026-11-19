@@ -39,7 +39,9 @@ export default function TemplateViewer({
       {pages.map((url, i) => (
         // eslint-disable-next-line @next/next/no-img-element -- static page images, full width, lazy
         <img key={url} src={url} alt={`${title} — עמוד ${i + 1} מתוך ${pages.length}`}
-          loading={i === 0 ? 'eager' : 'lazy'} className="w-full h-auto bg-white shadow-sm rounded" />
+          // Eager on purpose: on iPhone, lazy images inside an inner scroll box never loaded —
+          // the worker saw only page 1 (owner, 2026-11-19). A template is 1–6 small pages.
+          loading="eager" decoding="async" className="w-full h-auto bg-white shadow-sm rounded" />
       ))}
     </div>
   ) : (
