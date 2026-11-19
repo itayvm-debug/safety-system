@@ -11,16 +11,17 @@ export default async function PlatformUsersPage() {
   if (error) redirect('/dashboard');
 
   const supabase = createServiceClient();
-  const { data } = await supabase
+  const [{ data }, { data: factors }] = await Promise.all([
+    supabase
     .from('profiles')
     .select(`
       id, full_name, username, email, role, is_active, created_at, job_title, report_email,
       company_members(id, role, is_active, joined_at, companies(id, name, slug, logo_url, is_active))
     `)
-    .order('full_name', { ascending: true });
-
-  // Which users have two-factor sign-in (only the flag — secrets never leave the server)
-  const { data: factors } = await supabase.from('user_mfa_factors').select('user_id').not('verified_at', 'is', null);
+    .order('full_name', { ascending: true }),
+    // Which users have two-factor sign-in (only the flag — secrets never leave the server)
+    supabase.from('user_mfa_factors').select('user_id').not('verified_at', 'is', null),
+  ]);
   const mfaUsers = new Set((factors ?? []).map((f: { user_id: string }) => f.user_id));
 
   const users: UserWithMemberships[] = (data ?? []).map((u: Record<string, unknown>) => {

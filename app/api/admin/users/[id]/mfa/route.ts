@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePlatformAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
 import { auditLog } from '@/lib/audit/log';
-import { getClientIp } from '@/lib/rate-limit';
+import { clientIpOrNull } from '@/lib/rate-limit';
 import { deleteFactor } from '@/lib/auth/mfa-store';
 
 export const runtime = 'nodejs';
@@ -31,7 +31,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     action: 'mfa_reset',
     entity_type: 'user',
     entity_id: id,
-    ip_address: (getClientIp(request) === 'unknown' ? null : getClientIp(request)),
+    ip_address: clientIpOrNull(request),
   });
   return NextResponse.json({ reset: removed });
 }

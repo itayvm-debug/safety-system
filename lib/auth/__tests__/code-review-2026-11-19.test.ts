@@ -62,6 +62,15 @@ describe('audit IP', () => {
   });
 });
 
+describe('phone validation on every writer (simplify/altitude review 2026-11-19)', () => {
+  it('appointment edit and company create/edit validate the phone like the create routes', () => {
+    for (const f of ['app/api/lifting-machine-appointments/[id]/route.ts', 'app/api/admin/companies/route.ts', 'app/api/admin/companies/[id]/route.ts']) {
+      expect(read(f), f).toContain('optionalPhone(');
+    }
+    expect(read('app/api/lifting-machine-appointments/[id]/route.ts')).not.toMatch(/updates\.appointer_phone\s*=\s*appointer_phone;/);
+  });
+});
+
 describe('signature pad resizing', () => {
   it('re-sizes the canvas with a ResizeObserver, not on orientationchange', () => {
     const src = read('components/documents/SignaturePad.tsx');

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
+import { optionalPhone } from '@/lib/validation/fields';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -70,6 +71,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
 
     const supabase = createServiceClient();
+
+    if ('phone' in updates) {
+      // An unchanged legacy value passes (code review 2026-11-19)
+      const { data: cur } = await supabase.from('companies').select('phone').eq('id', id).maybeSingle();
+      const phone = optionalPhone(updates.phone, (cur as { phone: string | null } | null)?.phone ?? null);
+      if (!phone.ok) return NextResponse.json({ error: phone.error }, { status: 400 });
+      updates.phone = phone.value;
+    }
 
     if (incomingSettings) {
       const { data: current } = await supabase

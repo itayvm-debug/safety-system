@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/api';
 import { createServiceClient } from '@/lib/supabase/server';
 import { auditLog } from '@/lib/audit/log';
+import { optionalPhone } from '@/lib/validation/fields';
 
 export async function GET() {
   const { error } = await requireAdmin();
@@ -53,6 +54,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'slug כבר קיים במערכת' }, { status: 409 });
     }
 
+    const companyPhone = optionalPhone(phone);
+    if (!companyPhone.ok) return NextResponse.json({ error: companyPhone.error }, { status: 400 });
+
     // Always create inactive — activated only after membership succeeds.
     // Invariant: active company ⟹ has at least one member.
     const { data: company, error: insertError } = await supabase
@@ -63,7 +67,7 @@ export async function POST(request: NextRequest) {
         slug: normalizedSlug,
         registration: registration?.trim() || null,
         address: address?.trim() || null,
-        phone: phone?.trim() || null,
+        phone: companyPhone.value,
         contact_email: contact_email?.trim() || null,
         safety_email: safety_email?.trim() || null,
         logo_url: logoUrl?.trim() || null,

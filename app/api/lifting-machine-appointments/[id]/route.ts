@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getCurrentCompanyContext, requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { validateFileFields, cleanupAfterChange, replacedPaths } from '@/lib/storage/file-paths';
+import { optionalPhone } from '@/lib/validation/fields';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -32,7 +33,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const supabase = createServiceClient();
   const { data: existing } = await supabase
     .from('lifting_machine_appointments')
-    .select('id, operator_signature_url, appointer_signature_url, pdf_url')
+    .select('id, operator_signature_url, appointer_signature_url, pdf_url, appointer_phone')
     .eq('id', id)
     .eq('company_id', companyId)
     .maybeSingle();
@@ -102,7 +103,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (power_type            !== undefined) updates.power_type            = power_type;
   if (appointer_name        !== undefined) updates.appointer_name        = appointer_name;
   if (appointer_role        !== undefined) updates.appointer_role        = appointer_role;
-  if (appointer_phone       !== undefined) updates.appointer_phone       = appointer_phone;
+  if (appointer_phone       !== undefined) {
+    // Same check as on create; an unchanged legacy value passes (code review 2026-11-19)
+    const phone = optionalPhone(appointer_phone, (existing as { appointer_phone?: string | null }).appointer_phone ?? null);
+    if (!phone.ok) return NextResponse.json({ error: phone.error }, { status: 400 });
+    updates.appointer_phone = phone.value;
+  }
   if (appointer_address     !== undefined) updates.appointer_address     = appointer_address;
   if (appointer_zip         !== undefined) updates.appointer_zip         = appointer_zip;
   if (appointment_date      !== undefined) updates.appointment_date      = appointment_date;

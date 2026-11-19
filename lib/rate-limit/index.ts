@@ -67,6 +67,12 @@ export function checkRateLimit(
   return { allowed: true, remaining: maxRequests - win.count, resetAt: win.resetAt };
 }
 
+/** Client IP for audit logs: the first hop, or null when unknown. */
+export function clientIpOrNull(request: Request): string | null {
+  const ip = getClientIp(request);
+  return ip === 'unknown' ? null : ip;
+}
+
 /** Extracts the client IP from Vercel request headers. */
 export function getClientIp(request: Request): string {
   return (

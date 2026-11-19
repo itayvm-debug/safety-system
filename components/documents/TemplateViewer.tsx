@@ -37,7 +37,7 @@ export default function TemplateViewer({
   const content = pages ? (
     <div className="space-y-2 p-2">
       {pages.map((url, i) => (
-        // eslint-disable-next-line @next/next/no-img-element -- static page images, full width, lazy
+        // eslint-disable-next-line @next/next/no-img-element -- static page images, full width
         <img key={url} src={url} alt={`${title} — עמוד ${i + 1} מתוך ${pages.length}`}
           // Eager on purpose: on iPhone, lazy images inside an inner scroll box never loaded —
           // the worker saw only page 1 (owner, 2026-11-19). A template is 1–6 small pages.

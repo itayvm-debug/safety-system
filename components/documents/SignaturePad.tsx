@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { inkBounds } from '@/lib/documents/signature-fit';
 
 /**
@@ -9,6 +9,9 @@ import { inkBounds } from '@/lib/documents/signature-fit';
  * Now a tall inline box plus a full-screen mode (rotate the phone for a wide area).
  * The captured image contains only the inked area (see lib/documents/signature-fit.ts).
  */
+/** Inline pad height — at least 200px (the height-ban pad was 110px, too narrow to sign). */
+const PAD_HEIGHT = 'clamp(200px, 50vw, 260px)';
+
 export default function SignaturePad({ onCapture }: { onCapture: (dataUrl: string) => void }) {
   const [fullScreen, setFullScreen] = useState(false);
   const [preview, setPreview] = useState('');
@@ -23,14 +26,14 @@ export default function SignaturePad({ onCapture }: { onCapture: (dataUrl: strin
   return (
     <div>
       {preview ? (
-        <div className="border-2 border-green-300 rounded-lg bg-white flex items-center justify-center p-3" style={{ height: 'clamp(200px, 50vw, 260px)' }}>
+        <div className="border-2 border-green-300 rounded-lg bg-white flex items-center justify-center p-3" style={{ height: PAD_HEIGHT }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- data URL preview of the signature */}
           <img src={preview} alt="החתימה שנקלטה" className="max-h-full max-w-full object-contain" />
         </div>
       ) : (
         <DrawingCanvas key={inlineKey} onStroke={onCapture}
           className="border-2 border-dashed border-gray-300 rounded-lg"
-          style={{ height: 'clamp(200px, 50vw, 260px)' }} />
+          style={{ height: PAD_HEIGHT }} />
       )}
       <div className="flex flex-wrap items-center gap-2 mt-1.5">
         <button type="button" onClick={clear} className="text-xs text-gray-600 hover:text-gray-800 px-2.5 py-1.5 border border-gray-200 rounded hover:bg-gray-50">נקה</button>
@@ -125,7 +128,7 @@ function DrawingCanvas({ onStroke, className, style }: {
     return { x: (e.clientX - r.left) * (canvas.width / r.width), y: (e.clientY - r.top) * (canvas.height / r.height) };
   }
 
-  const down = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+  function down(e: React.PointerEvent<HTMLCanvasElement>) {
     e.preventDefault();
     // Keeps the stroke when the finger slides past the edge; never let it block drawing
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* pointer already released */ }
@@ -133,9 +136,9 @@ function DrawingCanvas({ onStroke, className, style }: {
     drawing.current = true;
     const p = pos(e);
     ctx.beginPath(); ctx.moveTo(p.x, p.y);
-  }, []);
+  }
 
-  const move = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+  function move(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!drawing.current) return;
     e.preventDefault();
     const ctx = e.currentTarget.getContext('2d'); if (!ctx) return;
@@ -146,14 +149,14 @@ function DrawingCanvas({ onStroke, className, style }: {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.stroke();
     inked.current = true;
-  }, []);
+  }
 
-  const up = useCallback(() => {
+  function up() {
     if (!drawing.current) return;
     drawing.current = false;
     const canvas = canvasRef.current;
-    if (inked.current && canvas) onStroke(trimmedDataUrl(canvas));
-  }, [onStroke]);
+    if (inked.current && canvas) onStrokeRef.current(trimmedDataUrl(canvas));
+  }
 
   return (
     <canvas ref={canvasRef} aria-label="אזור חתימה — חתום כאן באצבע"

@@ -7,13 +7,12 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import QRCode from 'qrcode';
-import { getSession, signSession, SESSION_COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/auth/session';
+import { getSession, signSession } from '@/lib/auth/session';
+import { setSessionCookie } from '@/lib/auth/login-response';
 import { createServiceClient } from '@/lib/supabase/server';
 import { checkRateLimitDb } from '@/lib/rate-limit/db';
 import { auditLog } from '@/lib/audit/log';
-import { getClientIp } from '@/lib/rate-limit';
-
-const auditIp = (r: NextRequest) => { const ip = getClientIp(r); return ip === 'unknown' ? null : ip; };
+import { clientIpOrNull } from '@/lib/rate-limit';
 import { generateTotpSecret, otpauthUri } from '@/lib/auth/totp';
 import { checkAndConsumeCode, getFactor, startEnrolment } from '@/lib/auth/mfa-store';
 import { isMfaCryptoConfigured } from '@/lib/auth/mfa-crypto';
@@ -21,8 +20,8 @@ import { daysUntilEnforcement, isMfaEnforced, isMfaRequiredForRole, isRecentLogi
 
 export const runtime = 'nodejs';
 
-async function activeProfile(userId: string) {
-  const { data } = await createServiceClient()
+async function activeProfile(db: ReturnType<typeof createServiceClient>, userId: string) {
+  const { data } = await db
     .from('profiles').select('id, email, username, role, is_active').eq('id', userId).single();
   return data && data.is_active ? data : null;
 }
@@ -30,9 +29,9 @@ async function activeProfile(userId: string) {
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'לא מורשה' }, { status: 401 });
-  const profile = await activeProfile(session.userId);
+  const db = createServiceClient();
+  const [profile, factor] = await Promise.all([activeProfile(db, session.userId), getFactor(db, session.userId)]);
   if (!profile) return NextResponse.json({ error: 'המשתמש הושבת' }, { status: 403 });
-  const factor = await getFactor(createServiceClient(), profile.id);
   return NextResponse.json({
     enabled: !!factor?.verified_at,
     pending: !!factor && !factor.verified_at,
@@ -45,7 +44,8 @@ export async function GET() {
 export async function POST() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'לא מורשה' }, { status: 401 });
-  const profile = await activeProfile(session.userId);
+  const db = createServiceClient();
+  const profile = await activeProfile(db, session.userId);
   if (!profile) return NextResponse.json({ error: 'המשתמש הושבת' }, { status: 403 });
   // Only right after a sign-in: a stolen or forgotten-open session must not be able to enable
   // two-factor and lock the real owner out (code review 2026-11-19).
@@ -58,7 +58,7 @@ export async function POST() {
   }
 
   const secret = generateTotpSecret();
-  const result = await startEnrolment(createServiceClient(), profile.id, secret);
+  const result = await startEnrolment(db, profile.id, secret);
   if (result === 'already_verified') {
     return NextResponse.json({ error: 'אימות דו-שלבי כבר פעיל בחשבון. לאיפוס פנה למנהל מערכת אחר.' }, { status: 409 });
   }
@@ -71,7 +71,8 @@ export async function POST() {
 export async function PUT(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'לא מורשה' }, { status: 401 });
-  const profile = await activeProfile(session.userId);
+  const db = createServiceClient();
+  const profile = await activeProfile(db, session.userId);
   if (!profile) return NextResponse.json({ error: 'המשתמש הושבת' }, { status: 403 });
 
   const rl = await checkRateLimitDb(profile.id, 'mfa-enrol', 10, 10 * 60, undefined, profile.id);
@@ -79,23 +80,18 @@ export async function PUT(request: NextRequest) {
 
   const body = await request.json().catch(() => ({}));
   const code = String((body as { code?: unknown }).code ?? '');
-  const service = createServiceClient();
-  if (!(await checkAndConsumeCode(service, profile.id, code, false))) {
+  if (!(await checkAndConsumeCode(db, profile.id, code, false))) {
     return NextResponse.json({ error: 'קוד שגוי. ודא שהשעה בטלפון נכונה ונסה שוב.' }, { status: 400 });
   }
 
-  void auditLog({ user_id: profile.id, user_email: profile.email, action: 'mfa_enrolled', ip_address: auditIp(request) });
+  void auditLog({ user_id: profile.id, user_email: profile.email, action: 'mfa_enrolled', ip_address: clientIpOrNull(request) });
 
   const response = NextResponse.json({ enabled: true });
   // An admin who was limited to this page gets a full session now
   if (session.mfaSetupRequired) {
     const { mfaSetupRequired: _drop, ...rest } = session;
     void _drop;
-    response.cookies.set({
-      name: SESSION_COOKIE_NAME,
-      value: await signSession({ ...rest, loginAt: Date.now() }),
-      httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: COOKIE_MAX_AGE, path: '/',
-    });
+    setSessionCookie(response, await signSession({ ...rest, loginAt: Date.now() }));
   }
   return response;
 }

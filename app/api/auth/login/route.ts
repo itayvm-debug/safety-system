@@ -11,22 +11,18 @@ import { MFA_PENDING_COOKIE_NAME, MFA_PENDING_MAX_AGE_SECONDS } from '@/lib/auth
 const GENERIC_ERROR = 'שם משתמש או סיסמה שגויים';
 const INACTIVE_ERROR = 'המשתמש הושבת. פנה למנהל המערכת.';
 
+function tooManyAttempts(resetAt: number): NextResponse {
+  return NextResponse.json(
+    { error: 'יותר מדי ניסיונות כניסה. נסה שנית בעוד מספר דקות.' },
+    { status: 429, headers: { 'Retry-After': String(Math.ceil((resetAt - Date.now()) / 1000)), 'X-RateLimit-Remaining': '0' } },
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
     const rl = await rateLimitLoginDb(ip);
-    if (!rl.allowed) {
-      return NextResponse.json(
-        { error: 'יותר מדי ניסיונות כניסה. נסה שנית בעוד מספר דקות.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
-            'X-RateLimit-Remaining': '0',
-          },
-        }
-      );
-    }
+    if (!rl.allowed) return tooManyAttempts(rl.resetAt);
 
     const body = await request.json();
     const identifier = String(body.identifier ?? '').trim().toLowerCase();
@@ -39,18 +35,7 @@ export async function POST(request: NextRequest) {
     // Per-account limit, independent of IP (checked for unknown identifiers too, so the
     // response does not reveal which accounts exist).
     const accountRl = await rateLimitLoginAccountDb(identifier);
-    if (!accountRl.allowed) {
-      return NextResponse.json(
-        { error: 'יותר מדי ניסיונות כניסה. נסה שנית בעוד מספר דקות.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(Math.ceil((accountRl.resetAt - Date.now()) / 1000)),
-            'X-RateLimit-Remaining': '0',
-          },
-        }
-      );
-    }
+    if (!accountRl.allowed) return tooManyAttempts(accountRl.resetAt);
 
     const service = createServiceClient();
 

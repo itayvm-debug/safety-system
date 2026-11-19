@@ -269,7 +269,6 @@ export const STATUS_LABELS: Record<DocumentStatus, string> = {
   not_required: 'לא נדרש',
 };
 
-/** סטטוס רכב: רישיון רכב + ביטוח חובה חובה; מקיף/צד ג אופציונליים */
 /**
  * רכבי מנהל עבודה שנספרים לסטטוס שלו: פעילים ולא בארכיון (P1·5).
  * עד 2026-11-18 נספר רק הרכב הראשון ברשימה (ללא סדר מוגדר), כולל רכבים בארכיון.
@@ -279,6 +278,7 @@ export function getActiveManagerVehicles(worker: { vehicles?: Vehicle[] | null }
   return (worker.vehicles ?? []).filter((v) => v.is_active !== false && v.is_archived !== true);
 }
 
+/** סטטוס רכב: רישיון רכב + ביטוח חובה חובה; מקיף/צד ג אופציונליים */
 export function getVehicleStatus(vehicle: Vehicle): DocumentStatus {
   let worst: DocumentStatus = 'valid';
 

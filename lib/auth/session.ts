@@ -39,11 +39,12 @@ function encode(s: string): ArrayBuffer {
   return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
 }
 
-async function getHmacKey(): Promise<CryptoKey> {
+/** HMAC key from SESSION_SECRET; `purpose` derives a separate key (e.g. the MFA pending token). */
+async function getHmacKey(purpose = ''): Promise<CryptoKey> {
   const secret = process.env.SESSION_SECRET;
   if (!secret) throw new Error('SESSION_SECRET לא מוגדר ב-ENV');
   return crypto.subtle.importKey(
-    'raw', encode(secret),
+    'raw', encode(`${secret}${purpose}`),
     { name: 'HMAC', hash: 'SHA-256' },
     false, ['sign', 'verify']
   );
@@ -99,11 +100,7 @@ export async function verifySession(token: string, now = Date.now()): Promise<Se
 
 interface MfaPendingPayload { purpose: 'mfa_pending'; userId: string; exp: number }
 
-async function getMfaPendingKey(): Promise<CryptoKey> {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) throw new Error('SESSION_SECRET לא מוגדר ב-ENV');
-  return crypto.subtle.importKey('raw', encode(`${secret}:mfa-pending:v1`), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
-}
+const getMfaPendingKey = () => getHmacKey(':mfa-pending:v1');
 
 export async function signMfaPending(userId: string, maxAgeSeconds: number, now = Date.now()): Promise<string> {
   const payload: MfaPendingPayload = { purpose: 'mfa_pending', userId, exp: now + maxAgeSeconds * 1000 };
