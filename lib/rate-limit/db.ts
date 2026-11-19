@@ -13,6 +13,8 @@
  *   - User-based limits (export, upload, signed-url) pass user_id as both the
  *     key and the user_id column — no hashing needed since user_id is a UUID.
  *   - Fail-open on DB errors: if the DB is unreachable the request is allowed.
+ *     Owner decision 2026-11-19: password sign-in stays fail-open (field availability first);
+ *     only the two-factor code check passes { failClosed: true }.
  *     Adjust the fallback in checkRateLimitDb() to fail-closed if your threat
  *     model requires it.
  */
