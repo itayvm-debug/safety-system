@@ -28,3 +28,13 @@ export function isMfaEnforced(now = new Date()): boolean {
 export function daysUntilEnforcement(now = new Date()): number {
   return Math.max(0, Math.ceil((MFA_ENFORCE_FROM.getTime() - now.getTime()) / 86_400_000));
 }
+
+/**
+ * Enabling two-factor is allowed only this soon after a sign-in, so a stolen or forgotten-open
+ * session cannot enable it and lock the real owner out (code review 2026-11-19).
+ */
+export const MFA_ENROL_REAUTH_MS = 15 * 60 * 1000;
+
+export function isRecentLogin(loginAt: number | undefined, now = Date.now()): boolean {
+  return typeof loginAt === 'number' && now - loginAt >= -60_000 && now - loginAt <= MFA_ENROL_REAUTH_MS;
+}

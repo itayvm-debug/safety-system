@@ -54,7 +54,9 @@ export async function checkRateLimitDb(
   maxRequests:   number,
   windowSeconds: number,
   ipRaw?:        string,
-  userId?:       string
+  userId?:       string,
+  /** Refuse when the check cannot run. For the two-factor code, the limit IS the security control. */
+  opts:          { failClosed?: boolean } = {},
 ): Promise<RateLimitResult> {
   const db = createServiceClient();
   const ip = safeInet(ipRaw);
@@ -71,6 +73,10 @@ export async function checkRateLimitDb(
   if (error || !data || !Array.isArray(data) || data.length === 0) {
     // Never silent: until 2026-11-18 the function did not exist in production and every
     // limit failed open unnoticed. The daily health check also alerts on a missing function.
+    if (opts.failClosed) {
+      console.error('[rate-limit] check unavailable, request REFUSED (fail-closed):', action, error?.message ?? 'empty result');
+      return { allowed: false, remaining: 0, resetAt: Date.now() + 60_000 };
+    }
     console.error('[rate-limit] check unavailable, request allowed:', action, error?.message ?? 'empty result');
     // Fail-open: allow the request if the DB function is unreachable.
     // This happens before the durable-rate-limiting migration has been applied,

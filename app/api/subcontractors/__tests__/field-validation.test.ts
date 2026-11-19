@@ -102,6 +102,11 @@ describe('PATCH /api/subcontractors/[id]', () => {
     expect(db.updated).toMatchObject({ name: 'קבלן חדש', phone: '050 123 (old)' });
   });
 
+  it('a malformed responsible_worker_id is a 400, not "worker not found"', async () => {
+    const res = await PATCH(req('PATCH', { responsible_worker_id: 5 }), params);
+    expect(res.status).toBe(400);
+  });
+
   it('refuses a non-boolean is_archived', async () => {
     const res = await PATCH(req('PATCH', { is_archived: 'yes' }), params);
     expect(res.status).toBe(400);

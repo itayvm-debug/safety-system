@@ -21,8 +21,9 @@ export async function POST(request: NextRequest) {
     const userId = await verifyMfaPending(request.cookies.get(MFA_PENDING_COOKIE_NAME)?.value);
     if (!userId) return NextResponse.json({ error: EXPIRED }, { status: 401 });
 
-    // 5 code attempts per 5 minutes per user (a 6-digit code must not be guessable)
-    const rl = await checkRateLimitDb(userId, 'mfa-verify', 5, 5 * 60, undefined, userId);
+    // 5 code attempts per 5 minutes per user (a 6-digit code must not be guessable).
+    // Fail-closed: if the limiter is down, guessing would be unlimited (code review 2026-11-19).
+    const rl = await checkRateLimitDb(userId, 'mfa-verify', 5, 5 * 60, undefined, userId, { failClosed: true });
     if (!rl.allowed) {
       return NextResponse.json({ error: 'יותר מדי ניסיונות. נסה שנית בעוד מספר דקות.' }, { status: 429 });
     }

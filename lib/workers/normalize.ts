@@ -9,8 +9,8 @@
  * Both national_id and passport_number share the same normalization rule.
  */
 export function normalizeIdentityValue(value: unknown): string | null {
-  // A JSON number (e.g. 123456789) is kept as its digits; any other non-string is "missing".
-  if (typeof value === 'number' && Number.isFinite(value)) value = String(value);
+  // Only strings count. A JSON number would lose leading zeros (012345678 → 12345678) and slip
+  // past the duplicate check (code review 2026-11-19); a non-string is treated as missing → 400.
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed || null;

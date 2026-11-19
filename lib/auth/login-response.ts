@@ -9,6 +9,7 @@ import { ACTIVE_COMPANY_COOKIE_NAME, ACTIVE_COMPANY_MAX_AGE } from '@/lib/auth/a
 import { CONSENT_COOKIE_NAME, CONSENT_COOKIE_MAX_AGE, CURRENT_CONSENT_VERSION } from '@/lib/auth/consent';
 import { LEGAL } from '@/lib/legal/config';
 import { auditLog } from '@/lib/audit/log';
+import { getClientIp } from '@/lib/rate-limit';
 import { MFA_PENDING_COOKIE_NAME, isMfaEnforced, isMfaRequiredForRole } from '@/lib/auth/mfa-policy';
 import { hasVerifiedFactor } from '@/lib/auth/mfa-store';
 
@@ -78,7 +79,7 @@ export async function buildLoginResponse(
     user_id: profile.id,
     user_email: profile.email,
     action: 'login',
-    ip_address: request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? null,
+    ip_address: (getClientIp(request) === 'unknown' ? null : getClientIp(request)),
   });
 
   return response;

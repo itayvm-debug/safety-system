@@ -72,7 +72,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'ערך לא תקין' }, { status: 400 });
   }
   if (patch.responsible_worker_id != null && typeof patch.responsible_worker_id !== 'string') {
-    return NextResponse.json({ error: 'עובד לא נמצא' }, { status: 404 });
+    return NextResponse.json({ error: 'מזהה עובד לא תקין' }, { status: 400 });
   }
 
   // Validate responsible_worker_id belongs to the same company

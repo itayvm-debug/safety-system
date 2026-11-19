@@ -11,10 +11,13 @@ import { getSession, signSession, SESSION_COOKIE_NAME, COOKIE_MAX_AGE } from '@/
 import { createServiceClient } from '@/lib/supabase/server';
 import { checkRateLimitDb } from '@/lib/rate-limit/db';
 import { auditLog } from '@/lib/audit/log';
+import { getClientIp } from '@/lib/rate-limit';
+
+const auditIp = (r: NextRequest) => { const ip = getClientIp(r); return ip === 'unknown' ? null : ip; };
 import { generateTotpSecret, otpauthUri } from '@/lib/auth/totp';
 import { checkAndConsumeCode, getFactor, startEnrolment } from '@/lib/auth/mfa-store';
 import { isMfaCryptoConfigured } from '@/lib/auth/mfa-crypto';
-import { daysUntilEnforcement, isMfaEnforced, isMfaRequiredForRole } from '@/lib/auth/mfa-policy';
+import { daysUntilEnforcement, isMfaEnforced, isMfaRequiredForRole, isRecentLogin } from '@/lib/auth/mfa-policy';
 
 export const runtime = 'nodejs';
 
@@ -44,6 +47,11 @@ export async function POST() {
   if (!session) return NextResponse.json({ error: 'לא מורשה' }, { status: 401 });
   const profile = await activeProfile(session.userId);
   if (!profile) return NextResponse.json({ error: 'המשתמש הושבת' }, { status: 403 });
+  // Only right after a sign-in: a stolen or forgotten-open session must not be able to enable
+  // two-factor and lock the real owner out (code review 2026-11-19).
+  if (!isRecentLogin(session.loginAt)) {
+    return NextResponse.json({ error: 'להפעלת אימות דו-שלבי יש להתנתק ולהתחבר מחדש (אבטחה).', code: 'REAUTH_REQUIRED' }, { status: 403 });
+  }
   if (!isMfaCryptoConfigured()) {
     console.error('[mfa] MFA_ENCRYPTION_KEY missing — enrolment refused');
     return NextResponse.json({ error: 'אימות דו-שלבי אינו זמין כרגע. פנה למנהל המערכת.' }, { status: 503 });
@@ -76,7 +84,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'קוד שגוי. ודא שהשעה בטלפון נכונה ונסה שוב.' }, { status: 400 });
   }
 
-  void auditLog({ user_id: profile.id, user_email: profile.email, action: 'mfa_enrolled', ip_address: request.headers.get('x-forwarded-for') ?? null });
+  void auditLog({ user_id: profile.id, user_email: profile.email, action: 'mfa_enrolled', ip_address: auditIp(request) });
 
   const response = NextResponse.json({ enabled: true });
   // An admin who was limited to this page gets a full session now

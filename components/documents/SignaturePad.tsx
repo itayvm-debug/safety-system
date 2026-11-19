@@ -56,10 +56,8 @@ function FullScreenSigner({ onConfirm, onCancel }: { onConfirm: (url: string) =>
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    // Rotating the phone resizes the pad; start a fresh one so strokes are not stretched
-    const onResize = () => { setPadKey(k => k + 1); setSignature(''); };
-    window.addEventListener('orientationchange', onResize);
-    return () => { document.body.style.overflow = prev; window.removeEventListener('orientationchange', onResize); };
+    // Rotation is handled by DrawingCanvas itself (it re-sizes and reports an empty signature)
+    return () => { document.body.style.overflow = prev; };
   }, []);
 
   return (
@@ -97,13 +95,28 @@ function DrawingCanvas({ onStroke, className, style }: {
   const drawing = useRef(false);
   const inked = useRef(false);
 
+  // Keep the pixel buffer equal to the displayed size × devicePixelRatio, also after the phone
+  // rotates (code review 2026-11-19: sizing once on mount — or on 'orientationchange', which fires
+  // before the layout changes — stretched the ink). A resize with ink on it clears the pad:
+  // re-signing is better than saving a distorted signature.
+  const onStrokeRef = useRef(onStroke);
+  useEffect(() => { onStrokeRef.current = onStroke; }, [onStroke]);
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    if (rect.width === 0) return;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
+    const fit = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.round(rect.width * dpr), h = Math.round(rect.height * dpr);
+      if (canvas.width === w && canvas.height === h) return;
+      canvas.width = w; canvas.height = h; // also clears the drawing
+      drawing.current = false;
+      if (inked.current) { inked.current = false; onStrokeRef.current(''); }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(canvas);
+    return () => ro.disconnect();
   }, []);
 
   function pos(e: React.PointerEvent<HTMLCanvasElement>) {
