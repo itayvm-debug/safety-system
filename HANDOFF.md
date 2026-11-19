@@ -220,7 +220,13 @@
 - `83f0f1a` — תיקוני code-review: מגבלת קוד האימות הדו-שלבי **fail-closed** (`checkRateLimitDb(..., { failClosed: true })`); הפעלת אימות דו-שלבי רק עד 15 דק' אחרי התחברות (`isRecentLogin` ב-`mfa-policy.ts`) — חי: session ישן → 403 `REAUTH_REQUIRED`; לוח חתימה עם `ResizeObserver` (סיבוב לא מעוות; סיבוב עם דיו מנקה); IP ביומן דרך `getClientIp`; ת"ז מספרית נדחית; `responsible_worker_id` שגוי → 400.
 - `572db7a` — ניקוי (/simplify, ללא שינוי התנהגות): `clientIpOrNull`, `setSessionCookie`, `getHmacKey(purpose)`; 429 אחד בהתחברות; קריאות DB מקבילות (התחברות, דף אבטחה, דף משתמשים); לוח חתימה פשוט יותר. **בנוסף:** עדכון מינוי מפעיל ויצירה/עדכון חברה (ניהול) בודקים טלפון (חי: "abc" → 400).
 - בדיקות: 1123 יחידה, build מבודד + דפדפן 30/30, התחברות שגויה חי → 401 גנרי.
-- **הוחלט:** מגבלת ההתחברות בסיסמה נשארת fail-open (סעיף 9). **לא תוקן:** (2) תבנית חברה חדשה דורשת הרצת `scripts/render-template-pages.py` (אין רינדור בזמן ריצה). (3) ~80 `aria-label` ידניים במקום `<Field>` עם `htmlFor`. (4) ~22 נתיבי API עדיין `body.x?.trim()` (500 על ערך לא-מחרוזת) — כדאי סכמת zod לכל ישות. (5) מדיניות חובת MFA בקוד (`MFA_REQUIRED_ROLES`, תאריך 2.12.2026) — להחזרה יידרש תאריך חדש.
+- **הוחלט:** מגבלת ההתחברות בסיסמה נשארת fail-open (סעיף 9). **לא תוקן:** (2) תבנית חברה חדשה דורשת הרצת `scripts/render-template-pages.py` (אין רינדור בזמן ריצה). (3) ~80 `aria-label` ידניים במקום `<Field>` עם `htmlFor`. (4) ~~נתיבי API נופלים ב-500 על קלט לא תקין~~ — **תוקן `0a4bf37`** (ראה למטה). (5) מדיניות חובת MFA בקוד (`MFA_REQUIRED_ROLES`, תאריך 2.12.2026) — להחזרה יידרש תאריך חדש.
+
+**קריאת גוף בקשה בטוחה בכל ה-API (2026-11-19, Production = `0a4bf37`, אומת חי ב-QA):**
+- `lib/http/json-body.ts` → `readJsonObject(request, textFields)`: JSON שבור / גוף שאינו אובייקט → 400; שדה טקסט שאינו מחרוזת → 400. 40 נתיבים + manager-mappings + reset-password. בקשות תקינות — ללא שינוי.
+- בדיקה (`lib/http/__tests__/json-body.test.ts`) נכשלת אם נתיב חוזר ל-`await request.json()` חשוף (חריג: `ai/extract-worker-identity`, כבוי, עם try/catch משלו).
+- חי: JSON שבור / מערך / מספר בשדה טקסט → 400 עם הודעה; יצירת משוב ועדכון עובד תקינים → 201/200; התחברות עם JSON שבור → 400 (היה 500).
+- **הערה סביבתית:** ה-build המבודד המקומי נכשל בשלב יצירת הדפים (31 workers, קוד 0xC0000409) — זיכרון וירטואלי (commit) במחשב כמעט מלא (2.4GB פנויים מ-34.5GB). הקוד עבר קומפילציה ו-TypeScript מקומית, וה-build ב-Vercel הצליח. בדיקות יחידה מקומית — להריץ עם `--maxWorkers=6`.
 
 ## 12. היסטוריה מפורטת
 - תמליל סשן VS Code: `%USERPROFILE%/.claude/projects/` (תיקיית הפרויקט `c--Users-itayv-OneDrive-…-CLAUDE`, סשן `a2727b09-4a5e-441b-82ef-2913c790058e`).
