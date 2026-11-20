@@ -149,11 +149,11 @@ describe('getPhotoUrl (browser)', () => {
 
   it('a whole list in one request; again from cache with no request', async () => {
     const paths = Array.from({ length: 40 }, (_, i) => `workers/${i}.jpg`);
-    const urls = await Promise.all([...paths, 'workers/foreign.jpg'].map(getPhotoUrl));
+    const urls = await Promise.all([...paths, 'workers/foreign.jpg'].map((p) => getPhotoUrl(p)));
     expect(fetches).toHaveLength(1);
     expect(urls[0]).toBe('u:workers/0.jpg');
     expect(urls[40]).toBeNull();
-    await Promise.all([...paths, 'workers/foreign.jpg'].map(getPhotoUrl)); // e.g. back to the list
+    await Promise.all([...paths, 'workers/foreign.jpg'].map((p) => getPhotoUrl(p))); // e.g. back to the list
     expect(fetches).toHaveLength(1);
   });
 

@@ -117,7 +117,7 @@ function ManagerCard({ manager }: { manager: WorkerWithDocuments }) {
   useEffect(() => {
     if (!manager.photo_url) return;
     let cancelled = false;
-    void getPhotoUrl(manager.photo_url).then((url) => { if (!cancelled && url) setPhotoSrc(url); });
+    void getPhotoUrl(manager.photo_url, 'thumb').then((url) => { if (!cancelled && url) setPhotoSrc(url); });
     return () => { cancelled = true; };
   }, [manager.photo_url]);
 

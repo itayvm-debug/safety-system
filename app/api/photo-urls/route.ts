@@ -5,9 +5,10 @@ import { rateLimitSignedUrlDb } from '@/lib/rate-limit/db';
 import { readJsonObject } from '@/lib/http/json-body';
 import { authorizePhotoPaths, MAX_PHOTO_BATCH } from '@/lib/storage/authorize-photos';
 import { normalizeStoragePath } from '@/lib/storage/authorize';
+import { THUMB_PREFIX, thumbPathFor } from '@/lib/images/thumbnail';
 
 /**
- * POST { paths: string[] } → { urls: { [path]: signedUrl } }
+ * POST { paths: string[], variant?: 'full' | 'thumb' } → { urls: { [path]: signedUrl } }
  *
  * Signed links for the photos of a whole list in one request (one rate-limit event).
  * Paths that are not a photo of the active company are left out of `urls`.
@@ -18,9 +19,12 @@ export async function POST(request: NextRequest) {
 
   const jsonIn = await readJsonObject(request);
   if (!jsonIn.ok) return jsonIn.error;
-  const { paths } = jsonIn.body;
+  const { paths, variant = 'full' } = jsonIn.body;
   if (!Array.isArray(paths) || paths.some((p) => typeof p !== 'string')) {
     return NextResponse.json({ error: 'paths חייב להיות רשימת נתיבים' }, { status: 400 });
+  }
+  if (variant !== 'full' && variant !== 'thumb') {
+    return NextResponse.json({ error: 'variant חייב להיות full או thumb' }, { status: 400 });
   }
   const unique = [...new Set(paths as string[])];
   if (unique.length > MAX_PHOTO_BATCH) {
@@ -51,14 +55,30 @@ export async function POST(request: NextRequest) {
   }
   if (allowed.size === 0) return NextResponse.json({ urls: {} });
 
-  const { data, error: urlError } = await supabase.storage
-    .from('worker-files')
-    .createSignedUrls([...allowed], 3600);
-  if (urlError || !data) return NextResponse.json({ error: 'לא ניתן ליצור קישורים' }, { status: 500 });
-
+  // `variant: 'thumb'` (lists): the small copy at thumbs/<path>; any photo without one falls back
+  // to the original in a second call. Authorization is always on the original path above.
   const signed = new Map<string, string>();
-  for (const item of data) {
-    if (item.path && item.signedUrl && !item.error) signed.set(item.path, item.signedUrl);
+  let toSign = [...allowed];
+  if (variant === 'thumb') {
+    const { data: thumbs, error: thumbError } = await supabase.storage
+      .from('worker-files')
+      .createSignedUrls(toSign.map(thumbPathFor), 3600);
+    if (!thumbError && thumbs) {
+      for (const item of thumbs) {
+        if (item.path && item.signedUrl && !item.error) signed.set(item.path.slice(THUMB_PREFIX.length), item.signedUrl);
+      }
+    }
+    toSign = toSign.filter((p) => !signed.has(p));
+  }
+
+  if (toSign.length > 0) {
+    const { data, error: urlError } = await supabase.storage
+      .from('worker-files')
+      .createSignedUrls(toSign, 3600);
+    if (urlError || !data) return NextResponse.json({ error: 'לא ניתן ליצור קישורים' }, { status: 500 });
+    for (const item of data) {
+      if (item.path && item.signedUrl && !item.error) signed.set(item.path, item.signedUrl);
+    }
   }
   // Keyed by the path exactly as the client sent it (the client looks it up by its own value).
   const urls: Record<string, string> = {};

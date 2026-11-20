@@ -25,6 +25,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
 import { authorizeStorageObjectAccess, normalizeStoragePath } from './authorize';
 import type { createServiceClient } from '@/lib/supabase/server';
+import { THUMB_FOLDERS, thumbPathFor } from '@/lib/images/thumbnail';
 
 type Supabase = ReturnType<typeof createServiceClient>;
 
@@ -210,7 +211,10 @@ export async function removeStorageIfUnreferenced(
   if (toRemove.length === 0) return result;
 
   try {
-    const { error } = await supabase.storage.from(BUCKET).remove(toRemove);
+    // A photo's list thumbnail (lib/images/thumbnail.ts) goes with it — it is a copy of the same
+    // person's photo and nothing references it. Removing a thumbnail that does not exist is a no-op.
+    const thumbs = toRemove.filter((p) => THUMB_FOLDERS.some((f) => p.startsWith(`${f}/`))).map(thumbPathFor);
+    const { error } = await supabase.storage.from(BUCKET).remove([...toRemove, ...thumbs]);
     if (error) {
       result.failed.push(...toRemove);
       console.error('[storage-cleanup] remove failed for', toRemove.length, 'object(s)');

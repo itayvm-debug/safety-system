@@ -113,7 +113,7 @@ function EntryCard({ worker, check, subcontractor }: { worker: WorkerWithDocumen
   const [photo, setPhoto] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    void getPhotoUrl(worker.photo_url).then((url) => { if (!cancelled) setPhoto(url); });
+    void getPhotoUrl(worker.photo_url, 'thumb').then((url) => { if (!cancelled) setPhoto(url); });
     return () => { cancelled = true; };
   }, [worker.photo_url]);
 

@@ -189,6 +189,12 @@ describe('removeStorageIfUnreferenced', () => {
     expect(removed).toEqual([['documents/old.pdf']]);
   });
 
+  it('a removed photo takes its list thumbnail with it (2026-11-20); documents have none', async () => {
+    const { client, removed } = fakeSupabase();
+    await removeStorageIfUnreferenced(client, ['photos/p.jpg', 'documents/d.pdf']);
+    expect(removed).toEqual([['photos/p.jpg', 'documents/d.pdf', 'thumbs/photos/p.jpg']]);
+  });
+
   it('keeps an object still referenced by any table, in any company', async () => {
     const { client, removed } = fakeSupabase({ refs: ['vehicle_licenses.file_url=documents/shared.pdf'] });
     const r = await removeStorageIfUnreferenced(client, ['documents/shared.pdf']);

@@ -320,7 +320,7 @@ function ManagerFilterHeader({
   useEffect(() => {
     if (!manager.photo_url) return;
     let cancelled = false;
-    void getPhotoUrl(manager.photo_url).then((url) => { if (!cancelled && url) setPhotoSrc(url); });
+    void getPhotoUrl(manager.photo_url, 'thumb').then((url) => { if (!cancelled && url) setPhotoSrc(url); });
     return () => { cancelled = true; };
   }, [manager.photo_url]);
 
@@ -432,7 +432,7 @@ function WorkerCard({
   useEffect(() => {
     if (!worker.photo_url) return;
     let cancelled = false;
-    void getPhotoUrl(worker.photo_url).then((url) => { if (!cancelled && url) setPhotoSrc(url); });
+    void getPhotoUrl(worker.photo_url, 'thumb').then((url) => { if (!cancelled && url) setPhotoSrc(url); });
     return () => { cancelled = true; };
   }, [worker.photo_url]);
 

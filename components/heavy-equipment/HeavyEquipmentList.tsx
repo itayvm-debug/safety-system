@@ -25,7 +25,7 @@ function HeavyEquipmentRow({ eq: initialEq }: { eq: HeavyEquipment }) {
   useEffect(() => {
     if (!eq.image_url) return;
     let cancelled = false;
-    void getPhotoUrl(eq.image_url).then((url) => { if (!cancelled && url) setImgSrc(url); });
+    void getPhotoUrl(eq.image_url, 'thumb').then((url) => { if (!cancelled && url) setImgSrc(url); });
     return () => { cancelled = true; };
   }, [eq.image_url]);
   const leftBorder: Record<string, string> = {

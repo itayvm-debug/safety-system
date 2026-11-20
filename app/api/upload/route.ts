@@ -4,6 +4,7 @@ import { requireCompanyAdminRole } from '@/lib/auth/company-context';
 import { rateLimitUploadDb } from '@/lib/rate-limit/db';
 import { authorizeStorageObjectAccess, normalizeStoragePath } from '@/lib/storage/authorize';
 import { issueUploadPath, isUploadIssuedFor, isStoragePathReferenced } from '@/lib/storage/file-paths';
+import { storeThumbnail, wantsThumbnail } from '@/lib/images/thumbnail';
 
 export const runtime = 'nodejs';
 
@@ -98,6 +99,17 @@ export async function POST(request: NextRequest) {
   }
 
   console.log('[upload] success, path:', fileName);
+
+  // Small copy for lists (lib/images/thumbnail.ts). A failure only means lists show the original.
+  if (wantsThumbnail(folder, file.type)) {
+    try {
+      const bytes = await storeThumbnail(supabase, fileName, Buffer.from(await file.arrayBuffer()));
+      console.log('[upload] thumbnail stored:', bytes, 'bytes');
+    } catch (e) {
+      console.warn('[upload] thumbnail failed (lists will use the original):', e instanceof Error ? e.message : e);
+    }
+  }
+
   return NextResponse.json({ path: fileName });
 }
 
