@@ -4,6 +4,7 @@ import { useState } from 'react';
 import TemplateViewer from '@/components/documents/TemplateViewer';
 import SignaturePad from '@/components/documents/SignaturePad';
 import { fitInBox } from '@/lib/documents/signature-fit';
+import { placeSignatureBlock, HEIGHT_BAN_BLOCK_AREA } from '@/lib/documents/signature-block';
 import {
   HeightRestriction,
   BriefingLanguage,
@@ -326,10 +327,8 @@ async function generateHeightBanPDF({
   const pngBytes = Uint8Array.from(atob(dataUrl.slice('data:image/png;base64,'.length)), c => c.charCodeAt(0));
   const footerImg = await pdfDoc.embedPng(pngBytes);
 
-  const margin = 30;
-  const drawW = width - margin * 2;
-  const drawH = drawW * (footerCanvas.height / footerCanvas.width);
-  lastPage.drawImage(footerImg, { x: margin, y: margin, width: drawW, height: drawH });
+  // Between the page number and the text, never over the template (lib/documents/signature-block.ts)
+  lastPage.drawImage(footerImg, placeSignatureBlock(width, footerCanvas.width, footerCanvas.height, HEIGHT_BAN_BLOCK_AREA));
 
   const bytes = await pdfDoc.save();
   return new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' });
@@ -356,8 +355,7 @@ async function renderFooterCanvas({
   canvas.width = W * SCALE; canvas.height = H * SCALE;
   const ctx = canvas.getContext('2d')!;
   ctx.scale(SCALE, SCALE);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, W, H);
+  // No background: the block must never hide anything printed on the template (2026-11-20).
   ctx.strokeStyle = '#ea580c';
   ctx.lineWidth = 3;
   ctx.strokeRect(4, 4, W - 8, H - 8);

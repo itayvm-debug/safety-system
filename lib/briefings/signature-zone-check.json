@@ -3,60 +3,105 @@
     "bytes": 413807,
     "zoneBottomPt": 105,
     "zoneTopPt": 223.9,
+    "zoneWidthPt": 535.2,
     "nonWhitePixels": 0
   },
   "english.pdf": {
     "bytes": 306464,
     "zoneBottomPt": 105,
     "zoneTopPt": 223.9,
+    "zoneWidthPt": 535.2,
     "nonWhitePixels": 0
   },
   "hebrew.pdf": {
     "bytes": 329762,
     "zoneBottomPt": 105,
     "zoneTopPt": 211.7,
+    "zoneWidthPt": 480.0,
     "nonWhitePixels": 0
   },
   "overrides/natan-valdman/arabic.pdf": {
     "bytes": 405639,
     "zoneBottomPt": 105,
     "zoneTopPt": 223.9,
+    "zoneWidthPt": 535.2,
     "nonWhitePixels": 0
   },
   "overrides/natan-valdman/english.pdf": {
     "bytes": 274285,
     "zoneBottomPt": 105,
     "zoneTopPt": 223.9,
+    "zoneWidthPt": 535.2,
     "nonWhitePixels": 0
   },
   "overrides/natan-valdman/hebrew.pdf": {
     "bytes": 315883,
     "zoneBottomPt": 105,
     "zoneTopPt": 211.7,
+    "zoneWidthPt": 480.0,
     "nonWhitePixels": 0
   },
   "overrides/natan-valdman/russian.pdf": {
     "bytes": 528956,
     "zoneBottomPt": 105,
     "zoneTopPt": 223.9,
+    "zoneWidthPt": 535.2,
     "nonWhitePixels": 0
   },
   "overrides/natan-valdman/thai.pdf": {
     "bytes": 317871,
     "zoneBottomPt": 105,
     "zoneTopPt": 223.9,
+    "zoneWidthPt": 535.2,
     "nonWhitePixels": 0
   },
   "russian.pdf": {
     "bytes": 509623,
     "zoneBottomPt": 105,
     "zoneTopPt": 223.9,
+    "zoneWidthPt": 535.2,
     "nonWhitePixels": 0
   },
   "thai.pdf": {
     "bytes": 325445,
     "zoneBottomPt": 105,
     "zoneTopPt": 223.9,
+    "zoneWidthPt": 535.2,
+    "nonWhitePixels": 0
+  },
+  "height-ban/arabic.pdf": {
+    "bytes": 291491,
+    "zoneBottomPt": 52,
+    "zoneTopPt": 190,
+    "zoneWidthPt": 460.0,
+    "nonWhitePixels": 0
+  },
+  "height-ban/english.pdf": {
+    "bytes": 239855,
+    "zoneBottomPt": 52,
+    "zoneTopPt": 190,
+    "zoneWidthPt": 460.0,
+    "nonWhitePixels": 0
+  },
+  "height-ban/hebrew.pdf": {
+    "bytes": 223258,
+    "zoneBottomPt": 52,
+    "zoneTopPt": 190,
+    "zoneWidthPt": 460.0,
+    "nonWhitePixels": 0
+  },
+  "height-ban/russian.pdf": {
+    "bytes": 256857,
+    "zoneBottomPt": 52,
+    "zoneTopPt": 190,
+    "zoneWidthPt": 460.0,
+    "nonWhitePixels": 0
+  },
+  "height-ban/thai.pdf": {
+    "bytes": 256733,
+    "zoneBottomPt": 52,
+    "zoneTopPt": 190,
+    "zoneWidthPt": 460.0,
     "nonWhitePixels": 0
   }
 }
