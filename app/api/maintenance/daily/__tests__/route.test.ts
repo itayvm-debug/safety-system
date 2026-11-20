@@ -38,13 +38,31 @@ function rpcReturns(health: { data: unknown; error: unknown }, cleanup = { data:
   rpcSpy.mockImplementation(async (name: string) => (name === 'rate_limit_cleanup' ? cleanup : health));
 }
 
+let adminEmails: string[] = [];
+let errorEvents: { source: string; status: number; created_at: string }[] = [];
+const errorEventOps: string[] = [];
+
+/** profiles → admin e-mails; app_error_events → the rows in errorEvents (ops recorded). */
+function tableChain(table: string) {
+  const result = table === 'profiles'
+    ? { data: adminEmails.map((email) => ({ email })), error: null }
+    : { data: table === 'app_error_events' ? errorEvents : [], error: null };
+  const chain: Record<string, unknown> = {};
+  for (const m of ['select', 'eq', 'gte', 'lt', 'order', 'limit', 'delete']) {
+    chain[m] = (...args: unknown[]) => { if (table === 'app_error_events') errorEventOps.push(`${m}:${String(args[0] ?? '')}`); return chain; };
+  }
+  chain.then = (r: (v: unknown) => unknown) => r(result);
+  return chain;
+}
+
 function adminsReturn(emails: string[]) {
-  const chain = { select: () => chain, eq: () => chain, then: (r: (v: unknown) => unknown) => r({ data: emails.map((email) => ({ email })), error: null }) };
-  fromSpy.mockReturnValue(chain);
+  adminEmails = emails;
 }
 
 beforeEach(() => {
   rpcSpy.mockReset(); fromSpy.mockReset(); sendSpy.mockReset();
+  adminEmails = []; errorEvents = []; errorEventOps.length = 0;
+  fromSpy.mockImplementation(tableChain);
   process.env.CRON_SECRET = 'cron-test-secret';
   process.env.RESEND_API_KEY = 're_test';
   process.env.REPORT_FROM_EMAIL = 'reports@example.test';
@@ -56,7 +74,7 @@ describe('two-factor key check', () => {
   it('fails the daily run when MFA_ENCRYPTION_KEY is missing', async () => {
     delete process.env.MFA_ENCRYPTION_KEY;
     rpcReturns({ data: OK_ROWS, error: null });
-    const r = await runDailyMaintenance({ rpc: rpcSpy } as never, vi.fn().mockResolvedValue(1));
+    const r = await runDailyMaintenance({ rpc: rpcSpy, from: fromSpy } as never, vi.fn().mockResolvedValue(1));
     expect(r.ok).toBe(false);
     expect(r.failures).toContain('MFA_ENCRYPTION_KEY missing or invalid in the environment');
   });
@@ -75,7 +93,7 @@ describe('GET /api/maintenance/daily', () => {
     rpcReturns({ data: OK_ROWS, error: null });
     const res = await GET(req('Bearer cron-test-secret'));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, deleted: 3, checks: 2, failures: 0, alerted: 0 });
+    expect(await res.json()).toEqual({ ok: true, deleted: 3, checks: 2, failures: 0, incidents: 0, alerted: 0 });
     expect(rpcSpy).toHaveBeenCalledWith('rate_limit_cleanup', { p_max_age_hours: 24 });
     expect(rpcSpy).toHaveBeenCalledWith('safedoc_health_check');
     expect(sendSpy).not.toHaveBeenCalled();
@@ -122,7 +140,7 @@ describe('vercel.json ignoreCommand (skip deploys that change only docs, SQL or 
 });
 
 describe('runDailyMaintenance', () => {
-  const db = () => ({ rpc: rpcSpy }) as never;
+  const db = () => ({ rpc: rpcSpy, from: fromSpy }) as never;
 
   it('treats a missing or failing health function as a failure (a migration that was never applied)', async () => {
     const alert = vi.fn().mockResolvedValue(1);

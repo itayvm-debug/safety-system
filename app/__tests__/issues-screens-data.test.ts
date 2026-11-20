@@ -44,12 +44,13 @@ function fakeClient() {
 }
 
 vi.mock('@/lib/supabase/server', () => ({ createServiceClient: () => fakeClient() }));
-vi.mock('@/lib/auth/company-context', () => ({
-  getCurrentCompanyContext: async () => ({
+vi.mock('@/lib/auth/company-context', () => {
+  const ctx = async () => ({
     context: { companyId: A, companyRole: 'admin', platformRole: 'user', userId: 'u', email: 'e', username: 'u', companyName: 'c', settings: {} },
     error: null,
-  }),
-}));
+  });
+  return { getCurrentCompanyContext: ctx, getPageCompanyContext: ctx };
+});
 vi.mock('next/navigation', () => ({ redirect: (to: string) => { throw new Error(`NEXT_REDIRECT:${to}`); } }));
 let lastIssues: Array<{ problem: string; entityType: string }> = [];
 vi.mock('@/components/issues/IssuesList', () => ({

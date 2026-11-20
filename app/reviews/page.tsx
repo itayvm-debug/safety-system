@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { getPageCompanyContext } from '@/lib/auth/company-context';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireReviewAuthor } from '@/lib/reviews/auth';
 import ReviewsOwnerDashboard from '@/components/reviews/ReviewsOwnerDashboard';
@@ -9,7 +9,7 @@ import { getWeekStart } from '@/lib/reviews/week';
 export const dynamic = 'force-dynamic';
 
 export default async function ReviewsPage() {
-  const { context, error: ctxError } = await getCurrentCompanyContext();
+  const { context, error: ctxError } = await getPageCompanyContext();
   if (ctxError) redirect('/dashboard');
 
   const { settings, companyRole, companyId } = context;

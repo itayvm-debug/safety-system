@@ -29,7 +29,7 @@ BEGIN
     'safety_briefings', 'height_restrictions', 'professional_licenses', 'manager_licenses',
     'vehicles', 'vehicle_licenses', 'vehicle_insurances', 'heavy_equipment', 'heavy_equipment_insurances',
     'lifting_equipment', 'lifting_machine_appointments', 'subcontractors', 'entity_notes',
-    'site_feedback', 'legal_acceptances', 'audit_logs', 'user_mfa_factors']) x
+    'site_feedback', 'legal_acceptances', 'audit_logs', 'user_mfa_factors', 'app_error_events']) x
   WHERE to_regclass('public.' || x) IS NULL;
   check_name := 'required tables'; ok := v IS NULL; detail := coalesce('missing: ' || v, 'present'); RETURN NEXT;
 
@@ -80,6 +80,13 @@ BEGIN
   -- 8. Rate-limit retention: the daily cleanup is running (no event older than 72 hours)
   SELECT count(*) INTO n FROM public.rate_limit_events WHERE created_at < now() - interval '72 hours';
   check_name := 'rate-limit cleanup running'; ok := n = 0; detail := n || ' events older than 72h'; RETURN NEXT;
+
+  -- 9. Server-error log retention (2026-11-20, supabase/proposed/2026-11-20-error-monitoring):
+  --    the daily job keeps 30 days; nothing older than 35 days should remain.
+  IF to_regclass('public.app_error_events') IS NOT NULL THEN
+    EXECUTE 'SELECT count(*) FROM public.app_error_events WHERE created_at < now() - interval ''35 days''' INTO n;
+    check_name := 'error-event cleanup running'; ok := n = 0; detail := n || ' events older than 35 days'; RETURN NEXT;
+  END IF;
 END;
 $$;
 

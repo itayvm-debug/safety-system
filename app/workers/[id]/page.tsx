@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server';
-import { getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { getPageCompanyContext } from '@/lib/auth/company-context';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { WorkerWithDocuments } from '@/types';
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export default async function WorkerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const { context, error } = await getCurrentCompanyContext();
+  const { context, error } = await getPageCompanyContext();
   if (error) redirect('/select-company');
   const { companyId, companyRole } = context;
   const canManage = companyRole !== 'member';

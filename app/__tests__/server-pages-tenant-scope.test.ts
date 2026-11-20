@@ -47,12 +47,13 @@ function fakeClient() {
 let ctx: { companyId: string; companyRole: 'owner' | 'admin' | 'member' } | null = null;
 
 vi.mock('@/lib/supabase/server', () => ({ createServiceClient: () => fakeClient() }));
-vi.mock('@/lib/auth/company-context', () => ({
-  getCurrentCompanyContext: async () =>
+vi.mock('@/lib/auth/company-context', () => {
+  const resolve = async () =>
     ctx
       ? { context: { ...ctx, userId: 'u', email: 'e', username: 'u', platformRole: 'user', companyName: 'c', settings: {} }, error: null }
-      : { context: null, error: {}, code: 'NO_SESSION' },
-}));
+      : { context: null, error: {}, code: 'NO_SESSION' };
+  return { getCurrentCompanyContext: resolve, getPageCompanyContext: resolve };
+});
 vi.mock('next/navigation', () => ({
   notFound: () => { throw new Error('NEXT_NOT_FOUND'); },
   redirect: (to: string) => { throw new Error(`NEXT_REDIRECT:${to}`); },

@@ -22,6 +22,7 @@
 import { createHash }         from 'crypto';
 import { createServiceClient } from '@/lib/supabase/server';
 import type { RateLimitResult } from './index';
+import { reportServerError } from '@/lib/monitoring/server-errors';
 
 /** SHA-256 hex digest of a string. Used to avoid storing raw IPs as keys. */
 function hashKey(value: string): string {
@@ -75,6 +76,7 @@ export async function checkRateLimitDb(
   if (error || !data || !Array.isArray(data) || data.length === 0) {
     // Never silent: until 2026-11-18 the function did not exist in production and every
     // limit failed open unnoticed. The daily health check also alerts on a missing function.
+    reportServerError({ source: `rate-limit-unavailable:${action}`, status: 500, detail: error?.message ?? 'empty result' });
     if (opts.failClosed) {
       console.error('[rate-limit] check unavailable, request REFUSED (fail-closed):', action, error?.message ?? 'empty result');
       return { allowed: false, remaining: 0, resetAt: Date.now() + 60_000 };
@@ -91,6 +93,8 @@ export async function checkRateLimitDb(
   }
 
   const row = data[0] as { allowed: boolean; remaining: number; reset_at: string };
+  // Someone hit a limit: in the field that means a stuck screen (19.11: 167 photo requests a minute).
+  if (!row.allowed) reportServerError({ source: `rate-limit:${action}`, status: 429 });
   return {
     allowed:   row.allowed,
     remaining: Math.max(0, row.remaining),

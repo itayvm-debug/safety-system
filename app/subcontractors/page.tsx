@@ -1,4 +1,4 @@
-import { getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { getPageCompanyContext } from '@/lib/auth/company-context';
 import { createServiceClient } from '@/lib/supabase/server';
 import { Subcontractor } from '@/types';
 import SubcontractorList from '@/components/subcontractors/SubcontractorList';
@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 export default async function SubcontractorsPage() {
-  const ctxResult = await getCurrentCompanyContext();
+  const ctxResult = await getPageCompanyContext();
   if (ctxResult.error) {
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');

@@ -13,6 +13,8 @@
 import { NextResponse } from 'next/server';
 import { getSession, SessionPayload } from './session';
 import { createServiceClient } from '@/lib/supabase/server';
+import { reportServerError } from '@/lib/monitoring/server-errors';
+import { DB_UNAVAILABLE_MESSAGE } from './company-context';
 
 type AuthResult =
   | { session: SessionPayload; error: null }
@@ -21,14 +23,23 @@ type AuthResult =
 /** בדיקת is_active ו-role ב-DB — מקור האמת */
 async function verifyProfileDb(
   userId: string
-): Promise<{ is_active: boolean; role: string } | null> {
+): Promise<{ is_active: boolean; role: string } | null | 'db_unavailable'> {
   const db = createServiceClient();
-  const { data } = await db
+  const { data, error } = await db
     .from('profiles')
     .select('is_active, role')
     .eq('id', userId)
     .single();
+  // A database failure is not "user disabled" (see company-context.ts, 2026-11-20)
+  if (error && error.code !== 'PGRST116') {
+    reportServerError({ source: 'auth-api', status: 503, detail: `profiles: ${error.code ?? ''} ${error.message}` });
+    return 'db_unavailable';
+  }
   return data ?? null;
+}
+
+function dbUnavailableResponse(): NextResponse {
+  return NextResponse.json({ error: DB_UNAVAILABLE_MESSAGE }, { status: 503 });
 }
 
 /** מאמת session חתום + is_active=true ב-DB */
@@ -42,6 +53,7 @@ export async function requireAuth(): Promise<AuthResult> {
   }
 
   const profile = await verifyProfileDb(session.userId);
+  if (profile === 'db_unavailable') return { session: null, error: dbUnavailableResponse() };
   if (!profile || !profile.is_active) {
     return {
       session: null,
@@ -67,6 +79,7 @@ export async function requireAdmin(): Promise<AuthResult> {
 
   // Single DB query — checks both is_active and current role
   const profile = await verifyProfileDb(session.userId);
+  if (profile === 'db_unavailable') return { session: null, error: dbUnavailableResponse() };
   if (!profile || !profile.is_active) {
     return {
       session: null,

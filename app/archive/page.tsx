@@ -1,12 +1,12 @@
 import { createServiceClient } from '@/lib/supabase/server';
-import { getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { getPageCompanyContext } from '@/lib/auth/company-context';
 import { redirect } from 'next/navigation';
 import ArchiveClient from './ArchiveClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ArchivePage() {
-  const ctxResult = await getCurrentCompanyContext();
+  const ctxResult = await getPageCompanyContext();
   if (ctxResult.error) {
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');

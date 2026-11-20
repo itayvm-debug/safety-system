@@ -53,7 +53,8 @@ describe('per-account login limit', () => {
     }));
     expect(res.status).toBe(429);
     expect(signInSpy).not.toHaveBeenCalled();
-    expect(fromSpy).not.toHaveBeenCalled();
+    // no profile lookup — the only table touched is the monitoring log of the refusal
+    expect(fromSpy.mock.calls.map((c) => c[0]).filter((t) => t !== 'app_error_events')).toEqual([]);
     expect(rpcSpy.mock.calls.map((c) => c[1].p_action)).toEqual(['login', 'login-account']);
   });
 });

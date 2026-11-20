@@ -1,7 +1,7 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
-import { getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { getPageCompanyContext } from '@/lib/auth/company-context';
 import Link from 'next/link';
 import { buildAllIssues, countByEntity, EntityCounts } from '@/lib/documents/issues';
 import { buildNoteIssues, buildEntityMap } from '@/lib/documents/notes';
@@ -162,7 +162,7 @@ function DashboardCard({
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage() {
-  const ctxResult = await getCurrentCompanyContext();
+  const ctxResult = await getPageCompanyContext();
   if (ctxResult.error) {
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');

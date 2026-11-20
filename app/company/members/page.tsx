@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { requireCompanyAdminRole } from '@/lib/auth/company-context';
+import { requirePageCompanyAdminRole } from '@/lib/auth/company-context';
 import { createServiceClient } from '@/lib/supabase/server';
 import CompanyMembersClient from './CompanyMembersClient';
 import type { CompanyRole } from '@/types';
@@ -7,7 +7,7 @@ import type { CompanyRole } from '@/types';
 export const dynamic = 'force-dynamic';
 
 export default async function CompanyMembersPage() {
-  const { context, error } = await requireCompanyAdminRole();
+  const { context, error } = await requirePageCompanyAdminRole();
   if (error) redirect('/dashboard');
 
   const supabase = createServiceClient();

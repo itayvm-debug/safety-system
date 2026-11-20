@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import LiftingForm from '@/components/lifting-equipment/LiftingForm';
-import { getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { getPageCompanyContext } from '@/lib/auth/company-context';
 import { redirect } from 'next/navigation';
 
 export default async function NewLiftingEquipmentPage() {
-  const ctxResult = await getCurrentCompanyContext();
+  const ctxResult = await getPageCompanyContext();
   if (ctxResult.error) {
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');

@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import EquipmentForm from '@/components/heavy-equipment/EquipmentForm';
-import { getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { getPageCompanyContext } from '@/lib/auth/company-context';
 import { redirect } from 'next/navigation';
 
 export default async function NewHeavyEquipmentPage() {
-  const ctxResult = await getCurrentCompanyContext();
+  const ctxResult = await getPageCompanyContext();
   if (ctxResult.error) {
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');

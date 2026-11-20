@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
-import { getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { getPageCompanyContext } from '@/lib/auth/company-context';
 import { buildAllIssues } from '@/lib/documents/issues';
 import { buildNoteIssues, buildEntityMap } from '@/lib/documents/notes';
 import { loadIssueData } from '@/lib/documents/issue-data';
@@ -13,7 +13,7 @@ export default async function IssuesPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  const ctxResult = await getCurrentCompanyContext();
+  const ctxResult = await getPageCompanyContext();
   if (ctxResult.error) {
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');

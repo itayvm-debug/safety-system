@@ -3,14 +3,14 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { HeavyEquipment } from '@/types';
 import EquipmentForm from '@/components/heavy-equipment/EquipmentForm';
-import { getCurrentCompanyContext } from '@/lib/auth/company-context';
+import { getPageCompanyContext } from '@/lib/auth/company-context';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EditHeavyEquipmentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const ctxResult = await getCurrentCompanyContext();
+  const ctxResult = await getPageCompanyContext();
   if (ctxResult.error) {
     if (ctxResult.code === 'NEEDS_COMPANY_SELECTION') redirect('/select-company');
     redirect('/login');
