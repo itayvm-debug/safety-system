@@ -54,7 +54,7 @@
 | בקרה | מצב | הערה |
 |------|-----|-------|
 | Incident Response Procedure | ⚠️ טיוטה | ראה INCIDENT_RESPONSE_PROCEDURE |
-| Backup procedure | ⚠️ לאמת | Supabase Point-in-Time Recovery? |
+| Backup procedure | ✅ ידני-מקומי | `npm run backup` למחשב הבעלים (DB, משתמשים, קבצים); אין PITR (Supabase חינמי). `docs/operations/BACKUP_AND_RECOVERY_RUNBOOK_HE.md` |
 | Disaster Recovery | ❌ לא מתועד | להשלים |
 | Security training | ❌ לא מתועד | |
 | Vendor security review | ⚠️ חלקי | Supabase, Vercel — SOC2? |

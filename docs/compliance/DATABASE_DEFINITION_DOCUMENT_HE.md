@@ -82,7 +82,7 @@
 - הצפנת אחסון: AES-256 בשרת (Supabase/AWS)
 - אימות: HMAC-SHA256 session cookies, httpOnly, SameSite=lax
 - הרשאות: Row Level Security + API authorization layer
-- גיבויים: Supabase Pro (Point-in-Time Recovery)
+- גיבויים: גיבוי מקומי במחשב הבעלים (`npm run backup`, ראה `docs/operations/BACKUP_AND_RECOVERY_RUNBOOK_HE.md`). Supabase בתוכנית החינמית — אין PITR (תוקן 2026-11-20).
 - Audit trail: כל פעולות משתמשים נרשמות ב-audit_logs
 
 ---
