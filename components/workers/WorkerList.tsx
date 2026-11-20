@@ -179,6 +179,14 @@ export default function WorkerList({ canManage = true }: { canManage?: boolean }
           )}
           {isOnline && canManage && (
             <Link
+              href="/briefings/group"
+              className="border border-orange-300 text-orange-700 text-sm font-medium px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors whitespace-nowrap"
+            >
+              תדריך קבוצתי
+            </Link>
+          )}
+          {isOnline && canManage && (
+            <Link
               href="/workers/new"
               className="bg-orange-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
             >

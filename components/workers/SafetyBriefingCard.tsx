@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import TemplateViewer from '@/components/documents/TemplateViewer';
 import SignaturePad from '@/components/documents/SignaturePad';
-import { fitInBox } from '@/lib/documents/signature-fit';
+import { fetchBriefingTemplateUrl, saveSystemBriefing } from '@/lib/briefings/system-briefing';
 import FileUploadZone from '@/components/FileUploadZone';
 import {
   SafetyBriefing,
@@ -168,16 +168,10 @@ function SystemBriefingFlow({
     setError('');
     setTemplateLoading(true);
     try {
-      const res = await fetch(`/api/briefing-template?language=${language}`);
-      const d = await res.json() as { url?: string; error?: string };
-      if (!res.ok || !d.url) {
-        setError(d.error ?? 'שגיאה בטעינת תבנית התדריך');
-        return;
-      }
-      setResolvedTemplateUrl(d.url);
+      setResolvedTemplateUrl(await fetchBriefingTemplateUrl(language));
       setStep('briefing');
-    } catch {
-      setError('שגיאת תקשורת בטעינת תבנית');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'שגיאה בטעינת תבנית התדריך');
     } finally {
       setTemplateLoading(false);
     }
@@ -190,60 +184,16 @@ function SystemBriefingFlow({
     }
     setSaving(true);
     setError('');
-    const briefedAt = new Date().toISOString().split('T')[0];
-
     try {
-      // שלב 1: יצירת PDF — חובה, כישלון עוצר הכל
-      setSaveStatus('מייצר PDF...');
-      let pdfBlob: Blob;
-      try {
-        pdfBlob = await generateBriefingPDF({
-          worker,
-          language: language as BriefingLanguage,
-          conductedBy,
-          signatureDataUrl,
-          briefedAt,
-          templateUrl: resolvedTemplateUrl,
-        });
-      } catch (pdfErr) {
-        setError(`שגיאה ביצירת PDF: ${pdfErr instanceof Error ? pdfErr.message : String(pdfErr)}`);
-        return;
-      }
-
-      // שלב 2: העלאה ל-Storage
-      setSaveStatus('מעלה PDF...');
-      const fd = new FormData();
-      fd.append('file', pdfBlob, 'briefing.pdf');
-      fd.append('folder', 'briefings');
-      console.log('[upload:briefing] starting, blob size:', pdfBlob.size, pdfBlob.type);
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
-      console.log('[upload:briefing] status:', uploadRes.status, uploadRes.ok);
-      const uploadData = await uploadRes.json().catch(e => { console.error('[upload:briefing] json parse error:', e, 'content-type:', uploadRes.headers.get('content-type')); return {}; });
-      if (!uploadRes.ok) {
-        console.error('[upload:briefing] server error:', uploadRes.status, uploadData);
-        setError(`שגיאה בהעלאה: ${uploadData.error ?? uploadRes.status}`);
-        return;
-      }
-
-      // שלב 3: שמירת רשומה ב-DB
-      setSaveStatus('שומר...');
-      const res = await fetch('/api/safety-briefings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          worker_id: worker.id,
-          mode: 'system',
-          language,
-          conducted_by: conductedBy,
-          file_url: uploadData.path,
-          briefed_at: briefedAt,
-        }),
-      });
-      const savedBriefing = await res.json();
-      if (!res.ok) { setError(savedBriefing.error ?? 'שגיאה בשמירה'); return; }
-      onSaved(savedBriefing);
+      onSaved(await saveSystemBriefing({
+        worker,
+        language: language as BriefingLanguage,
+        conductedBy,
+        signatureDataUrl,
+        templateUrl: resolvedTemplateUrl,
+      }, setSaveStatus));
     } catch (err) {
-      setError(`שגיאה: ${err instanceof Error ? err.message : String(err)}`);
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
       setSaveStatus('');
@@ -393,140 +343,6 @@ function ExternalModeForm({ workerId, onClose, onSaved }: { workerId: string; on
       </div>
     </div>
   );
-}
-
-// ─── יצירת footer canvas (browser מטפל ב-RTL/עברית/ערבית) ──────
-async function renderFooterCanvas({
-  worker,
-  language,
-  conductedBy,
-  briefedAt,
-  signatureDataUrl,
-}: {
-  worker: WorkerWithDocuments;
-  language: BriefingLanguage;
-  conductedBy: string;
-  briefedAt: string;
-  signatureDataUrl: string;
-}): Promise<HTMLCanvasElement> {
-  const isRTL = language === 'hebrew' || language === 'arabic';
-  const SCALE = 2;
-  const W = 900, H = 200;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = W * SCALE;
-  canvas.height = H * SCALE;
-  const ctx = canvas.getContext('2d')!;
-  ctx.scale(SCALE, SCALE);
-
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, W, H);
-
-  // קו כתום עליון
-  ctx.fillStyle = '#ea580c';
-  ctx.fillRect(0, 0, W, 3);
-
-  ctx.direction = isRTL ? 'rtl' : 'ltr';
-  ctx.textAlign = isRTL ? 'right' : 'left';
-  const AX = isRTL ? W - 12 : 12;
-
-  // פרטי עובד (שדות דינמיים בלבד)
-  const exp = new Date(briefedAt);
-  exp.setFullYear(exp.getFullYear() + 1);
-  const fmt = (s: string) => new Date(s).toLocaleDateString('he-IL');
-
-  ctx.font = '13px Arial';
-  ctx.fillStyle = '#374151';
-
-  if (isRTL) {
-    ctx.fillText(`שם: ${worker.full_name}    ת.ז.: ${worker.id_number}`, AX, 26);
-    ctx.fillText(`תאריך: ${fmt(briefedAt)}    תוקף: ${exp.toLocaleDateString('he-IL')}`, AX, 48);
-    ctx.fillText(`מדריך: ${conductedBy}`, AX, 70);
-  } else {
-    ctx.fillText(`Name: ${worker.full_name}    ID: ${worker.id_number}`, AX, 26);
-    ctx.fillText(`Date: ${fmt(briefedAt)}    Valid until: ${exp.toLocaleDateString('he-IL')}`, AX, 48);
-    ctx.fillText(`Instructor: ${conductedBy}`, AX, 70);
-  }
-
-  // קו הפרדה
-  ctx.strokeStyle = '#e2e8f0';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(12, 84); ctx.lineTo(W - 12, 84); ctx.stroke();
-
-  // חתימה — מרוכזת מתחת לקו ההפרדה
-  if (signatureDataUrl) {
-    const sigImg = new Image();
-    await new Promise<void>((res, rej) => {
-      sigImg.onload = () => res();
-      sigImg.onerror = rej;
-      sigImg.src = signatureDataUrl;
-    });
-    const sigW = 220, sigH = 80;
-    const SX = Math.round((W - sigW) / 2);
-    const fit = fitInBox(sigImg.naturalWidth, sigImg.naturalHeight, { x: SX, y: 92, w: sigW, h: sigH });
-    ctx.drawImage(sigImg, fit.x, fit.y, fit.w, fit.h);
-    ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(SX, 176); ctx.lineTo(SX + sigW, 176); ctx.stroke();
-    ctx.font = '11px Arial';
-    ctx.fillStyle = '#6b7280';
-    ctx.textAlign = 'center';
-    ctx.fillText(isRTL ? 'חתימת העובד' : 'Worker Signature', W / 2, 191);
-  }
-
-  return canvas;
-}
-
-// ─── יצירת PDF — טוען template קיים ומוסיף עמוד חתימה ──────────
-async function generateBriefingPDF({
-  worker,
-  language,
-  conductedBy,
-  signatureDataUrl,
-  briefedAt,
-  templateUrl,
-}: {
-  worker: WorkerWithDocuments;
-  language: BriefingLanguage;
-  conductedBy: string;
-  signatureDataUrl: string;
-  briefedAt: string;
-  templateUrl: string;
-}): Promise<Blob> {
-  const { PDFDocument } = await import('pdf-lib');
-
-  const templateRes = await fetch(templateUrl);
-  if (!templateRes.ok) {
-    throw new Error(`קובץ תבנית לא נמצא: ${templateUrl} (${templateRes.status})`);
-  }
-  const templateBytes = await templateRes.arrayBuffer();
-
-  const pdfDoc = await PDFDocument.load(templateBytes);
-  const lastPage = pdfDoc.getPages().at(-1)!;
-  const { width } = lastPage.getSize();
-
-  // מרנדר את footer כ-canvas (browser מטפל ב-RTL/Hebrew/Arabic)
-  const footerCanvas = await renderFooterCanvas({
-    worker, language, conductedBy, briefedAt, signatureDataUrl,
-  });
-
-  // canvas → PNG bytes
-  const dataUrl = footerCanvas.toDataURL('image/png');
-  const pngBytes = Uint8Array.from(
-    atob(dataUrl.slice('data:image/png;base64,'.length)),
-    c => c.charCodeAt(0),
-  );
-
-  // מטמיע את ה-PNG בעמוד האחרון (bottom section)
-  const footerImg = await pdfDoc.embedPng(pngBytes);
-  const margin = 30;
-  const drawW = width - margin * 2;
-  const drawH = drawW * (footerCanvas.height / footerCanvas.width);
-
-  lastPage.drawImage(footerImg, { x: margin, y: margin, width: drawW, height: drawH });
-
-  const bytes = await pdfDoc.save();
-  return new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' });
 }
 
 // ─── מודל תצוגת מסמך מובנה ──────────────────────────────────────
