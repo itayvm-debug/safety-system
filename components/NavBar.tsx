@@ -15,6 +15,7 @@ import {
 
 const NAV_LINKS = [
   { href: '/issues', label: 'דורש טיפול', prefix: '/issues' },
+  { href: '/check', label: 'בדיקת כניסה', prefix: '/check' },
   { href: '/workers', label: 'עובדים', prefix: '/workers' },
   { href: '/site-managers', label: 'מנהלי עבודה', prefix: '/site-managers' },
   { href: '/vehicles', label: 'רכבים', prefix: '/vehicles' },
