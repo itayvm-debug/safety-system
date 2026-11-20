@@ -49,8 +49,7 @@ export async function renderFooterCanvas({
   const ctx = canvas.getContext('2d')!;
   ctx.scale(SCALE, SCALE);
 
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, W, H);
+  // No background: the block must never hide anything printed on the template (2026-11-20).
 
   // קו כתום עליון
   ctx.fillStyle = '#ea580c';
@@ -137,13 +136,22 @@ export async function generateBriefingPDF({
 
   const footerImg = await pdfDoc.embedPng(pngBytes);
   const margin = 30;
+  // Above the template's own page footer (logo / page number, up to 97pt high in the company
+  // templates) and below the body text (ends ≥275pt from the bottom). Checked for every template
+  // by scripts/check-briefing-signature-zone.py → lib/briefings/signature-zone-check.json.
   const drawW = width - margin * 2;
   const drawH = drawW * (footerCanvas.height / footerCanvas.width);
-  lastPage.drawImage(footerImg, { x: margin, y: margin, width: drawW, height: drawH });
+  lastPage.drawImage(footerImg, { x: margin, y: SIGNATURE_BLOCK_BOTTOM_PT, width: drawW, height: drawH });
 
   const bytes = await pdfDoc.save();
   return new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' });
 }
+
+/**
+ * Bottom of the signature block on the template's last page, in PDF points. Until 2026-11-20 it
+ * was 30pt with a white background, which hid the logo of the templates' page footer.
+ */
+export const SIGNATURE_BLOCK_BOTTOM_PT = 105;
 
 /** The upload limit (30 per 10 minutes per user) was reached; nothing was recorded. */
 export class RateLimitedError extends Error {
