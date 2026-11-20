@@ -105,3 +105,12 @@ describe('wiring', () => {
     expect(group).toContain('beforeunload'); // unsaved signatures are not lost silently
   });
 });
+
+describe('briefing footer ID', () => {
+  it('prints the ID / passport, or a dash — never "null" (QA PDF 2026-11-20 showed "ID: null")', async () => {
+    const { footerIdText } = await import('@/lib/briefings/system-briefing');
+    expect(footerIdText({ id: 'w', full_name: 'x', id_number: null })).toBe('—');
+    expect(footerIdText({ id: 'w', full_name: 'x', id_number: null, passport_number: 'P123' })).toBe('P123');
+    expect(footerIdText({ id: 'w', full_name: 'x', id_number: '012345678', passport_number: 'P1' })).toBe('012345678');
+  });
+});

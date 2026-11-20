@@ -8,7 +8,13 @@
 import type { BriefingLanguage, SafetyBriefing, WorkerWithDocuments } from '@/types';
 import { fitInBox } from '@/lib/documents/signature-fit';
 
-type BriefingWorker = Pick<WorkerWithDocuments, 'id' | 'full_name' | 'id_number'>;
+type BriefingWorker = Pick<WorkerWithDocuments, 'id' | 'full_name' | 'id_number'>
+  & Partial<Pick<WorkerWithDocuments, 'national_id' | 'passport_number'>>;
+
+/** ID / passport printed in the footer; never the text "null" (seen 2026-11-20 on a worker without one). */
+export function footerIdText(worker: BriefingWorker): string {
+  return (worker.id_number || worker.national_id || worker.passport_number || '').trim() || '—';
+}
 
 /** Template for the language as configured for the active company (/api/briefing-template). */
 export async function fetchBriefingTemplateUrl(language: BriefingLanguage): Promise<string> {
@@ -63,11 +69,11 @@ export async function renderFooterCanvas({
   ctx.fillStyle = '#374151';
 
   if (isRTL) {
-    ctx.fillText(`שם: ${worker.full_name}    ת.ז.: ${worker.id_number}`, AX, 26);
+    ctx.fillText(`שם: ${worker.full_name}    ת.ז.: ${footerIdText(worker)}`, AX, 26);
     ctx.fillText(`תאריך: ${fmt(briefedAt)}    תוקף: ${exp.toLocaleDateString('he-IL')}`, AX, 48);
     ctx.fillText(`מדריך: ${conductedBy}`, AX, 70);
   } else {
-    ctx.fillText(`Name: ${worker.full_name}    ID: ${worker.id_number}`, AX, 26);
+    ctx.fillText(`Name: ${worker.full_name}    ID: ${footerIdText(worker)}`, AX, 26);
     ctx.fillText(`Date: ${fmt(briefedAt)}    Valid until: ${exp.toLocaleDateString('he-IL')}`, AX, 48);
     ctx.fillText(`Instructor: ${conductedBy}`, AX, 70);
   }
