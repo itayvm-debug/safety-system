@@ -22,6 +22,15 @@ npm run backup
 - הרצה ראשונה: ~7 דקות (394MB). הרצות הבאות: ~20 שניות + קבצים חדשים בלבד.
 - קוד יציאה 0 = הצליח; 1 = היו כשלים (מפורטים ב-`manifest.json`); 2 = חסרים משתני סביבה / תיקייה אסורה.
 
+### 1.1א הרצה שבועית אוטומטית (הוגדרה 2026-11-20)
+- משימה ב-Windows Task Scheduler: **`SafeDoc weekly backup`** — כל יום ראשון 09:00. אם המחשב היה כבוי, רצה כשהוא נדלק (`StartWhenAvailable`); רק עם רשת; עד שעה.
+- רצה כמשתמש המחובר, בלי הרשאות מנהל, בחלון מוסתר: `powershell.exe -File scripts\run-backup.ps1`.
+- הפלט נשמר ב-`SafeDoc-Backups\backup.log`. **בכשל קופצת הודעה על המסך** עם נתיב הלוג.
+- בדיקת מצב: `Get-ScheduledTask -TaskName 'SafeDoc weekly backup' | Get-ScheduledTaskInfo` (‏`LastTaskResult` 0 = הצליח).
+- הפעלה מיידית: `Start-ScheduledTask -TaskName 'SafeDoc weekly backup'`.
+- הסרה: `Unregister-ScheduledTask -TaskName 'SafeDoc weekly backup' -Confirm:$false`.
+- אם תיקיית הפרויקט זזה — לרשום את המשימה מחדש (הנתיב לסקריפט שמור בה).
+
 ### 1.2 מבנה התיקייה
 ```
 SafeDoc-Backups\
@@ -80,7 +89,7 @@ SafeDoc-Backups\
 
 | פעולה | תדירות | אחראי |
 |-------|---------|-------|
-| `npm run backup` | שבועי | בעלים |
+| `npm run backup` | שבועי — אוטומטי (ראשון 09:00) | Task Scheduler |
 | בדיקה ש-`manifest.json` האחרון בלי כשלים | שבועי | בעלים |
 | עותק לדיסק חיצוני | חודשי (המלצה) | בעלים |
 | שחזור לבדיקה | כשתוקם סביבת בדיקות | — |
