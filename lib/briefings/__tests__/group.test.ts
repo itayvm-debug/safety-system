@@ -114,3 +114,11 @@ describe('briefing footer ID', () => {
     expect(footerIdText({ id: 'w', full_name: 'x', id_number: '012345678', passport_number: 'P1' })).toBe('012345678');
   });
 });
+
+describe('Hebrew counts on the group screen', () => {
+  it('"עובד אחד", never "1 עובדים" (seen in the live check 2026-11-20)', () => {
+    const src = readFileSync(join(__dirname, '..', '..', '..', 'components', 'briefings', 'GroupBriefingFlow.tsx'), 'utf8');
+    expect(src).not.toMatch(/\$\{selected\.size\} עובדים/);
+    expect(src).toContain("n === 1 ? 'עובד אחד'");
+  });
+});

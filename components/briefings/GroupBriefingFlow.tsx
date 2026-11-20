@@ -22,6 +22,8 @@ import {
 type Step = 'select' | 'setup' | 'present' | 'sign' | 'save';
 const LANGS = Object.entries(BRIEFING_LANGUAGE_LABELS) as [BriefingLanguage, string][];
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** "עובד אחד" / "3 עובדים" */
+const workersCount = (n: number) => (n === 1 ? 'עובד אחד' : `${n} עובדים`);
 
 export default function GroupBriefingFlow() {
   const [step, setStep] = useState<Step>('select');
@@ -250,7 +252,7 @@ export default function GroupBriefingFlow() {
           <div className="sticky bottom-0 mt-4 bg-white/95 py-3">
             <button type="button" disabled={selected.size === 0} onClick={goToSetup}
               className="w-full rounded-xl bg-orange-500 py-3 font-semibold text-white disabled:opacity-40">
-              {selected.size === 0 ? 'בחר עובדים' : `המשך עם ${selected.size} עובדים ←`}
+              {selected.size === 0 ? 'בחר עובדים' : `המשך עם ${workersCount(selected.size)} ←`}
             </button>
           </div>
         </section>
@@ -308,7 +310,7 @@ export default function GroupBriefingFlow() {
           </p>
           <TemplateViewer
             key={languages[presentIndex]}
-            title={`תדריך בטיחות — ${BRIEFING_LANGUAGE_LABELS[languages[presentIndex]]} (${participants.filter((p) => p.language === languages[presentIndex]).length} עובדים)`}
+            title={`תדריך בטיחות — ${BRIEFING_LANGUAGE_LABELS[languages[presentIndex]]} (${workersCount(participants.filter((p) => p.language === languages[presentIndex]).length)})`}
             src={templates[languages[presentIndex]]!}
             onContinue={() => (presentIndex + 1 < languages.length ? setPresentIndex(presentIndex + 1) : setStep('sign'))}
             onBack={() => (presentIndex > 0 ? setPresentIndex(presentIndex - 1) : setStep('setup'))}
@@ -337,7 +339,7 @@ export default function GroupBriefingFlow() {
             {savingRun ? 'שומר את התדריכים — אל תסגור את הדף.' : stats.failed > 0 ? 'חלק מהתדריכים לא נשמרו.' : 'התדריך הקבוצתי הושלם.'}
           </p>
           {waitNotice && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800" role="status">{waitNotice}</p>}
-          <p className="text-sm text-gray-600">נשמרו {stats.saved} מתוך {stats.signed} חתימות{stats.skipped ? ` · ${stats.skipped} לא נכחו` : ''}</p>
+          <p className="text-sm text-gray-600">{stats.signed === 1 ? (stats.saved === 1 ? 'החתימה נשמרה' : 'החתימה עוד לא נשמרה') : `נשמרו ${stats.saved} מתוך ${stats.signed} חתימות`}{stats.skipped ? ` · ${stats.skipped === 1 ? 'עובד אחד לא נכח' : `${stats.skipped} לא נכחו`}` : ''}</p>
           <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
             {order.map((id) => {
               const sign = signs[id]?.kind;
